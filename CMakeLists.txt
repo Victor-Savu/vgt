@@ -1,0 +1,82 @@
+
+#
+# Author: Victor-Nicolae Savu
+#
+#
+
+cmake_minimum_required (VERSION 2.4)
+
+project(VGT C)
+
+#set(CMAKE_BUILD_TYPE RelWithDebugInfo)
+#set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
+
+cmake_policy(SET CMP0003 NEW)
+
+link_directories("$ENV{CUSTOM_MODULES_PATH}/lib")
+include_directories("$ENV{CUSTOM_MODULES_PATH}/include")
+include_directories("${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}")
+
+set(INSTALL_LIB_DIR "$ENV{CUSTOM_MODULES_PATH}/lib" CACHE PATH
+        "Installation directory for libraries")
+set(INSTALL_BIN_DIR "$ENV{CUSTOM_MODULES_PATH}/bin" CACHE PATH
+        "Installation directory for executables")
+set(INSTALL_INCLUDE_DIR "$ENV{CUSTOM_MODULES_PATH}/include" CACHE PATH
+        "Installation directory for header files")
+
+
+
+
+set(vgt_sources
+        vgt/volumetric_data.c
+        vgt/vec.c
+        vgt/scalar_field.c
+        vgt/array.c
+        vgt/red_black_tree.c
+        vgt/red_black_node.c
+        vgt/vector_field.c
+        vgt/obj.c
+        vgt/list.c
+        vgt/list_element.c
+   )
+
+set(vgt_headers
+        vgt/vec.h
+        vgt/obj.h
+        vgt/vector_field.h
+        vgt/volumetric_data.h
+        vgt/types.h
+        vgt/scalar_field.h
+        vgt/list.h
+        vgt/list_element.h
+        vgt/voxel.h
+        vgt/array.h
+        vgt/topology.h
+        vgt/red_black_tree.h
+        vgt/red_black_node.h
+   )
+
+add_library(vgt SHARED ${vgt_sources} ${math_sources} ${ads_sources})
+target_link_libraries(vgt m)
+
+install(FILES ${vgt_headers} DESTINATION "${INSTALL_INCLUDE_DIR}/vgt")
+
+install(TARGETS vgt DESTINATION ${INSTALL_LIB_DIR})
+
+add_executable(test_volumetric_data test/test_volumetric_data.c)
+add_executable(test_div test/test_div.c)
+add_executable(test_scalar_field test/test_scalar_field.c)
+add_executable(test_vector_field test/test_vector_field.c)
+add_executable(test_lapl test/test_lapl.c)
+add_executable(test_list test/test_list.c)
+
+target_link_libraries(test_volumetric_data m vgt)
+target_link_libraries(test_div m vgt)
+target_link_libraries(test_scalar_field m vgt)
+target_link_libraries(test_vector_field m vgt)
+target_link_libraries(test_lapl m vgt)
+target_link_libraries(test_list m vgt)
+
+
+
