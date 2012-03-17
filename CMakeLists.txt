@@ -25,8 +25,40 @@ set(INSTALL_BIN_DIR "$ENV{CUSTOM_MODULES_PATH}/bin" CACHE PATH
 set(INSTALL_INCLUDE_DIR "$ENV{CUSTOM_MODULES_PATH}/include" CACHE PATH
         "Installation directory for header files")
 
+set(math_sources
+        math/vec.c
+        math/frame.c
+    )
 
+set(math_headers
+        math/vec.h
+        math/spherical.h
+        math/spherical_cls.h
+        math/frame.h
+        math/frame_cls.h
+    )
 
+add_library(math SHARED ${math_sources})
+target_link_libraries(math m)
+
+set(view_sources
+        view/renderer.c
+        view/graphics.c
+        view/camera.c
+    )
+
+set(view_headers
+        view/renderer.h
+        view/graphics.h
+        view/graphics_cls.h
+        view/camera.h
+        view/camera_cls.h
+        view/mouse.h
+        view/mouse_cls.h
+   )
+
+add_library(view SHARED ${view_sources})
+target_link_libraries(view m math)
 
 set(vgt_sources
         vgt/volumetric_data.c
@@ -57,12 +89,14 @@ set(vgt_headers
         vgt/red_black_node.h
    )
 
-add_library(vgt SHARED ${vgt_sources} ${math_sources} ${ads_sources})
-target_link_libraries(vgt m)
+add_library(vgt SHARED ${vgt_sources} ${ads_sources})
+target_link_libraries(vgt m math)
 
 install(FILES ${vgt_headers} DESTINATION "${INSTALL_INCLUDE_DIR}/vgt")
+install(FILES ${math_headers} DESTINATION "${INSTALL_INCLUDE_DIR}/math")
+install(FILES ${view_headers} DESTINATION "${INSTALL_INCLUDE_DIR}/view")
 
-install(TARGETS vgt DESTINATION ${INSTALL_LIB_DIR})
+install(TARGETS vgt math view DESTINATION ${INSTALL_LIB_DIR})
 
 add_executable(test_volumetric_data test/test_volumetric_data.c)
 add_executable(test_div test/test_div.c)
