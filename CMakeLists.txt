@@ -27,11 +27,13 @@ set(INSTALL_INCLUDE_DIR "$ENV{CUSTOM_MODULES_PATH}/include" CACHE PATH
 
 set(math_sources
         math/vec.c
+        math/mat.h
         math/frame.c
     )
 
 set(math_headers
         math/vec.h
+        math/mat.h
         math/spherical.h
         math/spherical_cls.h
         math/frame.h
@@ -40,6 +42,34 @@ set(math_headers
 
 add_library(math SHARED ${math_sources})
 target_link_libraries(math m)
+
+set(vgt_sources
+        vgt/volumetric_data.c
+        vgt/scalar_field.c
+        vgt/array.c
+        vgt/red_black_tree.c
+        vgt/red_black_node.c
+        vgt/vector_field.c
+        vgt/list.c
+        vgt/list_element.c
+   )
+
+set(vgt_headers
+        vgt/vector_field.h
+        vgt/volumetric_data.h
+        vgt/types.h
+        vgt/scalar_field.h
+        vgt/list.h
+        vgt/list_element.h
+        vgt/voxel.h
+        vgt/array.h
+        vgt/topology.h
+        vgt/red_black_tree.h
+        vgt/red_black_node.h
+   )
+
+add_library(vgt SHARED ${vgt_sources} ${ads_sources})
+target_link_libraries(vgt m math)
 
 set(view_sources
         view/renderer.c
@@ -59,38 +89,6 @@ set(view_headers
 
 add_library(view SHARED ${view_sources})
 target_link_libraries(view m math)
-
-set(vgt_sources
-        vgt/volumetric_data.c
-        vgt/vec.c
-        vgt/scalar_field.c
-        vgt/array.c
-        vgt/red_black_tree.c
-        vgt/red_black_node.c
-        vgt/vector_field.c
-        vgt/obj.c
-        vgt/list.c
-        vgt/list_element.c
-   )
-
-set(vgt_headers
-        vgt/vec.h
-        vgt/obj.h
-        vgt/vector_field.h
-        vgt/volumetric_data.h
-        vgt/types.h
-        vgt/scalar_field.h
-        vgt/list.h
-        vgt/list_element.h
-        vgt/voxel.h
-        vgt/array.h
-        vgt/topology.h
-        vgt/red_black_tree.h
-        vgt/red_black_node.h
-   )
-
-add_library(vgt SHARED ${vgt_sources} ${ads_sources})
-target_link_libraries(vgt m math)
 
 install(FILES ${vgt_headers} DESTINATION "${INSTALL_INCLUDE_DIR}/vgt")
 install(FILES ${math_headers} DESTINATION "${INSTALL_INCLUDE_DIR}/math")

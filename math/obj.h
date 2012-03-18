@@ -1,7 +1,7 @@
-#ifndef VGT_OBJ_H
-#define VGT_OBJ_H
+#ifndef MATH_OBJ_H
+#define MATH_OBJ_H
 
-#include <vgt/types.h>
+#include <math/types.h>
 #include <stddef.h>
 
 /*

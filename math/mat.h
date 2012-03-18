@@ -1,0 +1,32 @@
+#ifndef MATH_MAT_H
+#define MATH_MAT_H
+
+#include <math/types.h>
+
+#define MAT_IDENTITY    \
+    {
+        {1.0, 0.0, 0.0, 0.0}, \
+        {0.0, 1.0, 0.0, 0.0}, \
+        {0.0, 0.0, 1.0, 0.0}, \
+        {0.0, 0.0, 0.0, 1.0} \
+    }
+
+#define MAT_ZERO        \
+    {
+        {0.0, 0.0, 0.0, 0.0}, \
+        {0.0, 0.0, 0.0, 0.0}, \
+        {0.0, 0.0, 0.0, 0.0}, \
+        {0.0, 0.0, 0.0, 0.0} \
+    }
+
+Mat* matScale(Mat* restrict a, real s,  Mat* restrict b);
+Mat* matTranspose(Mat* restrict a, Mat* restrict b);
+Mat* matMul(Mat* restrict a, Mat* restrict b, Mat* restrict c);
+Vec* matCross(Mat* restrict a, Vec* restrict b, Vec* restrict c);
+
+Mat* matScaleI(Mat* restrict a, real s);
+Mat* matTransposeI(Mat* restrict a);
+Mat* matMulI(Mat* restrict a, Mat* restrict b);
+Vec* matCrossI(Mat* restrict a, Vec* restrict b);
+
+#endif//MATH_MAT_H

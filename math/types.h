@@ -17,8 +17,11 @@ typedef float           real;
 typedef unsigned char   byte;
 typedef unsigned char   bool;
 typedef unsigned int    uint;
+typedef real            Vec[3];
+typedef Vec             Mat[3];
+typedef void*           Obj;
 
-typedef struct Vec*         Vec;
+
 typedef struct Spherical*   Spherical;
 typedef struct Frame*       Frame;
 

@@ -5,29 +5,31 @@
 
 #include <stdio.h>
 
-Vec vCreate(real x, real y, real z);
-Vec vSet(real x, real y, real z, Vec a);
-real vGetX(Vec a);
-real vGetY(Vec a);
-real vGetZ(Vec a);
-//const Vec const vZero(void);
-//const Vec vX(void);
-//const Vec vY(void);
-//const Vec vZ(void);
-void vDestroy(Vec a);
-real vDot(const Vec a, const Vec b);
-real vNorm(const Vec a);
-Vec vCross(const Vec a, const Vec b, Vec c);
-Vec vAdd(const Vec a, const Vec b, Vec c);
-Vec vScale(const Vec a, real s, Vec b);
-Vec vMinus(const Vec a, Vec b);
-Vec vSub(const Vec a, const Vec b, Vec c);
-Vec vNormalize(const Vec a, Vec b);
-Vec vCopy(const Vec from, Vec to);
+Vec* vCreate(real x, real y, real z);
+Vec* vSet(real x, real y, real z, Vec* restrict a);
+real vGetX(Vec* restrict a);
+real vGetY(Vec* restrict a);
+real vGetZ(Vec* restrict a);
 
+void vDestroy(Vec* restrict a);
+real vDot(Vec* restrict a, const Vec* restrict b);
+real vNormSquared(Vec* restrict a);
+real vNorm(Vec* restrict a);
+Vec* vCopy(Vec* restrict from, Vec* restrict to);
+Vec* vCross(Vec* restrict a, const Vec* restrict b, Vec* restrict c);
+Vec* vAdd(Vec* restrict a, const Vec* restrict b, Vec* restrict c);
+Vec* vScale(Vec* restrict a, real s, Vec* restrict b);
+Vec* vSub(Vec* restrict a, const Vec* restrict b, Vec* restrict c);
+Vec* vNormalize(Vec* restrict a, Vec* restrict b);
 
-void vPrint(const Vec a, FILE* fp);
-char* vStrPrint(const Vec a, char* s);
+Vec* vCrossI(Vec* restrict a, const Vec* restrict b);
+Vec* vAddI(Vec* restrict a, const Vec* restrict b);
+Vec* vScaleI(Vec* restrict a, real s);
+Vec* vSubI(Vec* restrict a, const Vec* restrict b);
+Vec* vNormalizeI(Vec* restrict a);
+
+void vPrint(Vec* restrict a, FILE* restrict fp);
+char* vStrPrint(Vec* restrict a, char* s);
 
 #endif//VGT_VEC_H
 

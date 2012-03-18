@@ -12,138 +12,124 @@
 //static const struct Vec const_y = {0.0, 1.0, 0.0};
 //static const struct Vec const_z = {0.0, 0.0, 1.0};
 
-real vGetX(Vec a)
+real vDot(Vec* restrict a, const Vec* restrict b)
 {
-    return a->x;
+    return (*a)[0] * (*b)[0] + (*a)[1] * (*b)[1] + (*a)[2] * (*b)[2]; 
 }
 
-real vGetY(Vec a)
+real vNormSquared(Vec* restrict a)
 {
-    return a->y;
+    return (*a)[0] * (*a)[0] + (*a)[1] * (*a)[1] + (*a)[2] * (*a)[2];
 }
 
-real vGetZ(Vec a)
+real vNorm(Vec* restrict a)
 {
-    return a->z;
+    return sqrt(vNormSquared(a));
 }
 
-inline real vDot(const Vec a, const Vec b)
+Vec* vCross(Vec* restrict a, const Vec* restrict b, Vec* restrict c)
 {
-    return a->x * b->x + a->y * b->y + a->z * b->z;
-}
-
-inline real vNorm(const Vec a)
-{
-    return sqrt(vDot(a, a));
-}
-
-inline Vec vCross(const Vec a, const Vec b, Vec c)
-{
-    c->x = a->y * b->z - a->z * b->y;
-    c->y = a->z * b->x - a->x * b->z;
-    c->z = a->x * b->y - a->y * b->x;
+    (*c)[0] = (*a)[1] * (*b)[2] - (*a)[2] * (*b)[1];
+    (*c)[1] = (*a)[2] * (*b)[0] - (*a)[0] * (*b)[2];
+    (*c)[2] = (*a)[0] * (*b)[1] - (*a)[1] * (*b)[0];
     return c;
 }
 
-inline Vec vAdd(const Vec a, const Vec b, Vec c)
+Vec* vAdd(Vec* restrict a, const Vec* restrict b, Vec* restrict c)
 {
-    c->x = a->x + b->x;
-    c->y = a->y + b->y;
-    c->z = a->z + b->z;
+    (*c)[0] = (*a)[0] + (*b)[0];
+    (*c)[1] = (*a)[1] + (*b)[1];
+    (*c)[2] = (*a)[2] + (*b)[2];
     return c;
 }
 
-
-inline Vec vScale(const Vec a, real s, Vec b)
+Vec* vScale(Vec* restrict a, real s, Vec* restrict b)
 {
-    b->x = s * a->x;
-    b->y = s * a->y;
-    b->z = s * a->z;
+    (*b)[0] = s * (*a)[0];
+    (*b)[1] = s * (*a)[1];
+    (*b)[2] = s * (*a)[2];
     return b;
 }
 
-inline Vec vMinus(const Vec a, Vec b)
+Vec* vSub(Vec* restrict a, const Vec* restrict b, Vec* restrict c)
 {
-    return vScale(a, -1.0, b);
+    (*c)[0] = (*a)[0] - (*b)[0];
+    (*c)[1] = (*a)[1] - (*b)[1];
+    (*c)[2] = (*a)[2] - (*b)[2];
+    return c;
 }
 
-inline Vec vSub(const Vec a, const Vec b, Vec c)
-{
-    return vAdd(a, vMinus(b,b), c);
-}
-
-inline Vec vNormalize(const Vec a, Vec b)
+Vec* vNormalize(Vec* restrict a, Vec* restrict b)
 {
     real n = vNorm(a);
-    if (fabs(n) < eps) {
+    if (n < eps) {
         fprintf(stderr, "Normalizing zero vector.\n");
         exit(EXIT_FAILURE);
     }
-    return vScale(a, 1.0/n, b);
+    return vScale(a, 1.0/eps, b);
 }
 
-inline Vec vCopy(const Vec from, Vec to)
+Vec* vCopy(Vec* restrict from, Vec* restrict to)
 {
-    memcpy(to, from, sizeof (struct Vec));
+    (*to)[0] = (*from)[0];
+    (*to)[1] = (*from)[1];
+    (*to)[2] = (*from)[2];
     return to;
 }
 
-
-inline Vec vCreate(real x, real y, real z)
+Vec* vCrossI(Vec* restrict a, const Vec* restrict b)
 {
-    Vec a = malloc(sizeof (struct Vec));
-    if (!a) {
-        fprintf(stderr, "Normalizing zero vector.\n");
-        exit(EXIT_FAILURE);
-    }
-    return vSet(x, y, z, a);
-}
-
-inline Vec vSet(real x, real y, real z, Vec a)
-{
-    a->x = x; a->y = y; a->z = z;
+    real a0 = (*a)[0];
+    real a1 = (*a)[1];
+    (*a)[0] = a1 * (*b)[2] - (*a)[2] * (*b)[1];
+    (*a)[1] = (*a)[2] * (*b)[0] - a0 * (*b)[2];
+    (*a)[2] = a0 * (*b)[1] - a1 * (*b)[0];
     return a;
 }
 
-inline void vDestroy(Vec a)
+Vec* vAddI(Vec* restrict a, const Vec* restrict b)
 {
-    if (!a) {
-        fprintf(stderr, "[!] Tried to destroy an empty vector.\n");
-    } else {
-        free(a);
+    (*a)[0] += (*b)[0];
+    (*a)[1] += (*b)[1];
+    (*a)[2] += (*b)[2];
+    return a;
+}
+
+Vec* vScaleI(Vec* restrict a, real s)
+{
+    (*a)[0] *= s;
+    (*a)[1] *= s;
+    (*a)[2] *= s;
+    return a;
+}
+
+Vec* vSubI(Vec* restrict a, const Vec* restrict b)
+{
+    (*a)[0] -= (*b)[0];
+    (*a)[1] -= (*b)[1];
+    (*a)[2] -= (*b)[2];
+    return a;
+}
+
+Vec* vNormalizeI(Vec* restrict a)
+{
+    real n = vNorm(a);
+    if (n < eps) {
+        fprintf(stderr, "Normalizing zero vector.\n"); fflush(stderr);
+        exit(EXIT_FAILURE);
     }
+    return vScaleI(a, 1.0/eps);
 }
 
-/*
-inline const Vec const vZero(void)
-{
-    return &const_zero;
-}
-
-inline const Vec vX(void)
-{
-    return &const_x;
-}
-
-inline const Vec vY(void)
-{
-    return &const_y;
-}
-
-inline const Vec vZ(void)
-{
-    return (const Vec const)&const_z;
-}
-*/
-inline void vPrint(const Vec a, FILE* fp)
+void vPrint(Vec* restrict a, FILE* restrict fp)
 {
     char s[128];
     fprintf(fp, "%s", vStrPrint(a, s));
 }
 
-inline char* vStrPrint(const Vec a, char* s)
+char* vStrPrint(Vec* restrict a, char* restrict s)
 {
-    float x = a->x, y = a->y, z = a->z;
+    float x = (*a)[0], y = (*a)[1], z = (*a)[2];
     sprintf(s, "<%.3f, %.3f, %.3f>", x, y, z);
     return s;
 }
