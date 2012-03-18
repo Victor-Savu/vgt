@@ -1,6 +1,6 @@
 #include <vgt/scalar_field.h>
 #include <vgt/vector_field.h>
-#include <vgt/vec.h>
+#include <math/vec.h>
 
 int main()
 {

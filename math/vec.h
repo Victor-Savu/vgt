@@ -12,20 +12,20 @@ real vGetY(Vec* restrict a);
 real vGetZ(Vec* restrict a);
 
 void vDestroy(Vec* restrict a);
-real vDot(Vec* restrict a, const Vec* restrict b);
+real vDot(Vec* restrict a, Vec* restrict b);
 real vNormSquared(Vec* restrict a);
 real vNorm(Vec* restrict a);
 Vec* vCopy(Vec* restrict from, Vec* restrict to);
-Vec* vCross(Vec* restrict a, const Vec* restrict b, Vec* restrict c);
-Vec* vAdd(Vec* restrict a, const Vec* restrict b, Vec* restrict c);
+Vec* vCross(Vec* restrict a, Vec* restrict b, Vec* restrict c);
+Vec* vAdd(Vec* restrict a, Vec* restrict b, Vec* restrict c);
 Vec* vScale(Vec* restrict a, real s, Vec* restrict b);
-Vec* vSub(Vec* restrict a, const Vec* restrict b, Vec* restrict c);
+Vec* vSub(Vec* restrict a, Vec* restrict b, Vec* restrict c);
 Vec* vNormalize(Vec* restrict a, Vec* restrict b);
 
-Vec* vCrossI(Vec* restrict a, const Vec* restrict b);
-Vec* vAddI(Vec* restrict a, const Vec* restrict b);
+Vec* vCrossI(Vec* restrict a, Vec* restrict b);
+Vec* vAddI(Vec* restrict a, Vec* restrict b);
 Vec* vScaleI(Vec* restrict a, real s);
-Vec* vSubI(Vec* restrict a, const Vec* restrict b);
+Vec* vSubI(Vec* restrict a, Vec* restrict b);
 Vec* vNormalizeI(Vec* restrict a);
 
 void vPrint(Vec* restrict a, FILE* restrict fp);

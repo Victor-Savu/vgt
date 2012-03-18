@@ -5,7 +5,7 @@
 
 struct VectorField {
     // the vector data
-    struct Vec* data;
+    Vec* data;
 
     // the size of the field (number of elements) along each dimension
     uint nx, ny, nz;

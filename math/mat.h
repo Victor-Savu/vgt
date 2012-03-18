@@ -4,7 +4,7 @@
 #include <math/types.h>
 
 #define MAT_IDENTITY    \
-    {
+    { \
         {1.0, 0.0, 0.0, 0.0}, \
         {0.0, 1.0, 0.0, 0.0}, \
         {0.0, 0.0, 1.0, 0.0}, \
@@ -12,13 +12,14 @@
     }
 
 #define MAT_ZERO        \
-    {
+    { \
         {0.0, 0.0, 0.0, 0.0}, \
         {0.0, 0.0, 0.0, 0.0}, \
         {0.0, 0.0, 0.0, 0.0}, \
         {0.0, 0.0, 0.0, 0.0} \
     }
 
+Mat* matCopy(Mat* restrict a, Mat* restrict b);
 Mat* matScale(Mat* restrict a, real s,  Mat* restrict b);
 Mat* matTranspose(Mat* restrict a, Mat* restrict b);
 Mat* matMul(Mat* restrict a, Mat* restrict b, Mat* restrict c);

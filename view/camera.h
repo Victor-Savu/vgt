@@ -10,5 +10,7 @@ void camRotate(Camera c, real up, real, right);
 
 void camZoom(Camera x, real f);
 
+void camPosition(Camera c);
+
 #endif//VIEW_CAMERA_H
 

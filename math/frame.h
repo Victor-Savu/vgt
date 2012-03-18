@@ -8,9 +8,9 @@ void frDestroy(Frame restrict f);
 
 Frame frRotate(Frame restrict f, Mat* restrict r, Frame restrict g);
 
-Frame frTranslate(Frame restrict f, Mat* restrict r, Frame restrict g);
+Frame frTranslate(Frame restrict f, Vec* restrict p, Frame restrict g);
 
-Frame frCompose(Frame restrict f, Mat* restrict r, Frame restrict g);
+Frame frCompose(Frame restrict f, Frame restrict r, Frame restrict g);
 
 
 #endif//MATH_FRAME_H

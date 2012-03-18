@@ -1,5 +1,4 @@
 #include <math/vec.h>
-#include <math/vec_cls.h>
 
 #include <math.h>
 #include <stdio.h>
@@ -12,7 +11,7 @@
 //static const struct Vec const_y = {0.0, 1.0, 0.0};
 //static const struct Vec const_z = {0.0, 0.0, 1.0};
 
-real vDot(Vec* restrict a, const Vec* restrict b)
+real vDot(Vec* restrict a, Vec* restrict b)
 {
     return (*a)[0] * (*b)[0] + (*a)[1] * (*b)[1] + (*a)[2] * (*b)[2]; 
 }
@@ -27,7 +26,7 @@ real vNorm(Vec* restrict a)
     return sqrt(vNormSquared(a));
 }
 
-Vec* vCross(Vec* restrict a, const Vec* restrict b, Vec* restrict c)
+Vec* vCross(Vec* restrict a, Vec* restrict b, Vec* restrict c)
 {
     (*c)[0] = (*a)[1] * (*b)[2] - (*a)[2] * (*b)[1];
     (*c)[1] = (*a)[2] * (*b)[0] - (*a)[0] * (*b)[2];
@@ -35,7 +34,7 @@ Vec* vCross(Vec* restrict a, const Vec* restrict b, Vec* restrict c)
     return c;
 }
 
-Vec* vAdd(Vec* restrict a, const Vec* restrict b, Vec* restrict c)
+Vec* vAdd(Vec* restrict a, Vec* restrict b, Vec* restrict c)
 {
     (*c)[0] = (*a)[0] + (*b)[0];
     (*c)[1] = (*a)[1] + (*b)[1];
@@ -51,7 +50,7 @@ Vec* vScale(Vec* restrict a, real s, Vec* restrict b)
     return b;
 }
 
-Vec* vSub(Vec* restrict a, const Vec* restrict b, Vec* restrict c)
+Vec* vSub(Vec* restrict a, Vec* restrict b, Vec* restrict c)
 {
     (*c)[0] = (*a)[0] - (*b)[0];
     (*c)[1] = (*a)[1] - (*b)[1];
@@ -77,7 +76,7 @@ Vec* vCopy(Vec* restrict from, Vec* restrict to)
     return to;
 }
 
-Vec* vCrossI(Vec* restrict a, const Vec* restrict b)
+Vec* vCrossI(Vec* restrict a, Vec* restrict b)
 {
     real a0 = (*a)[0];
     real a1 = (*a)[1];
@@ -87,7 +86,7 @@ Vec* vCrossI(Vec* restrict a, const Vec* restrict b)
     return a;
 }
 
-Vec* vAddI(Vec* restrict a, const Vec* restrict b)
+Vec* vAddI(Vec* restrict a, Vec* restrict b)
 {
     (*a)[0] += (*b)[0];
     (*a)[1] += (*b)[1];
@@ -103,7 +102,7 @@ Vec* vScaleI(Vec* restrict a, real s)
     return a;
 }
 
-Vec* vSubI(Vec* restrict a, const Vec* restrict b)
+Vec* vSubI(Vec* restrict a, Vec* restrict b)
 {
     (*a)[0] -= (*b)[0];
     (*a)[1] -= (*b)[1];

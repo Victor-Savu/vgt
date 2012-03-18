@@ -10,7 +10,7 @@
 
 #include <vgt/types.h>
 #include <vgt/list.h>
-#include <vgt/obj.h>
+#include <math/obj.h>
 
 RedBlackTree
 rbtCreate(const CompareMethod cmp, const DeleteMethod del)
@@ -30,7 +30,7 @@ rbtInsert(RedBlackTree tree, Obj data)
     safe( if (!tree) return; ); // TODO: should data be freed in this case?
 
     if (!tree->root) {
-        if(tree->root = rbnCreate(data, RED)) tree->depth = 1;
+        if( (tree->root = rbnCreate(data, RED)) ) tree->depth = 1;
         return;
     }
 

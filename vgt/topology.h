@@ -3,15 +3,13 @@
 
 #include <vgt/types.h>
 
-#include <vgt/vec_cls.h>
-
 enum CRITICAL_POINT_TYPE { MINIMUM, MAXIMUM, SADDLE };
 
 typedef struct CriticalPoint *CriticalPoint;
 struct CriticalPoint {
     real isovalue;
     enum CRITICAL_POINT_TYPE type;
-    struct Vec pos;
+    Vec pos;
 };
 
 typedef struct Toplology *Topology;

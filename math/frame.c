@@ -1,6 +1,9 @@
-#include <frame.h>
-#include <frame_cls.h>
+#include <math/frame.h>
+#include <math/frame_cls.h>
 
+#include <math/obj.h>
+#include <math/mat.h>
+#include <math/vec.h>
 
 Frame frCreate()
 {

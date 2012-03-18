@@ -12,7 +12,7 @@ struct Edge {
 };
 
 struct Vert {
-    struct Vec pos;
+    Vec pos;
     Edge edge;
 };
 

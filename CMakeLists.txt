@@ -14,6 +14,8 @@ set(CMAKE_BUILD_TYPE Debug)
 
 cmake_policy(SET CMP0003 NEW)
 
+set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wall -Wstrict-aliasing -fstrict-aliasing -std=c99")
+
 link_directories("$ENV{CUSTOM_MODULES_PATH}/lib")
 include_directories("$ENV{CUSTOM_MODULES_PATH}/include")
 include_directories("${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}")
@@ -103,12 +105,12 @@ add_executable(test_vector_field test/test_vector_field.c)
 add_executable(test_lapl test/test_lapl.c)
 add_executable(test_list test/test_list.c)
 
-target_link_libraries(test_volumetric_data m vgt)
-target_link_libraries(test_div m vgt)
-target_link_libraries(test_scalar_field m vgt)
-target_link_libraries(test_vector_field m vgt)
-target_link_libraries(test_lapl m vgt)
-target_link_libraries(test_list m vgt)
+target_link_libraries(test_volumetric_data m vgt math)
+target_link_libraries(test_div m vgt math)
+target_link_libraries(test_scalar_field m vgt math)
+target_link_libraries(test_vector_field m vgt math)
+target_link_libraries(test_lapl m vgt math)
+target_link_libraries(test_list m vgt math)
 
 
 

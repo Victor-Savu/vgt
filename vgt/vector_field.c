@@ -1,8 +1,7 @@
 #include <vgt/vector_field.h>
 #include <vgt/vector_field_cls.h>
 
-#include <vgt/vec.h>
-#include <vgt/vec_cls.h>
+#include <math/vec.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,7 +20,7 @@ VectorField vfCreate(   unsigned int x, unsigned int y, unsigned int z,
     }
 
     if (x * y * z) {
-        f->data = malloc(x * y * z * sizeof (struct Vec));
+        f->data = malloc(x * y * z * sizeof (Vec));
         if (!f->data) {
             fprintf(stderr, "[x] Out of memory.\n");
             free(f);
@@ -74,7 +73,7 @@ void vfDestroy(VectorField s)
 }
 
 
-Vec vfAt(VectorField s, unsigned int x, unsigned int y, unsigned int z)
+Vec* vfAt(VectorField s, unsigned int x, unsigned int y, unsigned int z)
 {
     if (x >= s->nx || y >= s->ny || z >= s->nz) {
         fprintf(stderr, "[!] Vector field access out of bounds.\n");
@@ -83,7 +82,7 @@ Vec vfAt(VectorField s, unsigned int x, unsigned int y, unsigned int z)
     return s->data + z * s->step_z + y * s->step_y + x * s->step_x;
 }
 
-Vec vfRel(VectorField v_field, const Vec e, int x, int y, int z)
+Vec* vfRel(VectorField v_field, Vec* e, int x, int y, int z)
 {
     // TODO: Check preconditions & access range
 
@@ -101,7 +100,7 @@ ScalarField vfDivergence(VectorField field)
     ScalarField lapl = sfCreate(field->nx, field->ny, field->nz, field->dx, field->dy, field->dz);
 
     real* s = sfAt(lapl, 0, 0, 0);
-    Vec v = vfAt(field, 0, 0, 0);
+    Vec* v = vfAt(field, 0, 0, 0);
 
     real dx = field->dx;
     real dy = field->dy;

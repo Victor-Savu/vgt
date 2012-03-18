@@ -132,7 +132,7 @@ vdRead(VolumetricData v, const char* filename)
         strip(line);
         if (sscanf(line, "%f %s %f %f %f", &isovalue, crit_type, &x, &y, &z)) {
             cp->isovalue = isovalue / 255.0f;
-            cp->pos.x = x; cp->pos.y = y; cp->pos.z = z;
+            cp->pos[0] = x; cp->pos[1] = y; cp->pos[2] = z;
             if (!strncmp(crit_type, "min", 10)) cp->type = MINIMUM;
             else if (!strncmp(crit_type, "max", 10)) cp->type = MAXIMUM;
             else if (!strncmp(crit_type, "saddle", 10)) cp->type = SADDLE;

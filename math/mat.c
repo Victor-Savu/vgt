@@ -3,6 +3,12 @@
 
 #include <math/obj.h>
 
+Mat* matCopy(Mat* restrict a, Mat* restrict b)
+{
+    memcpy(b, a, sizeof(Mat));
+    return b;
+}
+
 Mat* matScale(Mat* restrict a, real s, Mat* restrict b)
 {
     Vec* restrict v0 = (*a);
@@ -40,7 +46,7 @@ Mat* matMul(Mat* restrict a, Mat* restrict b, Mat* restrict c)
     return c;
 }
 
-Vec matCross(Mat* restrict a, Vec* restrict b, Vec* restrict c)
+Vec* matCross(Mat* restrict a, Vec* restrict b, Vec* restrict c)
 {
     (*c)[0] = vDot((*a)[0], b);
     (*c)[1] = vDot((*a)[1], b);

@@ -6,7 +6,7 @@
 
 #include <stdio.h>
 
-#include <vgt/obj.h>
+#include <math/obj.h>
 
 void do_nothing(Obj ignore)
 {

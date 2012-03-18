@@ -8,7 +8,6 @@
 #include <string.h>
 
 #include <vgt/vector_field.h>
-#include <vgt/vec.h>
 
 ScalarField sfCreate(   unsigned int x, unsigned int y, unsigned int z,
                         real dx, real dy, real dz)
@@ -142,7 +141,7 @@ VectorField sfGradient(ScalarField field)
     VectorField grad = vfCreate(field->nx, field->ny, field->nz, field->dx, field->dy, field->dz);
 
     real* s = sfAt(field, 0, 0, 0);
-    Vec v = vfAt(grad, 0, 0, 0);
+    Vec* v = vfAt(grad, 0, 0, 0);
 
     real dx = field->dx;
     real dy = field->dy;
@@ -175,7 +174,9 @@ VectorField sfGradient(ScalarField field)
                 else
                     nz = (*sfRel(field, s, 0, 0, 1) - *sfRel(field, s, 0, 0, -1)) / 2.0f / dz;
 
-                vSet(nx, ny, nz, v);
+                (*v)[0] = nx;
+                (*v)[1] = ny;
+                (*v)[2] = nz;
 
                 v = vfRel(grad, v, 1, 0, 0);
                 s = sfRel(field, s, 1, 0, 0);
