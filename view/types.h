@@ -8,4 +8,6 @@ typedef struct Graphics* Graphics;
 typedef struct Camera* Camera;
 typedef struct Mouse* Mouse;
 
+typedef void (*Method)(void);
+
 #endif//VIEW_TYPES_H

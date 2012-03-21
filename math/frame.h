@@ -3,6 +3,10 @@
 
 #include <math/types.h>
 
+/* Public class */
+#include <math/frame_cls.h>
+
+
 Frame frCreate();
 void frDestroy(Frame restrict f);
 

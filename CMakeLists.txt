@@ -4,7 +4,7 @@
 #
 #
 
-cmake_minimum_required (VERSION 2.4)
+cmake_minimum_required (VERSION 2.6)
 
 project(VGT C)
 
@@ -12,7 +12,7 @@ project(VGT C)
 #set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_BUILD_TYPE Debug)
 
-cmake_policy(SET CMP0003 NEW)
+#cmake_policy(SET CMP0003 NEW)
 
 set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wall -Wstrict-aliasing -fstrict-aliasing -std=c99")
 
@@ -98,19 +98,19 @@ install(FILES ${view_headers} DESTINATION "${INSTALL_INCLUDE_DIR}/view")
 
 install(TARGETS vgt math view DESTINATION ${INSTALL_LIB_DIR})
 
-add_executable(test_volumetric_data test/test_volumetric_data.c)
-add_executable(test_div test/test_div.c)
-add_executable(test_scalar_field test/test_scalar_field.c)
-add_executable(test_vector_field test/test_vector_field.c)
-add_executable(test_lapl test/test_lapl.c)
-add_executable(test_list test/test_list.c)
+#add_executable(test_volumetric_data test/test_volumetric_data.c)
+#add_executable(test_div test/test_div.c)
+#add_executable(test_scalar_field test/test_scalar_field.c)
+#add_executable(test_vector_field test/test_vector_field.c)
+#add_executable(test_lapl test/test_lapl.c)
+#add_executable(test_list test/test_list.c)
 
-target_link_libraries(test_volumetric_data m vgt math)
-target_link_libraries(test_div m vgt math)
-target_link_libraries(test_scalar_field m vgt math)
-target_link_libraries(test_vector_field m vgt math)
-target_link_libraries(test_lapl m vgt math)
-target_link_libraries(test_list m vgt math)
+#target_link_libraries(test_volumetric_data m vgt math)
+#target_link_libraries(test_div m vgt math)
+#target_link_libraries(test_scalar_field m vgt math)
+#target_link_libraries(test_vector_field m vgt math)
+#target_link_libraries(test_lapl m vgt math)
+#target_link_libraries(test_list m vgt math)
 
 
 

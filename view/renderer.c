@@ -1,11 +1,13 @@
 #include <view/renderer.h>
 #include <view/renderer_cls.h>
 
-#include <vgt/obj.h>
+#include <math/obj.h>
 #include <string.h>
 #include <stdio.h>
 
 #include <vgt/mesh.h>
+#include <view/camera.h>
+//#include <view/mouse.h>
 
 void cb_display(void);
 void cb_reshape(int w, int h);
@@ -16,16 +18,15 @@ void cb_idle(void);
 
 void init_rendering(void*);
 
-
+#define REQ_SHUTDOWN    (1)
+#define RUNNING         (2)
+#define 
 
 struct Renderer instance = {
     .m = 0,
     .q = 0,
     .mutex = PTHREAD_MUTEX_INITIALIZER,
     .cond = PTHREAD_COND_INITIALIZER,
-
-    .running = false,
-    .shutdown_requested = false,
 
     .camera = {
         .view = {.rho = 0.0, .phi = 0.0, .theta = 0.0},
