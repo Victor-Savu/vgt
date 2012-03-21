@@ -7,7 +7,9 @@
 
 #include <vgt/mesh.h>
 #include <view/camera.h>
-//#include <view/mouse.h>
+#include <view/graphics.h>
+
+#include <GL/glut.h>
 
 void cb_display(void);
 void cb_reshape(int w, int h);
@@ -16,26 +18,29 @@ void cb_special_key(int key, int x, int y);
 void cb_update(int time);
 void cb_idle(void);
 
-void init_rendering(void*);
+void* init_rendering(void*);
 
-#define REQ_SHUTDOWN    (1)
-#define RUNNING         (2)
-#define 
+#define REQ_SHUTDOWN        (1)
+#define RUNNING             (2)
+#define DRAW_FOCUS_POINT    (4)
+
 
 struct Renderer instance = {
     .m = 0,
     .q = 0,
     .mutex = PTHREAD_MUTEX_INITIALIZER,
     .cond = PTHREAD_COND_INITIALIZER,
+    .props = 0,
 
     .camera = {
         .view = {.rho = 0.0, .phi = 0.0, .theta = 0.0},
-        .frame = FRAME_IDENTITY,
+        .frame = FRAME_I,
         .focus_point = {
-            .color = GRAPHICS_DRAW_3D_ARROW
+            .draw = GRAPHICS_DRAW_3D_ARROW
         },
+    },
     .mouse = {
-        .state = 0,
+        .buttons = 0,
         .x = 0,
         .y = 0
     }
@@ -43,7 +48,7 @@ struct Renderer instance = {
 
 Renderer rCreate(const char* winname)
 {
-    if (instance->props & REQ_SHUTDOWN) rDestroy(r);
+    if (instance.props & REQ_SHUTDOWN) rDestroy(&instance);
 
     instance.props = (RUNNING);
     pthread_create(&instance.threadId, 0, init_rendering, 0);
@@ -53,11 +58,12 @@ Renderer rCreate(const char* winname)
 
 void rDestroy(Renderer r)
 {
+    unused(r);
     if (!(instance.props & RUNNING)) return;
 
     instance.props |= REQ_SHUTDOWN;
-    void* ret;
-    if (!pthread_join(instance.threadID, ret)) free(ret);
+    Obj ret = 0;
+    if (!pthread_join(instance.threadId, &ret)) oDestroy(ret);
 
     if (instance.m) mDestroy(instance.m);
     if (instance.q) mDestroy(instance.q);
@@ -77,10 +83,10 @@ void rDisplay(Renderer r, Mesh m)
 
 void cb_display(void)
 {
-    if (instance.m) mDisplay(m);
+    if (instance.m) mDisplay(instance.m);
 
-    if (instance.camera.props | DRAW_FOCUS_POINT) {
-        gDraw(&camera.focus_point);
+    if (instance.props | DRAW_FOCUS_POINT) {
+        gfxDraw(&instance.camera.focus_point);
     }
 }
 
@@ -109,17 +115,16 @@ void cb_keyboard(unsigned char key, int x, int y)
 {
     switch (key) {
     case 27:
-        cleanup();
+        instance.props |= REQ_SHUTDOWN;
         exit(0);
-        return 1;
     case '-': // zoom out
-        if (instance.camera.rho < 150.0) instance.camera.rho *= 1.05;
-        return 1;
+        camZoom(&instance.camera, 1.05);
+        break;
     case '+': // zoom in
-        if (instance.camera.rho > 2.5) instance.camera.rho /= 1.05;
-        return 1;
+        camZoom(&instance.camera,1/1.05);
+        break;
     default:
-        return 0;
+        break;
     }
 }
 
@@ -128,23 +133,19 @@ void cb_special_key(int key, int x, int y)
 {
     switch (key) {
     case GLUT_KEY_UP:
-        instance.camera.theta += 0.1;
-        while (instance.camera.theta > 2 * M_PI) instance.camera.theta -= 2*M_PI;
-        return 1;
+        camRotate(&instance.camera, 0.1, 0);
+        break;
     case GLUT_KEY_DOWN:
-        instance.camera.theta -= 0.1;
-        while (instance.camera.theta < 0) instance.camera.theta += 2*M_PI;
-        return 1;
+        camRotate(&instance.camera, -0.1, 0);
+        break;
     case GLUT_KEY_RIGHT:
-        instance.camera.phi += 0.1;
-        while (instance.camera.phi > 2 * M_PI) instance.camera.phi -= 2 * M_PI;
-        return 1;
+        camRotate(&instance.camera, 0.0, 0.1);
+        break;
     case GLUT_KEY_LEFT:
-        instance.camera.phi -= 0.1;
-        while (instance.camera.phi < 0) instance.camera.phi += 2 * M_PI;
-        return 1;
+        camRotate(&instance.camera, 0.0, -0.1);
+        break;
     default:
-        return 0;
+        break;
     }
 }
 
@@ -167,7 +168,7 @@ void cb_idle(void)
     if (old) mDestroy(old);
 }
 
-void init_rendering(void* arg)
+void* init_rendering(void* arg)
 {
     unused(arg);
 
@@ -210,6 +211,8 @@ void init_rendering(void* arg)
     glutSpecialFunc(cb_special_key);
     glutTimerFunc(25, cb_update, 0);
 
-    glutMainLoop();   
+    glutMainLoop();
+
+    return 0;
 }
 

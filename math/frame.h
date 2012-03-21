@@ -16,5 +16,6 @@ Frame frTranslate(Frame restrict f, Vec* restrict p, Frame restrict g);
 
 Frame frCompose(Frame restrict f, Frame restrict r, Frame restrict g);
 
+Vec* frTransform(Frame restrict f, Vec* restrict p, Vec* restrict t);
 
 #endif//MATH_FRAME_H

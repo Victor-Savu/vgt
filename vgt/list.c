@@ -8,9 +8,9 @@
 
 #include <math/obj.h>
 
-void do_nothing(Obj ignore)
+void do_nothing(Obj o)
 {
-    unused(ignore);
+    unused(o);
 }
 
 bool compare_addresses(Obj a, Obj b)

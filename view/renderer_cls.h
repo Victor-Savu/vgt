@@ -20,6 +20,6 @@ struct Renderer
 
     struct Camera camera;
     struct Mouse mouse;
-}
+};
 
 #endif//VIEW_RENDERER_CLS_H

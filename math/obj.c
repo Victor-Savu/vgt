@@ -6,7 +6,7 @@
 
 Obj oCreate(size_t size)
 {
-    Obj o = malloc(size);
+    Obj restrict o = malloc(size);
     if (o) {
         memset(o, 0, size);
     } else {
@@ -18,7 +18,21 @@ Obj oCreate(size_t size)
     return o;
 }
 
-void oDestroy(Obj o)
+void oDestroy(Obj restrict o)
 {
     if (o) free(o);
+}
+
+Obj oCopy(Obj restrict o, size_t size)
+{
+    Obj restrict c = malloc(size);
+    if (c) {
+        memcpy(c, o, size);
+    } else {
+        fprintf(stderr, "Out of memory.\n");
+        fflush(stderr);
+        exit(EXIT_FAILURE);
+    }
+
+    return c;
 }

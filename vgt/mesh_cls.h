@@ -4,9 +4,10 @@
 #include <vgt/types.h>
 
 struct Mesh {
-
-    int n_faces;
-    int n_vertices;
+    ind n_edges;
+    ind n_vertices;
+    Vec* vertices;
+    struct Edge* edges;
 };
 
 #endif//VGT_MESH_CLS_H

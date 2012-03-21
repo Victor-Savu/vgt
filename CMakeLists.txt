@@ -68,6 +68,7 @@ set(vgt_headers
         vgt/topology.h
         vgt/red_black_tree.h
         vgt/red_black_node.h
+        vgt/edge_cls.h
    )
 
 add_library(vgt SHARED ${vgt_sources} ${ads_sources})

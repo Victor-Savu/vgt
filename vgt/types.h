@@ -4,6 +4,11 @@
 #include <math/types.h>
 
 /* Types */
+// index type for referencing elements in a list it is important that a list
+// has at most as many elements as ind can represent
+typedef short ind;   // 64k elements
+//typedef int  ind;   //  4G elements
+//typedef long  ind;   //  2^64 elements
 
 /* Classes */
 
@@ -17,14 +22,12 @@ typedef struct List* List;
 typedef struct ListElement* ListElement;
 typedef struct Mesh* Mesh;
 typedef struct Renderer* Renderer;
+typedef struct Edge* Edge;
 
 // to be implemented
 typedef struct Spectrum* Spectrum;
 typedef struct RedBlackTree *RedBlackTree;
 typedef struct RedBlackNode *RedBlackNode;
-typedef struct Edge* Edge;
-typedef struct Vert* Vert;
-typedef struct Face* Face;
 
 /* Methods */
 typedef bool (*CompareMethod)(const Obj a, const Obj b);

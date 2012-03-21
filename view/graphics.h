@@ -10,6 +10,6 @@ void GRAPHICS_DRAW_3D_ARROW(void);
 //Graphics gfxCreate(const Method draw);
 //void gfxDestroy(Graphics g);
 
-Graphics gfxDraw(Graphics g);
+void gfxDraw(Graphics restrict g);
 
 #endif//VIEW_GRAPHICS_H

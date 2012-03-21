@@ -17,7 +17,14 @@ Obj oCreate(size_t size);
 
    @arg o is the object handle. After the execution, the handle points to an unallocated address.
 */
-void oDestroy(Obj o);
+void oDestroy(Obj restrict o);
+
+/*
+   Allocates memory and creates a shallow copy of an object.
+   @arg o is the object to be copied.
+   @arg size is the size of the object in bytes.
+*/
+Obj oCopy(Obj restrict o, size_t size);
 
 #define oCast(type, o)  ((type)(o))
 
