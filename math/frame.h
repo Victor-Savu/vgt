@@ -18,4 +18,6 @@ Frame frCompose(Frame restrict f, Frame restrict r, Frame restrict g);
 
 Vec* frTransform(Frame restrict f, Vec* restrict p, Vec* restrict t);
 
+Vec* frTransformI(Frame restrict f, Vec* restrict p);
+
 #endif//MATH_FRAME_H

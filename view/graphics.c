@@ -2,7 +2,7 @@
 #include <view/graphics_cls.h>
 
 #include <GL/gl.h>
-
+#include <stdio.h>
 void GRAPHICS_DRAW_3D_ARROW(void)
 {
     GLfloat normals[5][3] = {
@@ -10,7 +10,7 @@ void GRAPHICS_DRAW_3D_ARROW(void)
         {1.0, -3.0, 4.0},
         {-1.0, 3.0, -4.0},
         {2.0, -1.0, 2.0},
-        {-2.0, -1.0, -2.0}
+        {2.0,  1.0, 2.0}
     };
 
     GLfloat vertices[5][3] = {
@@ -29,20 +29,12 @@ void GRAPHICS_DRAW_3D_ARROW(void)
         {vertices[1], vertices[3], vertices[4], normals[0]},
         {vertices[2], vertices[1], vertices[4], normals[0]},
     };
+    glColorMaterial(GL_FRONT, GL_DIFFUSE);
+    glEnable(GL_COLOR_MATERIAL);
 
-
-    GLfloat no_mat[] = {0.0, 0.0, 0.0, 1.0};
-    GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
-    GLfloat mat_diffuse[] = {1.0, 0.84314, 0.0, 1.0};
-    GLfloat mat_emission[] = {1.0, 0.84314, 0.0, 1.0};
-    GLfloat mat_shininess[] = {50.0};
-
-    glMaterialfv(GL_FRONT, GL_AMBIENT, no_mat);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-    glMaterialfv(GL_FRONT, GL_EMISSION, mat_emission);
-
+    GLfloat gold[] = {1.0, 0.84314, 0.0, 1.0};
+    GLfloat white[] = {1.0, 1.0, 1.0, 1.0};
+    glColor4fv(gold);
     unsigned int t;
     glBegin(GL_TRIANGLES);
     for (t = 0; t < 6; t++) {
@@ -52,6 +44,10 @@ void GRAPHICS_DRAW_3D_ARROW(void)
         glVertex3fv(triangles[t][2]);
     }
     glEnd();
+    glColor4fv(white);
+    glDisable(GL_COLOR_MATERIAL);
+
+
 }
 
 //Graphics gfxCreate(const Method draw);

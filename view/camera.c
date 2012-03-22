@@ -3,8 +3,10 @@
 
 #include <math.h>
 #include <math/mat.h>
+#include <math/vec.h>
 
 #include <GL/glut.h>
+#include <stdio.h>
 
 const real min_distance = 1e-6;
 const real max_distance = 1e+6;
@@ -26,8 +28,8 @@ void camRotate(Camera c, real up, real right)
     while (c->view.theta < 0) c->view.theta += M_2PI;
     while (c->view.theta > M_2PI) c->view.theta -= M_2PI;
     c->view.phi += right;
-    while (c->view.phi < 0) c->view.phi += M_PI;
-    while (c->view.phi > M_PI) c->view.phi -= M_PI;
+    while (c->view.phi < 0) c->view.phi += M_2PI;
+    while (c->view.phi > M_2PI) c->view.phi -= M_2PI;
 }
 
 void camZoom(Camera c, real f)
@@ -47,14 +49,23 @@ void camPosition(Camera c)
 {
     Spherical restrict v = &c->view;
     Vec f = {
+        v->rho * cos(v->phi) * sin (v->theta),
         v->rho * sin(v->phi) * sin(v->theta),
-        v->rho * cos(v->theta),
-        v->rho * cos(v->phi) * sin (v->theta)
+        v->rho * cos(v->theta)
     };
-    matCrossI(&c->frame.rot, &f);
+
+    Vec up = {
+        v->rho * cos(v->phi) * sin (v->theta - M_PI/2),
+        v->rho * sin(v->phi) * sin(v->theta - M_PI/2),
+        v->rho * cos(v->theta - M_PI/2)
+    };
+    frTransformI(&c->frame, &f);
+    matCrossI(&c->frame.rot, &up);
     gluLookAt(
             f[0], f[1], f[2],   // from
             c->frame.trans[0], c->frame.trans[1], c->frame.trans[2], // to
-            -1.0 * sin(v->phi) * cos(v->theta), sin(v->theta), -1.0 * cos(v->phi) * sin(v->theta) // up
+            //-1.0 * sin(v->phi) * cos(v->theta), sin(v->theta), -1.0 * cos(v->phi) * sin(v->theta) // up
+            //0.0, 1.0 * sin(v->theta - M_PI) , 0.0
+            up[0], up[1], up[2]
             );
 }

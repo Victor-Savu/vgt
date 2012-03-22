@@ -73,10 +73,12 @@ Mesh mReadOff(Mesh restrict m, const char* restrict filename)
 
     printf("%u vertices, %u edges\n", (uint)m->n_vert, (uint)m->n_edges);
 
+
     {// read vertices
         Vec* const end = m->vert + m->n_vert;
         Vec* i;
         float x, y, z;
+        double gx, gy, gz;
         for (i = m->vert; i < end; i++) {
             fgets(line, sizeof(line), f);
             if (sscanf(line, "%f %f %f\n", &x, &y, &z) != 3) {
@@ -86,18 +88,27 @@ Mesh mReadOff(Mesh restrict m, const char* restrict filename)
                 exit(0);
             }
             vSet(i, x, y, z);
+            gx += x;
+            gy += y;
+            gz += z;
         }
+        gx /= m->n_vert;
+        gy /= m->n_vert;
+        gz /= m->n_vert;
+        Vec g = {gx, gy, gz};
+        for (i = m->vert; i < end; i++) vSubI(i, &g);
     }
 
     {// read faces
         Edge restrict e = m->edges;
         Vec* restrict n = m->norm;
-        unsigned int a, b, c;
+        unsigned int a, b, c, cnt;
         Vec p, q, norm;
         ind i;
+
         for (i = 0; i < m->n_edges; i+=3, e+=3, n+=3) {
             fgets(line, sizeof(line), f);
-            if (sscanf(line, "%u %u %u\n", &a, &b, &c) != 3) {
+            if (sscanf(line, "%u %u %u %u\n", &cnt, &a, &b, &c) != 4) {
                 fprintf(stderr, "[x] %s: failed to read face #%u  file [%s].",
                         __func__, oCast(unsigned int, i/3),  filename);
                 fflush(stderr);
@@ -115,11 +126,17 @@ Mesh mReadOff(Mesh restrict m, const char* restrict filename)
             vAddI(m->norm + b, &norm);
             vAddI(m->norm + c, &norm);
         }
-
-        // TODO: Smooth out the normals once more?
     }
-
+/*
+    {//Smooth out the normals once more
+        Edge const begin = m->edges;
+        Edge const end = begin + m->n_edges;
+        Edge e;
+        for (e = begin; e < end; e++) ignore vAddI(m->norm + e->v, m->norm + begin[e->n].v);
+    }
+*/
     // find opposing edges
+
     Edge restrict left = oCopy(m->edges, m->n_edges * sizeof(struct Edge));
     Edge restrict right = oCopy(m->edges, m->n_edges * sizeof(struct Edge));
 
@@ -187,7 +204,7 @@ Mesh mReadOff(Mesh restrict m, const char* restrict filename)
 
     oDestroy(left);
     oDestroy(right);
-
+    
     fclose(f);
 
     return m;
@@ -195,9 +212,41 @@ Mesh mReadOff(Mesh restrict m, const char* restrict filename)
 
 void mDisplay(Mesh restrict m)
 {
+    byte* used = oCreate( ((m->n_edges >> 3) + 1) * sizeof(byte));
     glBegin(GL_TRIANGLES);
+    ind i=0;
+    for (i=0; i < m->n_edges; i++) {
+        if (!(used[i >> 3] & (1 << (i & 7)))) {
+            const ind ea = i;
+            const ind eb = m->edges[ea].n;
+            const ind ec = m->edges[eb].n;
 
+            used[ea >> 3] |= 1 << (ea & 7);
+            used[eb >> 3] |= 1 << (eb & 7);
+            used[ec >> 3] |= 1 << (ec & 7);
 
+            const ind ia = m->edges[ea].v;
+            const ind ib = m->edges[eb].v;
+            const ind ic = m->edges[ec].v;
 
+            Vec* const restrict va = m->vert + ia;
+            Vec* const restrict vb = m->vert + ib;
+            Vec* const restrict vc = m->vert + ic;
+
+            Vec* const restrict na = m->norm + ia;
+            Vec* const restrict nb = m->norm + ib;
+            Vec* const restrict nc = m->norm + ic;
+
+            glNormal3fv(*na);
+            glVertex3fv(*va);
+            glNormal3fv(*nb);
+            glVertex3fv(*vb);
+            glNormal3fv(*nc);
+            glVertex3fv(*vc);
+    //        printf("Triangle : "); vPrint(va, stdout); vPrint(vb, stdout); vPrint(vc, stdout);
+    //        printf("\n");
+        }
+    }
     glEnd();
+    oDestroy(used);
 }

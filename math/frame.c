@@ -48,7 +48,15 @@ Frame frCompose(Frame restrict f, Frame restrict r, Frame restrict g)
 
 Vec* frTransform(Frame restrict f, Vec* restrict p, Vec* restrict t)
 {
-    ignore matCrossI(&f->rot, t);
+    ignore matCross(&f->rot, p, t);
     ignore vAddI(t, &f->trans);
     return t;
 }
+
+Vec* frTransformI(Frame restrict f, Vec* restrict p)
+{
+    ignore matCrossI(&f->rot, p);
+    ignore vAddI(p, &f->trans);
+    return p;
+}
+

@@ -34,7 +34,7 @@ struct Renderer instance = {
     .props = 0,
 
     .camera = {
-        .view = {.rho = 0.0, .phi = 0.0, .theta = 0.0},
+        .view = {.rho = 100.0, .phi = 0.0, .theta = 0.00001},
         .frame = FRAME_I,
         .focus_point = {
             .draw = GRAPHICS_DRAW_3D_ARROW
@@ -89,11 +89,26 @@ void rDisplay(Renderer restrict r, Mesh restrict m)
 
 void cb_display(void)
 {
-    if (instance.m) mDisplay(instance.m);
+    //printf("Drawing..\n");
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glLoadIdentity();
+    camPosition(&instance.camera);
 
-    if (instance.props | DRAW_FOCUS_POINT) {
-        gfxDraw(&instance.camera.focus_point);
-    }
+    //glPushMatrix();
+    //glTranslatef(0.0, 0.0, -2.0);
+
+    //glutSolidTeapot(1.0);
+
+    //glPopMatrix();
+
+    //glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+    if (instance.m) mDisplay(instance.m);
+    //glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+
+    //if (instance.props & DRAW_FOCUS_POINT) {
+     //     gfxDraw(&instance.camera.focus_point);
+    //}
+    glutSwapBuffers();
 }
 
 void cb_reshape(int w, int h)
@@ -182,15 +197,16 @@ void* init_rendering(void* arg)
     char* argv = "viewer";
     glutInit(&argc, &argv);
 
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH | GLUT_RGBA);
     glutInitWindowSize(1165, 720);
     glutCreateWindow("Homework 3");
 
-    glClearColor(0.9, 0.9, 0.9, 1.0);
+    //glClearColor(0.9, 0.9, 0.9, 1.0);
+    glClearColor(0.0, 0.0, 0.0, 1.0);
 
-    GLfloat mat_specular[] = { 0.8, 0.8, 0.8, 1.0 };
-    GLfloat mat_diffuse[] = { 0.7, 0.7, 0.7, 1.0 };
-    GLfloat mat_ambient[] = { 0.2, 0.2, 0.2, 1.0 };
+    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+    GLfloat mat_diffuse[] = { 1.0, 1.0, 1.0, 1.0 };
+    GLfloat mat_ambient[] = { 1.0, 1.0, 1.0, 1.0 };
     GLfloat mat_shininess[] = { 50.0 };
     GLfloat light_position[] = { 1.0, 1.0, -1.0, 0.0 };
 
@@ -204,18 +220,33 @@ void* init_rendering(void* arg)
     glEnable(GL_LIGHT0);
     glDepthFunc(GL_LEQUAL);
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
+  //  glEnable(GL_CULL_FACE);
     glEnable(GL_NORMALIZE);
     glEnable(GL_LINE_SMOOTH);
 
     glShadeModel(GL_SMOOTH);
+
+    //GLfloat black[] = {0.0, 0.0, 0.0, 1.0};
+    GLfloat grey[] = {0.2, 0.2, 0.2, 1.0};
+    GLfloat white[] = {1.0, 1.0, 1.0, 1.0};
+    //GLfloat gold[] = {1.0, 0.84314, 0.0, 1.0};
+    GLfloat shininess = 100.0;
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, grey);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, white);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, white);
+    glMaterialfv(GL_FRONT, GL_SHININESS, &shininess);
+    glMaterialfv(GL_FRONT, GL_EMISSION, grey);
+
+
 
 
     glutDisplayFunc(cb_display);
     glutReshapeFunc(cb_reshape);
     glutKeyboardFunc(cb_keyboard);
     glutSpecialFunc(cb_special_key);
-    glutTimerFunc(25, cb_update, 0);
+    glutIdleFunc(cb_idle);
+    glutTimerFunc(30, cb_update, 0);
 
     glutMainLoop();
 
