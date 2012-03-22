@@ -46,15 +46,29 @@ set(math_headers
 add_library(math SHARED ${math_sources})
 target_link_libraries(math m)
 
+set(ads_sources
+        ads/red_black_tree.c
+        ads/array.c
+        ads/red_black_node.c
+        ads/list_element.c
+        ads/list.c
+    )
+
+set(ads_headers
+        ads/red_black_tree.h
+        ads/list_element.h
+        ads/list.h
+        ads/red_black_node.h
+        ads/array.h
+   )
+
+add_library(ads SHARED ${ads_sources})
+target_link_libraries(ads m math)
+
 set(vgt_sources
         vgt/volumetric_data.c
         vgt/scalar_field.c
-        vgt/array.c
-        vgt/red_black_tree.c
-        vgt/red_black_node.c
         vgt/vector_field.c
-        vgt/list.c
-        vgt/list_element.c
         vgt/mesh.c
    )
 
@@ -63,19 +77,13 @@ set(vgt_headers
         vgt/volumetric_data.h
         vgt/types.h
         vgt/scalar_field.h
-        vgt/list.h
-        vgt/list_element.h
-        vgt/voxel.h
-        vgt/array.h
         vgt/topology.h
-        vgt/red_black_tree.h
-        vgt/red_black_node.h
         vgt/edge_cls.h
         vgt/mesh.h
    )
 
-add_library(vgt SHARED ${vgt_sources} ${ads_sources})
-target_link_libraries(vgt m math glut GL GLU)
+add_library(vgt SHARED ${vgt_sources})
+target_link_libraries(vgt m math ads glut GL GLU)
 
 set(view_sources
         view/renderer.c
@@ -97,10 +105,11 @@ add_library(view SHARED ${view_sources})
 target_link_libraries(view vgt pthread)
 
 install(FILES ${vgt_headers} DESTINATION "${INSTALL_INCLUDE_DIR}/vgt")
+install(FILES ${ads_headers} DESTINATION "${INSTALL_INCLUDE_DIR}/ads")
 install(FILES ${math_headers} DESTINATION "${INSTALL_INCLUDE_DIR}/math")
 install(FILES ${view_headers} DESTINATION "${INSTALL_INCLUDE_DIR}/view")
 
-install(TARGETS vgt math view DESTINATION ${INSTALL_LIB_DIR})
+install(TARGETS vgt math view ads DESTINATION ${INSTALL_LIB_DIR})
 
 #add_executable(test_volumetric_data test/test_volumetric_data.c)
 #add_executable(test_div test/test_div.c)
