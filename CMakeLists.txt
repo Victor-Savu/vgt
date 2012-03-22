@@ -14,7 +14,7 @@ set(CMAKE_BUILD_TYPE Debug)
 
 #cmake_policy(SET CMP0003 NEW)
 
-set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wall -Wstrict-aliasing -fstrict-aliasing -std=c99")
+set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wall -Werror -Wstrict-aliasing -fstrict-aliasing -std=c99")
 
 link_directories("$ENV{CUSTOM_MODULES_PATH}/lib")
 include_directories("$ENV{CUSTOM_MODULES_PATH}/include")
@@ -29,8 +29,9 @@ set(INSTALL_INCLUDE_DIR "$ENV{CUSTOM_MODULES_PATH}/include" CACHE PATH
 
 set(math_sources
         math/vec.c
-        math/mat.h
+        math/mat.c
         math/frame.c
+        math/obj.c
     )
 
 set(math_headers
@@ -54,6 +55,7 @@ set(vgt_sources
         vgt/vector_field.c
         vgt/list.c
         vgt/list_element.c
+        vgt/mesh.c
    )
 
 set(vgt_headers
@@ -69,10 +71,11 @@ set(vgt_headers
         vgt/red_black_tree.h
         vgt/red_black_node.h
         vgt/edge_cls.h
+        vgt/mesh.h
    )
 
 add_library(vgt SHARED ${vgt_sources} ${ads_sources})
-target_link_libraries(vgt m math)
+target_link_libraries(vgt m math glut GL GLU)
 
 set(view_sources
         view/renderer.c
@@ -91,7 +94,7 @@ set(view_headers
    )
 
 add_library(view SHARED ${view_sources})
-target_link_libraries(view m math)
+target_link_libraries(view vgt pthread)
 
 install(FILES ${vgt_headers} DESTINATION "${INSTALL_INCLUDE_DIR}/vgt")
 install(FILES ${math_headers} DESTINATION "${INSTALL_INCLUDE_DIR}/math")
@@ -105,6 +108,8 @@ install(TARGETS vgt math view DESTINATION ${INSTALL_LIB_DIR})
 #add_executable(test_vector_field test/test_vector_field.c)
 #add_executable(test_lapl test/test_lapl.c)
 #add_executable(test_list test/test_list.c)
+add_executable(test_view test/test_view.c)
+add_executable(test_mesh test/test_mesh.c)
 
 #target_link_libraries(test_volumetric_data m vgt math)
 #target_link_libraries(test_div m vgt math)
@@ -112,6 +117,8 @@ install(TARGETS vgt math view DESTINATION ${INSTALL_LIB_DIR})
 #target_link_libraries(test_vector_field m vgt math)
 #target_link_libraries(test_lapl m vgt math)
 #target_link_libraries(test_list m vgt math)
+target_link_libraries(test_view m vgt math view)
+target_link_libraries(test_mesh vgt)
 
 
 

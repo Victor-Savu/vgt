@@ -5,11 +5,20 @@
 #include <stdlib.h>
 #include <string.h>
 
-// local constants
-//static const struct Vec const_zero = {0.0, 0.0, 0.0};
-//static const struct Vec const_x = {1.0, 0.0, 0.0};
-//static const struct Vec const_y = {0.0, 1.0, 0.0};
-//static const struct Vec const_z = {0.0, 0.0, 1.0};
+real vGetX(Vec* restrict a)
+{
+    return (*a)[0];
+}
+
+real vGetY(Vec* restrict a)
+{
+    return (*a)[1];
+}
+
+real vGetZ(Vec* restrict a)
+{
+    return (*a)[2];
+}
 
 real vDot(Vec* restrict a, Vec* restrict b)
 {
@@ -118,6 +127,14 @@ Vec* vNormalizeI(Vec* restrict a)
         exit(EXIT_FAILURE);
     }
     return vScaleI(a, 1.0/eps);
+}
+
+Vec* vSet(Vec* restrict a, real x, real y, real z)
+{
+    (*a)[0] = x;
+    (*a)[1] = y;
+    (*a)[2] = z;
+    return a;
 }
 
 void vPrint(Vec* restrict a, FILE* restrict fp)

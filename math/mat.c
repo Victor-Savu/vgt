@@ -1,7 +1,10 @@
 #include <math/mat.h>
-#include <math/mat_cls.h>
 
 #include <math/obj.h>
+#include <math/vec.h>
+
+#include <stdlib.h>
+#include <string.h>
 
 Mat* matCopy(Mat* restrict a, Mat* restrict b)
 {
@@ -48,9 +51,9 @@ Mat* matMul(Mat* restrict a, Mat* restrict b, Mat* restrict c)
 
 Vec* matCross(Mat* restrict a, Vec* restrict b, Vec* restrict c)
 {
-    (*c)[0] = vDot((*a)[0], b);
-    (*c)[1] = vDot((*a)[1], b);
-    (*c)[2] = vDot((*a)[2], b);
+    (*c)[0] = vDot((*a), b);
+    (*c)[1] = vDot((*a)+1, b);
+    (*c)[2] = vDot((*a)+2, b);
     return c;
 }
 
@@ -62,6 +65,7 @@ Mat* matScaleI(Mat* restrict a, real s)
     vScaleI(v0, s);
     vScaleI(v1, s);
     vScaleI(v2, s);
+    return a;
 }
 
 Mat* matTransposeI(Mat* restrict a)

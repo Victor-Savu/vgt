@@ -6,7 +6,6 @@
 #include <stdio.h>
 
 Vec* vCreate(real x, real y, real z);
-Vec* vSet(real x, real y, real z, Vec* restrict a);
 real vGetX(Vec* restrict a);
 real vGetY(Vec* restrict a);
 real vGetZ(Vec* restrict a);
@@ -27,6 +26,8 @@ Vec* vAddI(Vec* restrict a, Vec* restrict b);
 Vec* vScaleI(Vec* restrict a, real s);
 Vec* vSubI(Vec* restrict a, Vec* restrict b);
 Vec* vNormalizeI(Vec* restrict a);
+
+Vec* vSet(Vec* restrict a, real x, real y, real z);
 
 void vPrint(Vec* restrict a, FILE* restrict fp);
 char* vStrPrint(Vec* restrict a, char* s);

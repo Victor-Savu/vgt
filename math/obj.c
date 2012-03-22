@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-Obj oCreate(size_t size)
+Obj oCreate(size_t size) //__attribute__((alloc_size(1)))
 {
     Obj restrict o = malloc(size);
     if (o) {
@@ -23,7 +23,7 @@ void oDestroy(Obj restrict o)
     if (o) free(o);
 }
 
-Obj oCopy(Obj restrict o, size_t size)
+Obj oCopy(Obj restrict o, size_t size)// __attribute__((alloc_size(2)))
 {
     Obj restrict c = malloc(size);
     if (c) {

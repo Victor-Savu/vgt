@@ -4,9 +4,11 @@
 #include <vgt/types.h>
 
 struct Mesh {
+    ind n_vert;
+    Vec* vert;
+    Vec* norm;
+
     ind n_edges;
-    ind n_vertices;
-    Vec* vertices;
     struct Edge* edges;
 };
 

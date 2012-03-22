@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <math/obj.h>
 #include <vgt/mesh.h>
 #include <view/camera.h>
 #include <view/graphics.h>
@@ -56,14 +57,13 @@ Renderer rCreate(const char* winname)
     return &instance;
 }
 
-void rDestroy(Renderer r)
+void rDestroy(Renderer restrict r)
 {
     unused(r);
     if (!(instance.props & RUNNING)) return;
 
     instance.props |= REQ_SHUTDOWN;
-    Obj ret = 0;
-    if (!pthread_join(instance.threadId, &ret)) oDestroy(ret);
+    rWait(r);
 
     if (instance.m) mDestroy(instance.m);
     if (instance.q) mDestroy(instance.q);
@@ -72,10 +72,16 @@ void rDestroy(Renderer r)
     instance.props = 0;
 }
 
-void rDisplay(Renderer r, Mesh m)
+void rWait(Renderer restrict r)
+{
+    Obj ret = 0;
+    if (!pthread_join(instance.threadId, &ret)) oDestroy(ret);
+}
+
+void rDisplay(Renderer restrict r, Mesh restrict m)
 {
     pthread_mutex_lock(&instance.mutex);
-    Mesh old = instance.q;
+    Mesh restrict old = instance.q;
     instance.q = m;
     pthread_mutex_unlock(&instance.mutex);
     if (old) mDestroy(old);

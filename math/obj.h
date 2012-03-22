@@ -10,7 +10,7 @@
 
    @arg size is the size of the object in bytes.
 */
-Obj oCreate(size_t size);
+Obj oCreate(size_t size) __attribute__((alloc_size(1)));
 
 /*
    Frees the memory allocated for an object.
@@ -24,7 +24,7 @@ void oDestroy(Obj restrict o);
    @arg o is the object to be copied.
    @arg size is the size of the object in bytes.
 */
-Obj oCopy(Obj restrict o, size_t size);
+Obj oCopy(Obj restrict o, size_t size) __attribute__((alloc_size(2)));
 
 #define oCast(type, o)  ((type)(o))
 

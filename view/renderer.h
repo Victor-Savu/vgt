@@ -9,6 +9,6 @@ void rDestroy(Renderer r);
 
 void rDisplay(Renderer r, Mesh m);
 
-
+void rWait(Renderer r);
 
 #endif//VIEW_RENDERER_H

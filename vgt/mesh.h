@@ -5,7 +5,9 @@
 
 Mesh mCopy(Mesh restrict m);
 
-Mesh mDestroy(Mesh restrict m);
+void mDestroy(Mesh restrict m);
+
+Mesh mClear(Mesh restrict m);
 
 Mesh mReadOff(Mesh restrict m, const char* restrict filename);
 
