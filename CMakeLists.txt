@@ -9,12 +9,12 @@ cmake_minimum_required (VERSION 2.6)
 project(VGT C)
 
 #set(CMAKE_BUILD_TYPE RelWithDebugInfo)
-#set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_BUILD_TYPE Debug)
 
 #cmake_policy(SET CMP0003 NEW)
 
-set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing -std=c99")
+set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -O3 -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing -std=c99")
 
 link_directories("$ENV{CUSTOM_MODULES_PATH}/lib")
 include_directories("$ENV{CUSTOM_MODULES_PATH}/include")
@@ -45,7 +45,7 @@ set(math_headers
         math/math.h
     )
 
-add_library(math SHARED ${math_sources})
+add_library(math ${libtype} ${math_sources})
 target_link_libraries(math m)
 
 set(ads_sources
@@ -64,7 +64,7 @@ set(ads_headers
         ads/array.h
    )
 
-add_library(ads SHARED ${ads_sources})
+add_library(ads ${libtype} ${ads_sources})
 target_link_libraries(ads m math)
 
 set(vgt_sources
@@ -84,7 +84,7 @@ set(vgt_headers
         vgt/mesh.h
    )
 
-add_library(vgt SHARED ${vgt_sources})
+add_library(vgt ${libtype} ${vgt_sources})
 target_link_libraries(vgt m math ads glut GL GLU)
 
 set(view_sources
@@ -103,7 +103,7 @@ set(view_headers
         view/mouse_cls.h
    )
 
-add_library(view SHARED ${view_sources})
+add_library(view ${libtype} ${view_sources})
 target_link_libraries(view vgt pthread)
 
 install(FILES ${vgt_headers} DESTINATION "${INSTALL_INCLUDE_DIR}/vgt")
@@ -121,7 +121,7 @@ install(TARGETS vgt math view ads DESTINATION ${INSTALL_LIB_DIR})
 #add_executable(test_list test/test_list.c)
 add_executable(test_view test/test_view.c)
 add_executable(test_mesh test/test_mesh.c)
-add_executable(test_array test/test_array.c ${ads_sources} ${math_sources})
+add_executable(test_array test/test_array.c)
 
 #target_link_libraries(test_volumetric_data m vgt math)
 #target_link_libraries(test_div m vgt math)
@@ -131,7 +131,7 @@ add_executable(test_array test/test_array.c ${ads_sources} ${math_sources})
 #target_link_libraries(test_list m vgt math)
 target_link_libraries(test_view m vgt math view)
 target_link_libraries(test_mesh vgt)
-target_link_libraries(test_array m)
+target_link_libraries(test_array m vgt math -fPIC)
 
 
 

@@ -181,16 +181,20 @@ Obj arrGet(Array restrict arr, uint64_t pos)
     const uint64_t k = math_log2_uint64(pos); // the number of the superblock
     //ignore printf("from superblock #%u ", k); fflush(stdout);
 
-    const uint64_t mask_b = (((1 << (k >> 1)) -1) << ( k >> 1 )) << (k&1); // the first floor(k/2) bits after the most significant bit in k
-    const uint64_t mask_e = ((1 << ( k >> 1 )) << (k&1)) - 1; // the least significant ceil(k/2) bits in k
+    const uint64_t kdiv2 = k>>1;
+    const uint64_t oneShlKdiv2 = (1<<kdiv2);
+    const uint64_t notKdiv2 = oneShlKdiv2-1;
 
-    const uint64_t b = ((pos & mask_b) >> ( k >> 1 )) >> (k&1); // the index of the data block in the k-th superblock
+    const uint64_t mask_b = (notKdiv2 << kdiv2) << (k&1); // the first floor(k/2) bits after the most significant bit in k
+    const uint64_t mask_e = (oneShlKdiv2 << (k&1)) - 1; // the least significant ceil(k/2) bits in k
+
+    const uint64_t b = ((pos & mask_b) >> kdiv2) >> (k&1); // the index of the data block in the k-th superblock
     //ignore printf("data block #%lu ", b); fflush(stdout);
 
     const uint64_t e = pos & mask_e; // the index of the data segment in the b-th data block
     //ignore printf("segment  #%lu\n   ---- using mask_b %lu   and mask_e %lu\n", e, mask_b, mask_e); fflush(stdout);
 
-    char* d = arr->index[(((1 << (k>>1))-1) << 1) + (k&1) * (1 << (k>>1)) + b]; // access the corresponding data block
+    char* d = arr->index[(notKdiv2 << 1) + (k&1) * oneShlKdiv2 + b]; // access the corresponding data block
     d += arr->segment_size * e; // access the element within
     return d;
 }
