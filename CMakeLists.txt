@@ -14,7 +14,7 @@ set(CMAKE_BUILD_TYPE Debug)
 
 #cmake_policy(SET CMP0003 NEW)
 
-set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wall -Werror -Wstrict-aliasing -fstrict-aliasing -std=c99")
+set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing -std=c99")
 
 link_directories("$ENV{CUSTOM_MODULES_PATH}/lib")
 include_directories("$ENV{CUSTOM_MODULES_PATH}/include")
@@ -121,7 +121,7 @@ install(TARGETS vgt math view ads DESTINATION ${INSTALL_LIB_DIR})
 #add_executable(test_list test/test_list.c)
 add_executable(test_view test/test_view.c)
 add_executable(test_mesh test/test_mesh.c)
-add_executable(test_array test/test_array.c)
+add_executable(test_array test/test_array.c ${ads_sources} ${math_sources})
 
 #target_link_libraries(test_volumetric_data m vgt math)
 #target_link_libraries(test_div m vgt math)
@@ -131,7 +131,7 @@ add_executable(test_array test/test_array.c)
 #target_link_libraries(test_list m vgt math)
 target_link_libraries(test_view m vgt math view)
 target_link_libraries(test_mesh vgt)
-target_link_libraries(test_array ads)
+target_link_libraries(test_array m)
 
 
 

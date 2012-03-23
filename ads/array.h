@@ -32,7 +32,7 @@ Array arrCreate(uint8_t block_size);
    Be warned that following the operation, this will
    point to an unallocated address in memory.
 */
-void arrDestroy(Array arr);
+void arrDestroy(Array restrict arr);
 
 /*
    Retrieves an element from the array.
@@ -42,12 +42,13 @@ void arrDestroy(Array arr);
    @return a pointer to the element if found, or 0 if pos goes
    beyond the array limits.
 */
-Obj arrGet(Array arr, uint64_t pos);
+Obj arrGet(Array restrict arr, uint64_t pos);
 
 
-void arrSet(Array arr, Obj o, uint64_t pos);
-void arrPush(Array arr, Obj o);
-void arrPop(Array arr);
-uint64_t arrSize(Array arr);
+void arrSet(Array restrict arr, Obj restrict o, uint64_t pos);
+void arrPush(Array restrict arr, Obj restrict o);
+void arrPop(Array restrict arr);
+uint64_t arrSize(Array restrict arr);
+void printStatus(Array restrict arr);
 
 #endif//ADS_ARRAY_H

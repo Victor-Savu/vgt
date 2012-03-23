@@ -15,7 +15,7 @@ struct Array {
     uint32_t s;
     uint32_t d;
     uint64_t n;
-    uint64_t segment_size;
+    size_t segment_size;
     uint32_t od;  // occupancy of the last non-empty data block
     uint32_t nd; // #segments in the last non-empty data block
     uint32_t os;  // occupancy of the last superblock
@@ -55,6 +55,7 @@ void arr_grow(Array restrict arr)
             if (arr->d == arr->index_size) { arr->index_size <<= 1; arr->index = realloc(arr->index, arr->index_size * sizeof(Obj)); }
             // allocate a new data block and store its pointer in the index block
           //  ignore printf("New data block with %u segments.\n", arr->nd);
+            if (arr->nd != (1 << ((arr->s)>>1))) { printf("Buba superblock %u has %u segments per data block!\n", arr->s, arr->nd); fflush(stdout);}
             arr->index[arr->d] = malloc(arr->segment_size * arr->nd);
         } else {
         //    ignore printf("There was an empty data block.\n"); fflush(stdout);
@@ -106,13 +107,20 @@ void arr_shrink(Array restrict arr)
         // >>> personal touch << Now, we know there is an empty data block
         arr->empty_db = 1;
     }
+    if (arr->n == 0) {
+        arr->od = 1;
+        arr->os = 0;
+        arr->nd = 1;
+        arr->ns = 1;
+        arr->s = 1;
+    }
 }
 
 Array arrCreate(uint8_t block_size)
 {
     Array arr = oCreate(sizeof (struct Array));
-    arr->index = oCreate(sizeof (Obj));
-    arr->index_size = 1;
+    arr->index = oCreate(4 * sizeof (Obj));
+    arr->index_size = 4;
     arr->index[0] = oCreate(block_size);
     arr->segment_size = block_size;
     arr->od = 1;
@@ -124,7 +132,7 @@ Array arrCreate(uint8_t block_size)
     return arr;
 }
 
-void arrDestroy(Array arr)
+void arrDestroy(Array restrict arr)
 {
     if (!arr) {
         fprintf(stderr, "[x] %s: Illegal memory access.\n", __func__);
@@ -153,12 +161,12 @@ void arrPush(Array restrict arr, Obj restrict o)
     arrSet(arr, o, arr->n-1);
 }
 
-void arrPop(Array restrict arr)
+void arrPop(Array arr)
 {
     arr_shrink(arr);
 }
 
-Obj arrGet(Array arr, uint64_t pos)
+Obj arrGet(Array restrict arr, uint64_t pos)
 {
     if (!arr || pos >= arr->n) {
         fprintf(stderr, "[x] %s: Illegal memory access.\n", __func__);
@@ -187,7 +195,12 @@ Obj arrGet(Array arr, uint64_t pos)
     return d;
 }
 
-uint64_t arrSize(Array arr)
+uint64_t arrSize(Array restrict arr)
 {
     return arr->n;
+}
+
+void printStatus(Array restrict arr)
+{
+    printf("Array of %lu segments in %u superblocks %u data blocks and %shaving an extra data block with an index size of %u.\n", arr->n, arr->ns, arr->nd, (arr->empty_db)?(""):("not "), arr->index_size); fflush(stdout);
 }

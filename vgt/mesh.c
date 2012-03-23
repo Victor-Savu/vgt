@@ -53,8 +53,8 @@ Mesh mReadOff(Mesh restrict m, const char* restrict filename)
 
     {// read header
         unsigned int aux, vert, faces;
-        fgets(line, sizeof(line), f); // OFF
-        fgets(line, sizeof(line), f); // #vertices #faces #<unused>
+        if (!fgets(line, sizeof(line), f)) { printf("[x] %s:Error reading from file %s.\n", __func__, filename); exit(EXIT_FAILURE);} // OFF
+        if (!fgets(line, sizeof(line), f)) { printf("[x] %s:Error reading from file %s.\n", __func__, filename); exit(EXIT_FAILURE);}; // #vertices #faces #<unused>
         fputs(line, stdout);
         if (sscanf(line, "%u %u %u", &vert, &faces, &aux) != 3) {
             fprintf(stderr, "[x] %s: Failed to read #vert #faces #<unused> from  file [%s].",
@@ -78,9 +78,9 @@ Mesh mReadOff(Mesh restrict m, const char* restrict filename)
         Vec* const end = m->vert + m->n_vert;
         Vec* i;
         float x, y, z;
-        double gx, gy, gz;
+        double gx=0, gy=0, gz=0;
         for (i = m->vert; i < end; i++) {
-            fgets(line, sizeof(line), f);
+            if (!fgets(line, sizeof(line), f)) { printf("[x] %s:Error reading from file %s.\n", __func__, filename); exit(EXIT_FAILURE);};
             if (sscanf(line, "%f %f %f\n", &x, &y, &z) != 3) {
                 fprintf(stderr, "[x] %s: failed to read vertex #%u  file [%s].",
                         __func__, oCast(unsigned int, i - m->vert),  filename);
@@ -107,7 +107,7 @@ Mesh mReadOff(Mesh restrict m, const char* restrict filename)
         ind i;
 
         for (i = 0; i < m->n_edges; i+=3, e+=3, n+=3) {
-            fgets(line, sizeof(line), f);
+            if (!fgets(line, sizeof(line), f)) { printf("[x] %s:Error reading from file %s.\n", __func__, filename); exit(EXIT_FAILURE);};
             if (sscanf(line, "%u %u %u %u\n", &cnt, &a, &b, &c) != 4) {
                 fprintf(stderr, "[x] %s: failed to read face #%u  file [%s].",
                         __func__, oCast(unsigned int, i/3),  filename);
