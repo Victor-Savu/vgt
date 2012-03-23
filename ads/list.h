@@ -1,7 +1,7 @@
-#ifndef VGT_LIST_H
-#define VGT_LIST_H
+#ifndef ADS_LIST_H
+#define ADS_LIST_H
 
-#include <vgt/types.h>
+#include <ads/types.h>
 
 /*
    Creates an empty list.
@@ -76,7 +76,7 @@ ListElement lNext(List l, ListElement e);
 
    @return the number of elements in the list.
 */
-uint lSize(List l);
+uint64_t lSize(List l);
 
 /*
    Removes the next element from the list.
@@ -104,4 +104,4 @@ void lDelete(List l, ListElement e);
 Obj leGet(ListElement e);
 
 
-#endif//VGT_LIST_H
+#endif//ADS_LIST_H

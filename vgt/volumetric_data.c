@@ -119,11 +119,11 @@ vdRead(VolumetricData v, const char* filename)
             return false;
         }
         strip(line);
-    } while (sscanf(line, "%u", &v->topology.size) != 1);
+    } while (sscanf(line, "%lu", &v->topology.size) != 1);
 
     CriticalPoint cp = v->topology.criticalities = malloc(v->topology.size * sizeof (struct CriticalPoint));
 
-    unsigned int cp_read = 0;
+    uint64_t cp_read = 0;
     char crit_type[10];
     float isovalue, x, y, z;
 

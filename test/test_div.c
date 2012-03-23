@@ -4,7 +4,7 @@
 
 int main()
 {
-    uint i, j, k;
+    uint64_t i, j, k;
     ScalarField s = sfCreate(3, 3, 3, 1.0, 1.0, 1.0);
     for ( k=0; k<3; k++)
         for ( j=0; j<3; j++)

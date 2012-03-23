@@ -8,10 +8,10 @@ struct VectorField {
     Vec* data;
 
     // the size of the field (number of elements) along each dimension
-    uint nx, ny, nz;
+    uint64_t nx, ny, nz;
 
     // the distance to hop between dimensions
-    uint step_x, step_y, step_z;
+    uint64_t step_x, step_y, step_z;
 
     // step unit in each dimension
     real dx, dy, dz;

@@ -9,7 +9,7 @@
 
 #include <vgt/scalar_field.h>
 
-VectorField vfCreate(   unsigned int x, unsigned int y, unsigned int z,
+VectorField vfCreate(   uint64_t x, uint64_t y, uint64_t z,
                         real dx, real dy, real dz)
 {
     VectorField f = malloc(sizeof (struct VectorField));
@@ -73,7 +73,7 @@ void vfDestroy(VectorField s)
 }
 
 
-Vec* vfAt(VectorField s, unsigned int x, unsigned int y, unsigned int z)
+Vec* vfAt(VectorField s, uint64_t x, uint64_t y, uint64_t z)
 {
     if (x >= s->nx || y >= s->ny || z >= s->nz) {
         fprintf(stderr, "[!] Vector field access out of bounds.\n");
@@ -108,7 +108,7 @@ ScalarField vfDivergence(VectorField field)
 
     real nx, ny, nz;
 
-    uint x, y, z;
+    uint64_t x, y, z;
     for (z = 0; z < field->nz; z++) {
         for (y = 0; y < field->ny; y++) {
             for (x = 0; x < field->nx; x++)

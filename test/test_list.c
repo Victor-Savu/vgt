@@ -85,7 +85,7 @@ void test_data_ownage()
     printf("Data ownage:\n");
     List l = lCreate(cmp, oDestroy);
 
-    unsigned int i=0;
+    uint64_t i=0;
     for (i=0;i<100; i++) lInsert(l, 0, oCreate(sizeof (uint)) );
 
     ListElement e = 0;
@@ -105,7 +105,7 @@ void test_split()
     printf("Split:\n");
     List l = lCreate(cmp, oDestroy);
 
-    unsigned int i=0;
+    uint64_t i=0;
     for (i=0;i<100; i++) lInsert(l, 0, oCreate(sizeof (uint)) );
 
     ListElement e = 0;
@@ -136,7 +136,7 @@ void test_merge()
     List l = lCreate(cmp, oDestroy);
     List r = lCreate(cmp, oDestroy);
 
-    unsigned int i=0;
+    uint64_t i=0;
     for (i=0;i<100; i++) lInsert(l, 0, oCreate(sizeof (uint)) );
     for (i=0;i<100; i++) lInsert(r, 0, oCreate(sizeof (uint)) );
 
@@ -176,7 +176,7 @@ void test_sort()
     printf("Sort:\n");
     List l = lCreate(cmp, oDestroy);
 
-    unsigned int i=0;
+    uint64_t i=0;
     for (i=0;i<100; i++) lInsert(l, 0, oCreate(sizeof (uint)) );
 
     ListElement e = 0;

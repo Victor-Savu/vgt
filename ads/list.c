@@ -1,8 +1,8 @@
-#include <vgt/list.h>
-#include <vgt/list_cls.h>
+#include <ads/list.h>
+#include <ads/list_cls.h>
 
-#include <vgt/list_element.h>
-#include <vgt/list_element_cls.h>
+#include <ads/list_element.h>
+#include <ads/list_element_cls.h>
 
 #include <stdio.h>
 
@@ -141,7 +141,7 @@ ListElement lNext(List l, ListElement e)
 }
 
 
-uint lSize(List l)
+uint64_t lSize(List l)
 {
     return l->size;
 }

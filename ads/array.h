@@ -1,18 +1,29 @@
-#ifndef VGT_ARRAY_H
-#define VGT_ARRAY_H
+#ifndef ADS_ARRAY_H
+#define ADS_ARRAY_H
 
-#include <vgt/types.h>
+#include <ads/types.h>
 
-typedef struct Array *Array;
+/*
+   This implementation of resizable arrays is based on the paper by Brodnik, et al.[1]
+
+Version:
+1.0     Implementing the Basic version presented in [1]
+
+
+References:
+[1] "Resizable Arrays in Optimal Time and Space" by Andrej Brodnik,
+Svante Carlsson, Erik D. Demaine, J. Ian Munro, and Robert Sedgewick
+
+ */
 
 /*
    Creates an array of objects.
 
-   @arg size is the number of objects in the array.
+   @arg size is the size of an element in the array
 
    @return a pointer to the array.
 */
-Array arrCreate(uint size);
+Array arrCreate(uint8_t block_size);
 
 /*
    Destroys an array.
@@ -31,27 +42,12 @@ void arrDestroy(Array arr);
    @return a pointer to the element if found, or 0 if pos goes
    beyond the array limits.
 */
-Obj arrGet(Array arr, uint pos);
+Obj arrGet(Array arr, uint64_t pos);
 
-/*
-   Retrieves the beginning of the array.
 
-   @return a pointer to the beginning of the array. At this
-   memory location lies the pointer to the first element in
-   the array. Subsequent element pointers can be obtained by
-   forward iteration (++).
-*/
-Obj* arrBegin(Array arr);
+void arrSet(Array arr, Obj o, uint64_t pos);
+void arrPush(Array arr, Obj o);
+void arrPop(Array arr);
+uint64_t arrSize(Array arr);
 
-/*
-   Retrieves the end of the array.
-
-   @return a pointer to the end of the array. This
-   memory location lies right after the last entry in the array
-   (i.e. after the pointer to the last element in  the array.
-   The last element pointer (and the ones preceding that) obtained
-   by backward iteration (--).
-*/
-Obj* arrEnd(Array arr);
-
-#endif//VGT_ARRAY_H
+#endif//ADS_ARRAY_H

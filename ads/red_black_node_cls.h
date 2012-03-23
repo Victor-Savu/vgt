@@ -1,7 +1,7 @@
-#ifndef VGT_RED_BLACK_NODE_CLS_H
-#define VGT_RED_BLACK_NODE_CLS_H
+#ifndef ADS_RED_BLACK_NODE_CLS_H
+#define ADS_RED_BLACK_NODE_CLS_H
 
-#include <vgt/types.h>
+#include <ads/types.h>
 
 extern const byte RED;
 extern const byte NRED;
@@ -15,4 +15,4 @@ struct RedBlackNode {
     byte props;
 };
 
-#endif//VGT_RED_BLACK_NODE_CLS_H
+#endif//ADS_RED_BLACK_NODE_CLS_H

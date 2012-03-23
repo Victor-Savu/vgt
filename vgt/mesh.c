@@ -71,7 +71,7 @@ Mesh mReadOff(Mesh restrict m, const char* restrict filename)
         m->edges = oCreate(m->n_edges * sizeof (struct Edge));
     }
 
-    printf("%u vertices, %u edges\n", (uint)m->n_vert, (uint)m->n_edges);
+    printf("%u vertices, %u edges\n", oCast(unsigned int,m->n_vert), oCast(unsigned int, m->n_edges));
 
 
     {// read vertices

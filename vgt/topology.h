@@ -15,7 +15,7 @@ struct CriticalPoint {
 typedef struct Toplology *Topology;
 struct Topology {
     CriticalPoint criticalities;
-    uint size;
+    uint64_t size;
 };
 
 #endif//TOPOLOGY_H

@@ -1,15 +1,15 @@
-#include <vgt/red_black_tree.h>
-#include <vgt/red_black_tree_cls.h>
+#include <ads/red_black_tree.h>
+#include <ads/red_black_tree_cls.h>
 
-#include <vgt/red_black_node.h>
-#include <vgt/red_black_node_cls.h>
+#include <ads/red_black_node.h>
+#include <ads/red_black_node_cls.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <vgt/types.h>
-#include <vgt/list.h>
+#include <ads/types.h>
+#include <ads/list.h>
 #include <math/obj.h>
 
 RedBlackTree

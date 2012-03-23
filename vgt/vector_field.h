@@ -8,7 +8,7 @@
    Allocates space and initialises a vector field of size @x @y @z, with voxel size
    dx by dy by dz.
 */
-VectorField vfCreate(uint x, uint y, uint z, real dx, real dy, real dz);
+VectorField vfCreate(uint64_t x, uint64_t y, uint64_t z, real dx, real dy, real dz);
 
 /*
    Reads in data for the vector field from a RAW file.
@@ -32,7 +32,7 @@ void vfDestroy(VectorField s);
 /*
    Accesses an element of the vector field.
 */
-Vec* vfAt(VectorField s, uint x, uint y, uint z);
+Vec* vfAt(VectorField s, uint64_t x, uint64_t y, uint64_t z);
 
 /*
    Access an element of the scalar field relative to another element.

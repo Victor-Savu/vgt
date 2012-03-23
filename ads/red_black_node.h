@@ -1,7 +1,7 @@
-#ifndef VGT_RED_BLACK_NODE_H
-#define VGT_RED_BLACK_NODE_H
+#ifndef ADS_RED_BLACK_NODE_H
+#define ADS_RED_BLACK_NODE_H
 
-#include <vgt/types.h>
+#include <ads/types.h>
 
 
 RedBlackNode rbnCreate(Obj data, const byte props);
@@ -13,4 +13,4 @@ RedBlackNode rbnRotate(RedBlackNode h);
 void rbnColorFlip(RedBlackNode x);
 
 
-#endif//VGT_RED_BLACK_NODE_H
+#endif//ADS_RED_BLACK_NODE_H

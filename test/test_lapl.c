@@ -9,7 +9,7 @@
 
 int main(int argc, char* argv[])
 {
-    uint N;
+    uint64_t N;
 
     if (argc != 2) {
         printf("Input N.\n");
@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
     ScalarField s = sfCreate(N, N, N, 1.0, 1.0, 1.0);
 
     real* e = sfAt(s, 0, 0, 0);
-    uint i, j, k;
+    uint64_t i, j, k;
     for (k=0; k<N; k++)
         for (j=0; j<N; j++)
             for (i=0; i<N; i++) {

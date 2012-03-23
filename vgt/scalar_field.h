@@ -8,7 +8,7 @@
    Allocates space and initialises a scalar field of size @x @y @z, with voxel size
    dx by dy by dz.
 */
-ScalarField sfCreate(uint x, uint y, uint z, real dx, real dy, real dz);
+ScalarField sfCreate(uint64_t x, uint64_t y, uint64_t z, real dx, real dy, real dz);
 
 /*
    Reads in data for the scalar field from a RAW file.
@@ -32,7 +32,7 @@ void sfDestroy(ScalarField s);
 /*
    Accesses an element of the scalar field.
 */
-real* sfAt(ScalarField s, uint x, uint y, uint z);
+real* sfAt(ScalarField s, uint64_t x, uint64_t y, uint64_t z);
 
 /*
    Access an element of the scalar field relative to another element.

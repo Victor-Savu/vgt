@@ -25,7 +25,7 @@ struct VolumetricData {
     struct Topology topology;
 
     /* The size of the scalar field along each dimension */
-    uint nx, ny, nz;
+    uint64_t nx, ny, nz;
 
     /* The real size of the data voxel. */
     real sx, sy, sz;

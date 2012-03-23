@@ -35,7 +35,7 @@ void GRAPHICS_DRAW_3D_ARROW(void)
     GLfloat gold[] = {1.0, 0.84314, 0.0, 1.0};
     GLfloat white[] = {1.0, 1.0, 1.0, 1.0};
     glColor4fv(gold);
-    unsigned int t;
+    uint64_t t;
     glBegin(GL_TRIANGLES);
     for (t = 0; t < 6; t++) {
         glNormal3fv(triangles[t][3]);

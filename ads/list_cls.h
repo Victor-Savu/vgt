@@ -1,14 +1,14 @@
-#ifndef VGT_LIST_CLS_H
-#define VGT_LIST_CLS_H
+#ifndef ADS_LIST_CLS_H
+#define ADS_LIST_CLS_H
 
-#include <vgt/types.h>
+#include <ads/types.h>
 
 
 struct List {
    ListElement head;
-   uint size;
+   uint64_t size;
    CompareMethod cmp;
    DeleteMethod del;
 };
 
-#endif//VGT_LIST_CLS_H
+#endif//ADS_LIST_CLS_H

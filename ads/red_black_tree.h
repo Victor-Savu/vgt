@@ -1,7 +1,7 @@
-#ifndef VGT_RED_BLACK_H
-#define VGT_RED_BLACK_H
+#ifndef ADS_RED_BLACK_H
+#define ADS_RED_BLACK_H
 
-#include <vgt/types.h>
+#include <ads/types.h>
 
 /*
    Dynamically allocates a RedBlackTree structure and sets
@@ -65,4 +65,4 @@ void    rbtDestroy(RedBlackTree tree);
 
 
 
-#endif//VGT_RED_BLACK_H
+#endif//ADS_RED_BLACK_H

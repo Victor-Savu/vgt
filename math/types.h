@@ -1,6 +1,8 @@
 #ifndef MATH_TYPES_H
 #define MATH_TYPES_H
 
+#include <stdint.h>
+
 #define false   (0)
 #define true    (1)
 #define eps     (1e-9)
@@ -28,9 +30,8 @@
 #endif
 
 typedef float           real;
-typedef unsigned char   byte;
-typedef unsigned char   bool;
-typedef unsigned int    uint;
+typedef uint8_t         byte;
+typedef uint8_t         bool;
 typedef real            Vec[3];
 typedef Vec             Mat[3];
 typedef void*           Obj;

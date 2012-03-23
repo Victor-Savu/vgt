@@ -1,7 +1,7 @@
-#ifndef VGT_LIST_ELEMENT_H
-#define VGT_LIST_ELEMENT_H
+#ifndef ADS_LIST_ELEMENT_H
+#define ADS_LIST_ELEMENT_H
 
-#include <vgt/types.h>
+#include <ads/types.h>
 
 /*
    Retrieve the data from a list element.
@@ -14,4 +14,4 @@ ListElement leMerge(ListElement e, ListElement f, const CompareMethod cmp);
 
 ListElement leSort(ListElement e, const CompareMethod cmp);
 
-#endif//VGT_LIST_ELEMENT_H
+#endif//ADS_LIST_ELEMENT_H

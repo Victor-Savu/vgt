@@ -1,7 +1,7 @@
-#ifndef VGT_RED_BLACK_TREE_CLS_H
-#define VGT_RED_BLACK_TREE_CLS_H
+#ifndef ADS_RED_BLACK_TREE_CLS_H
+#define ADS_RED_BLACK_TREE_CLS_H
 
-#include <vgt/types.h>
+#include <ads/types.h>
 
 struct RedBlackTree {
     RedBlackNode root;
@@ -11,4 +11,4 @@ struct RedBlackTree {
 };
 
 
-#endif//VGT_RED_BLACK_TREE_CLS_H
+#endif//ADS_RED_BLACK_TREE_CLS_H

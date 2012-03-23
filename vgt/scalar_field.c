@@ -9,7 +9,7 @@
 
 #include <vgt/vector_field.h>
 
-ScalarField sfCreate(   unsigned int x, unsigned int y, unsigned int z,
+ScalarField sfCreate(   uint64_t x, uint64_t y, uint64_t z,
                         real dx, real dy, real dz)
 {
     ScalarField f = malloc(sizeof (struct ScalarField));
@@ -60,7 +60,7 @@ bool sfReadRaw(ScalarField s, const char* fname)
        return false;
     }
 
-    unsigned int nelem = s->nx * s->ny * s->nz;
+    uint64_t nelem = s->nx * s->ny * s->nz;
 
     char* buffer = malloc(nelem * sizeof (char));
     if (!buffer) {
@@ -69,9 +69,9 @@ bool sfReadRaw(ScalarField s, const char* fname)
         return false;
     }
 
-    unsigned int bytes_read = 0;
+    uint64_t bytes_read = 0;
     if ((bytes_read = fread(buffer, sizeof(char), nelem, fin) ) != nelem) {
-        fprintf(stderr, "Read only [%u] out of [%u] bytes from file [%s].\n", bytes_read, nelem, fname);
+        fprintf(stderr, "Read only [%lu] out of [%lu] bytes from file [%s].\n", bytes_read, nelem, fname);
         fclose(fin);
         return false;
     }
@@ -114,7 +114,7 @@ void sfDestroy(ScalarField s)
 }
 
 
-real* sfAt(ScalarField s, unsigned int x, unsigned int y, unsigned int z)
+real* sfAt(ScalarField s, uint64_t x, uint64_t y, uint64_t z)
 {
     if (x > s->nx || y > s->ny || z > s->nz) {
         fprintf(stderr, "[x] Scalar field access out of bounds.\n");
@@ -148,7 +148,7 @@ VectorField sfGradient(ScalarField field)
     real dz = field->dz;
 
     real nx, ny, nz;
-    uint x, y, z;
+    uint64_t x, y, z;
     for (z = 0; z < field->nz; z++) {
         for (y = 0; y < field->ny; y++) {
             for (x = 0; x < field->nx; x++)
@@ -215,7 +215,7 @@ ScalarField sfLaplacian(ScalarField field)
     real* s = sfAt(lapl, 0, 0, 0);
     real* l = sfAt(field, 0, 0, 0);
 
-    uint x, y, z;
+    uint64_t x, y, z;
     for (z = 0; z < field->nz; z++) {
         for (y = 0; y < field->ny; y++) {
             for (x = 0; x < field->nx; x++)

@@ -32,6 +32,7 @@ set(math_sources
         math/mat.c
         math/frame.c
         math/obj.c
+        math/math.c
     )
 
 set(math_headers
@@ -41,6 +42,7 @@ set(math_headers
         math/spherical_cls.h
         math/frame.h
         math/frame_cls.h
+        math/math.h
     )
 
 add_library(math SHARED ${math_sources})
@@ -119,6 +121,7 @@ install(TARGETS vgt math view ads DESTINATION ${INSTALL_LIB_DIR})
 #add_executable(test_list test/test_list.c)
 add_executable(test_view test/test_view.c)
 add_executable(test_mesh test/test_mesh.c)
+add_executable(test_array test/test_array.c)
 
 #target_link_libraries(test_volumetric_data m vgt math)
 #target_link_libraries(test_div m vgt math)
@@ -128,6 +131,7 @@ add_executable(test_mesh test/test_mesh.c)
 #target_link_libraries(test_list m vgt math)
 target_link_libraries(test_view m vgt math view)
 target_link_libraries(test_mesh vgt)
+target_link_libraries(test_array ads)
 
 
 

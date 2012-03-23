@@ -1,11 +1,11 @@
-#include <vgt/red_black_node.h>
-#include <vgt/red_black_node_cls.h>
+#include <ads/red_black_node.h>
+#include <ads/red_black_node_cls.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <vgt/types.h>
+#include <ads/types.h>
 
 
 const byte RED = 0x1;
