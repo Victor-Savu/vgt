@@ -14,7 +14,10 @@ set(CMAKE_BUILD_TYPE Release)
 
 #cmake_policy(SET CMP0003 NEW)
 
-set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -O3 -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing -std=c99")
+set(libtype "SHARED")
+
+set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}  -D_POSIX_C_SOURCE=199309  -O3 -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing -std=c99")
+#set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing -std=c99")
 
 link_directories("$ENV{CUSTOM_MODULES_PATH}/lib")
 include_directories("$ENV{CUSTOM_MODULES_PATH}/include")
@@ -131,7 +134,7 @@ add_executable(test_array test/test_array.c)
 #target_link_libraries(test_list m vgt math)
 target_link_libraries(test_view m vgt math view)
 target_link_libraries(test_mesh vgt)
-target_link_libraries(test_array m vgt math -fPIC)
+target_link_libraries(test_array m vgt math rt)
 
 
 

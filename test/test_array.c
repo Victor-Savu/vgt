@@ -1,9 +1,8 @@
 #include <ads/array.h>
-
 #include <stdio.h>
 #include <math/obj.h>
-#include <stdlib.h>
 #include <time.h>
+#include <sys/time.h>
 
 int main(int argc, char* argv[])
 {
@@ -14,53 +13,25 @@ int main(int argc, char* argv[])
 
     // create an array of integers
     Array a = arrCreate(sizeof (int));
-    srand(time(0));
-
 
     int r = 10;
     int push = 0, pop = 0;
 
-/*
-    printStatus(a);
-    arrPush(a, &r);
-    arrPush(a, &r);
-    arrPush(a, &r);
-    arrPush(a, &r);
-    arrPush(a, &r);
-    arrPush(a, &r);
-    arrPush(a, &r);
-    arrPush(a, &r);
-    arrPop(a);
-    arrPop(a);
-    arrPop(a);
-    arrPop(a);
-    arrPop(a);
-    arrPop(a);
-    arrPop(a);
-    arrPop(a);
-    printStatus(a);
-    arrPush(a, &r);
-    printStatus(a);
-    arrPush(a, &r);
-    printStatus(a);
-    arrPush(a, &r);
-*/
-    clock_t tick = clock();
+    struct timespec tick, tock;
+
+    clock_gettime ( CLOCK_PROCESS_CPUTIME_ID,  &tick);
 
     while (test--) {
-        //printf("#%u:\n", i); fflush(stdout);
-      //  if ((rand() & 1) && (arrSize(a) > 0)){
-      //      arrPop(a);
-      //      pop++;
-      //  } else {
-      //      r = rand();
             arrPush(a, &r);
             push++;
-      //  }
     }
 
-    clock_t tock = clock();
-    printf("%d pushes and %d pops in %lf seconds.\n", push, pop, (double)(tock - tick) / CLOCKS_PER_SEC);
+    clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
+
+    printf("%d pushes and %d pops in %lf seconds.\n", push, pop,
+            ((double)(tock.tv_sec - tick.tv_sec) + (double)(tock.tv_nsec - tick.tv_nsec)/1e9) );
 
     arrDestroy(a);
+
+    return 0;
 }
