@@ -18,18 +18,12 @@ int main(int argc, char* argv[])
 
     struct timespec tick, tock;
 
-    uint64_t t = test;
+    clock_gettime ( CLOCK_PROCESS_CPUTIME_ID,  &tick);
+
     while (test--) arrPush(a, &r);
 
-    int* rez = 0;
-
-    clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
-
-    while (t--) rez = oCast(int*, arrGet(a, t));
 
     clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
-    r = *rez;
-
 
     printf("%lf\n", ((double)(tock.tv_sec - tick.tv_sec) + (double)(tock.tv_nsec - tick.tv_nsec)/1e9) );
 

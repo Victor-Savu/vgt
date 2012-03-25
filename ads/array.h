@@ -20,10 +20,10 @@ Svante Carlsson, Erik D. Demaine, J. Ian Munro, and Robert Sedgewick
    Creates an array of objects.
 
    @arg size is the size of an element in the array
-
+   @arg fact is one less than the logarithm of the number of elements per data segment used for performance tunning. The segment size will be elem_size << (1+fact). Use 0 for the least memory overhead.
    @return a pointer to the array.
 */
-Array arrCreate(uint8_t block_size);
+Array arrCreate(uint8_t elem_size, uint8_t fact);
 
 /*
    Destroys an array.

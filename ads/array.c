@@ -21,6 +21,11 @@ struct Array {
     uint32_t os;  // occupancy of the last superblock
     uint32_t ns; // #data_blocks in the last superblock
     bool     empty_db; // is there an empty data block?
+
+    size_t element_size;
+    uint64_t fact; // logarithm of the number of elements per segment
+    uint32_t oseg; // occupancy of the last segment
+    uint32_t nseg; // #elements per segment = 1<<fact
 };
 
 void arr_grow(Array restrict arr)
@@ -113,16 +118,26 @@ void arr_shrink(Array restrict arr)
         arr->nd = 1;
         arr->ns = 1;
         arr->s = 1;
+        arr->d = 0;
+        arr->nseg = (1<<arr->fact);
+        arr->oseg = arr->nseg;
+        arr->empty_db = 1;
     }
 }
 
-Array arrCreate(uint8_t block_size)
+Array arrCreate(uint8_t elem_size, uint8_t fact)
 {
+    // TODO: limit the segment size and check that it is at least 8 bytes
+
     Array arr = oCreate(sizeof (struct Array));
     arr->index = oCreate(4 * sizeof (Obj));
     arr->index_size = 4;
-    arr->index[0] = oCreate(block_size);
-    arr->segment_size = block_size;
+    arr->fact = fact; arr->fact++;
+    arr->element_size = elem_size;
+    arr->segment_size = elem_size << arr->fact;
+    arr->index[0] = oCreate(arr->segment_size);
+    arr->nseg = (1 << arr->fact);
+    arr->oseg = arr->nseg;
     arr->od = 1;
     arr->os = 0;
     arr->nd = 1;
@@ -148,33 +163,52 @@ void arrDestroy(Array restrict arr)
 
 void arrSet(Array restrict arr, Obj restrict o, uint64_t pos)
 {
-    if (!arr || pos >= arr->n) {
+    if (!arr || (pos>>arr->fact) >= arr->n) {
         fprintf(stderr, "[x] %s: Illegal memory access.\n", __func__);
         exit(EXIT_FAILURE);
     }
-    memcpy(arrGet(arr, pos), o, arr->segment_size);
+    memcpy(arrGet(arr, pos), o, arr->element_size);
 }
 
 void arrPush(Array restrict arr, Obj restrict o)
 {
-    arr_grow(arr);
-    arrSet(arr, o, arr->n-1);
+    // if there is a non-full segment, increase its occupancy
+    if (arr->oseg < arr->nseg) arr->oseg++;
+    // otherwise, grow the array and set the new segment occupancy to 1
+    else { arr_grow(arr); arr->oseg = 1; }
+
+    Obj const dest = arr->index[arr->d-1 - arr->empty_db]+ arr->segment_size * (arr->od-1) + arr->element_size * (arr->oseg-1);
+
+    memcpy(dest, o, arr->element_size);
+
+//    arrSet(arr, o, ((arr->n-1)<<arr->fact) | (arr->oseg-1));
 }
 
 void arrPop(Array arr)
 {
-    arr_shrink(arr);
+    if (!arr || !arr->n) {
+        fprintf(stderr, "[x] %s: Illegal memory access.\n", __func__);
+        exit(EXIT_FAILURE);
+    }
+    // decrease the occupancy of the last segment
+    arr->oseg--;
+
+    // if there are no more elements in the segment, shrink the array and set the occupancy of the last segment to full
+    if (!arr->oseg) { arr_shrink(arr); arr->oseg = arr->nseg; }
 }
 
-Obj arrGet(Array restrict arr, uint64_t pos)
+Obj arrGet(Array restrict arr, uint64_t p)
 {
+    uint64_t elm = p & (arr->nseg-1);
+    uint64_t pos = p >> arr->fact;
+
     if (!arr || pos >= arr->n) {
         fprintf(stderr, "[x] %s: Illegal memory access.\n", __func__);
         exit(EXIT_FAILURE);
     }
-    if (pos == 0) return arr->index[0];
-    if (pos == 1) return arr->index[1];
-    if (pos == 2) return oCast(char*, arr->index[1]) + arr->segment_size;
+    if (pos == 0) return oCast(char*, arr->index[0]) + arr->element_size * elm;
+    if (pos == 1) return arr->index[1] + arr->element_size * elm;
+    if (pos == 2) return oCast(char*, arr->index[1]) + arr->segment_size + arr->element_size * elm;
 
     //ignore printf("Accessing element #%lu ", pos); fflush(stdout);
     pos+= 1;
@@ -186,25 +220,31 @@ Obj arrGet(Array restrict arr, uint64_t pos)
     const uint64_t notKdiv2 = oneShlKdiv2-1;
 
     const uint64_t mask_b = (notKdiv2 << kdiv2) << (k&1); // the first floor(k/2) bits after the most significant bit in k
-    const uint64_t mask_e = (oneShlKdiv2 << (k&1)) - 1; // the least significant ceil(k/2) bits in k
+    const uint64_t mask_seg = (oneShlKdiv2 << (k&1)) - 1; // the least significant ceil(k/2) bits in k
 
     const uint64_t b = ((pos & mask_b) >> kdiv2) >> (k&1); // the index of the data block in the k-th superblock
     //ignore printf("data block #%lu ", b); fflush(stdout);
 
-    const uint64_t e = pos & mask_e; // the index of the data segment in the b-th data block
+    const uint64_t seg = pos & mask_seg; // the index of the data segment in the b-th data block
     //ignore printf("segment  #%lu\n   ---- using mask_b %lu   and mask_e %lu\n", e, mask_b, mask_e); fflush(stdout);
 
     char* d = arr->index[(notKdiv2 << 1) + (k&1) * oneShlKdiv2 + b]; // access the corresponding data block
-    d += arr->segment_size * e; // access the element within
+    d += arr->element_size * ((seg << arr->fact) | elm);  // access the element within
     return d;
 }
 
 uint64_t arrSize(Array restrict arr)
 {
-    return arr->n;
+    return (arr->n)?(((arr->n-1) << arr->fact)|arr->oseg):(0);
 }
 
 void printStatus(Array restrict arr)
 {
-    printf("Array of %lu segments in %u superblocks %u data blocks and %shaving an extra data block with an index size of %u.\n", arr->n, arr->ns, arr->nd, (arr->empty_db)?(""):("not "), arr->index_size); fflush(stdout);
+    //printf("Array of %lu elements, %lu segments, %u superblocks per segment, %u data blocks per superblock, and %shaving an extra data block. index size: %u. segment size: %lu. element size: %lu.\n", ((arr->n-1) << arr->fact) + arr->oseg, arr->n, arr->ns, arr->nd, (arr->empty_db)?(""):("not "), arr->index_size, arr->segment_size, arr->element_size); fflush(stdout);
+    printf("Array of %lu elements.\n\t%u superblocks[%u:%u]\n\t%u data blocks[%u:%u] %s\n\t%lu segments[%u:%u]\n\tindex size: %u. segment size: %lu. element size: %lu.\n",
+            ((arr->n)?(((arr->n-1) << arr->fact) + arr->oseg):(0)),
+            arr->s, arr->os, arr->ns,
+            arr->d, arr->od, arr->nd, (arr->empty_db)?("(+1)"):(""),
+            arr->n, arr->oseg, arr->nseg,
+            arr->index_size, arr->segment_size, arr->element_size); fflush(stdout);
 }
