@@ -23,6 +23,8 @@
 #define unused(x) (void)(x)
 #define ignore    (void)
 
+#define restrict __restrict__
+
 #ifdef SAFE_MODE
 #define safe(x) {x}
 #else

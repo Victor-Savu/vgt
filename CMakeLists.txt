@@ -16,8 +16,8 @@ set(CMAKE_BUILD_TYPE Release)
 
 set(libtype "SHARED")
 
-set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}  -D_POSIX_C_SOURCE=199309  -O3 -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing -std=c99")
-#set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing -std=c99")
+set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -O3 -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing")
+#set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing")
 
 link_directories("$ENV{CUSTOM_MODULES_PATH}/lib")
 include_directories("$ENV{CUSTOM_MODULES_PATH}/include")
@@ -36,6 +36,7 @@ set(math_sources
         math/frame.c
         math/obj.c
         math/math.c
+        math/predicates.c
     )
 
 set(math_headers
@@ -46,6 +47,7 @@ set(math_headers
         math/frame.h
         math/frame_cls.h
         math/math.h
+        math/predicates.h
     )
 
 add_library(math ${libtype} ${math_sources})

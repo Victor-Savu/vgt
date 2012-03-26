@@ -23,7 +23,7 @@ struct Array {
     bool     empty_db; // is there an empty data block?
 
     size_t element_size;
-    uint64_t fact; // logarithm of the number of elements per segment
+    uint64_t fact; // base 2 logarithm of the number of elements per segment
     uint32_t oseg; // occupancy of the last segment
     uint32_t nseg; // #elements per segment = 1<<fact
 };
@@ -132,7 +132,7 @@ Array arrCreate(uint8_t elem_size, uint8_t fact)
     Array arr = oCreate(sizeof (struct Array));
     arr->index = oCreate(4 * sizeof (Obj));
     arr->index_size = 4;
-    arr->fact = fact; arr->fact++;
+    arr->fact = fact;
     arr->element_size = elem_size;
     arr->segment_size = elem_size << arr->fact;
     arr->index[0] = oCreate(arr->segment_size);
