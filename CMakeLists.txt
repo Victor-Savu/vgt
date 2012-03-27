@@ -59,6 +59,7 @@ set(ads_sources
         ads/red_black_node.c
         ads/list_element.c
         ads/list.c
+        ads/vector.c
     )
 
 set(ads_headers
@@ -67,6 +68,7 @@ set(ads_headers
         ads/list.h
         ads/red_black_node.h
         ads/array.h
+        ads/vector.h
    )
 
 add_library(ads ${libtype} ${ads_sources})
@@ -77,6 +79,8 @@ set(vgt_sources
         vgt/scalar_field.c
         vgt/vector_field.c
         vgt/mesh.c
+        vgt/half_edge.c
+        vgt/delaunay.c
    )
 
 set(vgt_headers
@@ -87,6 +91,9 @@ set(vgt_headers
         vgt/topology.h
         vgt/edge_cls.h
         vgt/mesh.h
+        vgt/half_edge.h
+        vgt/half_edge_cls.h
+        vgt/delaunay.h
    )
 
 add_library(vgt ${libtype} ${vgt_sources})
@@ -127,6 +134,8 @@ install(TARGETS vgt math view ads DESTINATION ${INSTALL_LIB_DIR})
 add_executable(test_view test/test_view.c)
 add_executable(test_mesh test/test_mesh.c)
 add_executable(test_array test/test_array.c)
+add_executable(test_vector test/test_vector.c)
+add_executable(test_delaunay test/test_delaunay.c)
 
 #target_link_libraries(test_volumetric_data m vgt math)
 #target_link_libraries(test_div m vgt math)
@@ -134,9 +143,11 @@ add_executable(test_array test/test_array.c)
 #target_link_libraries(test_vector_field m vgt math)
 #target_link_libraries(test_lapl m vgt math)
 #target_link_libraries(test_list m vgt math)
-target_link_libraries(test_view m vgt math view)
+target_link_libraries(test_view view)
 target_link_libraries(test_mesh vgt)
 target_link_libraries(test_array m vgt math rt)
+target_link_libraries(test_vector ads rt)
+target_link_libraries(test_delaunay vgt)
 
 
 

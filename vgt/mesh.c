@@ -95,8 +95,8 @@ Mesh mReadOff(Mesh restrict m, const char* restrict filename)
         gx /= m->n_vert;
         gy /= m->n_vert;
         gz /= m->n_vert;
-        Vec g = {gx, gy, gz};
-        for (i = m->vert; i < end; i++) vSubI(i, &g);
+//        Vec g = {gx, gy, gz};
+//        for (i = m->vert; i < end; i++) vSubI(i, &g);
     }
 
     {// read faces

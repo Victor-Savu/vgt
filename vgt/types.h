@@ -11,10 +11,12 @@
 typedef struct ScalarField* ScalarField;
 typedef struct VectorField* VectorField;
 typedef struct VolumetricData* VolumetricData;
-
-// under developement
 typedef struct Mesh* Mesh;
 typedef struct Edge* Edge;
+typedef struct HalfEdge* HalfEdge;
+
+// under developement
+typedef struct Delaunay* Delaunay;
 
 // to be implemented
 typedef struct Spectrum* Spectrum;

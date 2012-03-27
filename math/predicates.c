@@ -113,6 +113,8 @@
 /*                                                                           */
 /*****************************************************************************/
 
+#include <math/types.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -130,7 +132,7 @@
 #define INEXACT                          /* Nothing */
 /* #define INEXACT volatile */
 
-#define REAL double                      /* float or double */
+#define REAL real                      /* float or double */
 #define REALPRINT doubleprint
 #define REALRAND doublerand
 #define NARROWRAND narrowdoublerand

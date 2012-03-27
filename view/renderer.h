@@ -7,7 +7,9 @@ Renderer rCreate(const char* winname);
 
 void rDestroy(Renderer r);
 
-void rDisplay(Renderer r, Mesh m);
+void rDisplayMesh(Renderer r, Mesh m);
+
+void rDisplayDelaunay(Renderer r, Delaunay m);
 
 void rWait(Renderer r);
 

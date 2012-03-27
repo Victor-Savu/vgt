@@ -1,4 +1,8 @@
-#include <view/renderer.c>
+#include <view/renderer.h>
+#include <vgt/mesh.h>
+#include <vgt/delaunay.h>
+
+#include <stdio.h>
 
 int main(int argc, char* argv[])
 {
@@ -9,14 +13,26 @@ int main(int argc, char* argv[])
     Renderer r = rCreate("Hello");
 
     Mesh m = mReadOff(0, argv[1]);
-    rDisplay(r, m);
-/*    
+    rDisplayMesh(r, m);
+
+
+    Vec tetra[4] = {
+        {0.0, 0.0, 0.0},
+        {260.0, 0.0, 0.0},
+        {0.0, 260.0, 0.0},
+        {0.0, 0.0, 260.0}
+    };
+    Delaunay d = delCreate(&tetra);
+
+    rDisplayDelaunay(r, d);
+
+/*
     m = mReadOff(0, argv[1]);
-    rDisplay(r, m);
+    rDisplayMesh(r, m);
     m = mReadOff(0, argv[1]);
-    rDisplay(r, m);
+    rDisplayMesh(r, m);
     m = mReadOff(0, argv[1]);
-    rDisplay(r, m);
+    rDisplayMesh(r, m);
 */
     rWait(r);
 

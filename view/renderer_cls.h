@@ -11,7 +11,10 @@
 struct Renderer
 {
     Mesh m;
-    Mesh q;
+    Mesh new_m;
+
+    Delaunay d;
+    Delaunay new_d;
 
     pthread_t threadId;
     pthread_mutex_t mutex;

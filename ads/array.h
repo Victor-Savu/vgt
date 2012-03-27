@@ -44,10 +44,17 @@ void arrDestroy(Array restrict arr);
 */
 Obj arrGet(Array restrict arr, uint64_t pos);
 
+Obj arrFront(Array restrict arr);
+Obj arrBack(Array restrict arr);
 
-void arrSet(Array restrict arr, Obj restrict o, uint64_t pos);
-void arrPush(Array restrict arr, Obj restrict o);
+bool arrIsEmpty(Array restrict arr);
+
+
+Obj arrSet(Array restrict arr, Obj restrict o, uint64_t pos);
+Obj arrPush(Array restrict arr, Obj restrict o);
 void arrPop(Array restrict arr);
+
+
 uint64_t arrSize(Array restrict arr);
 void printStatus(Array restrict arr);
 

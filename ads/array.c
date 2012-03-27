@@ -161,27 +161,29 @@ void arrDestroy(Array restrict arr)
     oDestroy(arr);
 }
 
-void arrSet(Array restrict arr, Obj restrict o, uint64_t pos)
+Obj arrSet(Array restrict arr, Obj restrict o, uint64_t pos)
 {
     if (!arr || (pos>>arr->fact) >= arr->n) {
         fprintf(stderr, "[x] %s: Illegal memory access.\n", __func__);
         exit(EXIT_FAILURE);
     }
-    memcpy(arrGet(arr, pos), o, arr->element_size);
+    Obj dest = arrGet(arr, pos);
+    memcpy(dest, o, arr->element_size);
+    return dest;
 }
 
-void arrPush(Array restrict arr, Obj restrict o)
+Obj arrPush(Array restrict arr, Obj restrict o)
 {
     // if there is a non-full segment, increase its occupancy
     if (arr->oseg < arr->nseg) arr->oseg++;
     // otherwise, grow the array and set the new segment occupancy to 1
     else { arr_grow(arr); arr->oseg = 1; }
 
-    Obj const dest = arr->index[arr->d-1 - arr->empty_db]+ arr->segment_size * (arr->od-1) + arr->element_size * (arr->oseg-1);
+    Obj const dest = oCast(char*, arr->index[arr->d-1 - arr->empty_db]) + arr->segment_size * (arr->od-1) + arr->element_size * (arr->oseg-1);
 
     memcpy(dest, o, arr->element_size);
 
-//    arrSet(arr, o, ((arr->n-1)<<arr->fact) | (arr->oseg-1));
+    return dest;
 }
 
 void arrPop(Array arr)
@@ -233,6 +235,30 @@ Obj arrGet(Array restrict arr, uint64_t p)
     return d;
 }
 
+Obj arrFront(Array restrict arr)
+{
+    if (!arrSize(arr)) {
+        fprintf(stderr, "[x] %s: Illegal memory access.\n", __func__);
+        exit(EXIT_FAILURE);
+    }
+    return arr->index[0];
+}
+
+Obj arrBack(Array restrict arr)
+{
+    if (!arrSize(arr)) {
+        fprintf(stderr, "[x] %s: Illegal memory access.\n", __func__);
+        exit(EXIT_FAILURE);
+    }
+    return oCast(char*, arr->index[arr->d-1 - arr->empty_db]) + arr->segment_size * (arr->od-1) + arr->element_size * (arr->oseg-1);
+
+}
+
+bool arrIsEmpty(Array restrict arr)
+{
+    return (!arrSize(arr));
+}
+
 uint64_t arrSize(Array restrict arr)
 {
     return (arr->n)?(((arr->n-1) << arr->fact)|arr->oseg):(0);
@@ -248,3 +274,4 @@ void printStatus(Array restrict arr)
             arr->n, arr->oseg, arr->nseg,
             arr->index_size, arr->segment_size, arr->element_size); fflush(stdout);
 }
+

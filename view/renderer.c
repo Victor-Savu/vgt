@@ -7,6 +7,7 @@
 
 #include <math/obj.h>
 #include <vgt/mesh.h>
+#include <vgt/delaunay.h>
 #include <view/camera.h>
 #include <view/graphics.h>
 
@@ -28,7 +29,9 @@ void* init_rendering(void*);
 
 struct Renderer instance = {
     .m = 0,
-    .q = 0,
+    .new_m = 0,
+    .d = 0,
+    .new_d = 0,
     .mutex = PTHREAD_MUTEX_INITIALIZER,
     .cond = PTHREAD_COND_INITIALIZER,
     .props = 0,
@@ -66,9 +69,14 @@ void rDestroy(Renderer restrict r)
     rWait(r);
 
     if (instance.m) mDestroy(instance.m);
-    if (instance.q) mDestroy(instance.q);
+    if (instance.new_m) mDestroy(instance.new_m);
+    if (instance.d) delDestroy(instance.d);
+    if (instance.new_d) delDestroy(instance.new_d);
+
     instance.m = 0;
-    instance.q = 0;
+    instance.new_m = 0;
+    instance.d = 0;
+    instance.new_d = 0;
     instance.props = 0;
 }
 
@@ -78,14 +86,25 @@ void rWait(Renderer restrict r)
     if (!pthread_join(instance.threadId, &ret)) oDestroy(ret);
 }
 
-void rDisplay(Renderer restrict r, Mesh restrict m)
+void rDisplayMesh(Renderer restrict r, Mesh restrict m)
 {
     pthread_mutex_lock(&instance.mutex);
-    Mesh restrict old = instance.q;
-    instance.q = m;
+    Mesh restrict old = instance.new_m;
+    instance.new_m = m;
     pthread_mutex_unlock(&instance.mutex);
     if (old) mDestroy(old);
 }
+
+void rDisplayDelaunay(Renderer restrict r, Delaunay restrict d)
+{
+    pthread_mutex_lock(&instance.mutex);
+    Delaunay restrict old = instance.new_d;
+    instance.new_d = d;
+    pthread_mutex_unlock(&instance.mutex);
+    if (old) delDestroy(old);
+}
+
+
 
 void cb_display(void)
 {
@@ -103,6 +122,7 @@ void cb_display(void)
 
     //glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
     if (instance.m) mDisplay(instance.m);
+    if (instance.d) delDisplay(instance.d);
     //glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 
     //if (instance.props & DRAW_FOCUS_POINT) {
@@ -179,14 +199,21 @@ void cb_update(int time)
 void cb_idle(void)
 {
     if (pthread_mutex_trylock(&instance.mutex)) return;
-    Mesh old = 0;
-    if (instance.q) {
-        old = instance.m;
-        instance.m = instance.q;
-        instance.q = 0;
+    Mesh old_m = 0;
+    if (instance.new_m) {
+        old_m = instance.m;
+        instance.m = instance.new_m;
+        instance.new_m = 0;
+    }
+    Delaunay old_d = 0;
+    if (instance.new_d) {
+        old_d = instance.d;
+        instance.d = instance.new_d;
+        instance.new_d = 0;
     }
     pthread_mutex_unlock(&instance.mutex);
-    if (old) mDestroy(old);
+    if (old_m) mDestroy(old_m);
+    if (old_d) delDestroy(old_d);
 }
 
 void* init_rendering(void* arg)
@@ -220,9 +247,12 @@ void* init_rendering(void* arg)
     glEnable(GL_LIGHT0);
     glDepthFunc(GL_LEQUAL);
     glEnable(GL_DEPTH_TEST);
-  //  glEnable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
     glEnable(GL_NORMALIZE);
     glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_POINT_SMOOTH);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glShadeModel(GL_SMOOTH);
 

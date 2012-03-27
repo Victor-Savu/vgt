@@ -1,22 +1,22 @@
 #ifndef QUAKE_ROBUST_PREDICATES_H
 #define QUAKE_ROBUST_PREDICATES_H
 
-#define REAL double                      /* float or double */
+#include <math/types.h>
 
-REAL orient2d(REAL* pa, REAL* pb, REAL* pc);
+real orient2d(real* pa, real* pb, real* pc);
 
-REAL orient2dfast(REAL* pa, REAL* pb, REAL* pc);
+real orient2dfast(real* pa, real* pb, real* pc);
 
-REAL orient3d(REAL* pa, REAL* pb, REAL* pc, REAL* pd);
+real orient3d(real* pa, real* pb, real* pc, real* pd);
 
-REAL orient3dfast(REAL* pa, REAL* pb, REAL* pc, REAL* pd);
+real orient3dfast(real* pa, real* pb, real* pc, real* pd);
 
-REAL incircle(REAL* pa, REAL* pb, REAL* pc, REAL* pd);
+real incircle(real* pa, real* pb, real* pc, real* pd);
 
-REAL incirclefast(REAL* pa, REAL* pb, REAL* pc, REAL* pd);
+real incirclefast(real* pa, real* pb, real* pc, real* pd);
 
-REAL insphere(REAL* pa, REAL* pb, REAL* pc, REAL* pd, REAL* pe);
+real insphere(real* pa, real* pb, real* pc, real* pd, real* pe);
 
-REAL inspherefast(REAL* pa, REAL* pb, REAL* pc, REAL* pd, REAL* pe);
+real inspherefast(real* pa, real* pb, real* pc, real* pd, real* pe);
 
 #endif//QUAKE_ROBUST_PREDICATES_H

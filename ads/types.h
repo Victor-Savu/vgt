@@ -14,7 +14,8 @@ typedef uint16_t    ind;   // 64k elements
 /* Classes */
 
 //to be tested
-typedef struct Array *Array;
+typedef struct Array* Array;
+typedef struct Vector* Vector;
 
 // under developement
 typedef struct List* List;
