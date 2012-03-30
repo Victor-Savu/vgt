@@ -26,9 +26,13 @@
 #define restrict __restrict__
 
 #ifdef SAFE_MODE
-#define safe(x) {x}
+#include <stdio.h>
+#include <stdlib.h>
+#define safe(x)     do {x} while (0)
+#define check(x)    do { if (!x) { fprintf(stderr, "[x] %s:%s:%d: Check failed.", __FILE__, __func__, __LINE__); } } while (0)
 #else
 #define safe(x)
+#define check(x)
 #endif
 
 #define NONE    (0x0)
@@ -51,6 +55,8 @@ typedef void*           Obj;
 
 typedef struct Spherical*   Spherical;
 typedef struct Frame*       Frame;
+
+typedef struct Simplex* Simplex;
 
 #endif//MATH_TYPES_H
 
