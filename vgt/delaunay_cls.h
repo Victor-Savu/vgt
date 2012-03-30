@@ -5,9 +5,8 @@
 
 struct Delaunay {
     Array v;
-    // TODO: Use a RedBlackTree for the edges in order to save memory when deleting
     Array e;
-    ind valid;
+    HalfEdge t;
 };
 
 #endif//VGT_DELAUNAY_CLS_H

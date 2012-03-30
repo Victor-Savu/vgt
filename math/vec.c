@@ -145,6 +145,7 @@ void vPrint(Vec* restrict a, FILE* restrict fp)
 
 char* vStrPrint(Vec* restrict a, char* restrict s)
 {
+    if (!a) strcpy(s, "<null>");
     float x = (*a)[0], y = (*a)[1], z = (*a)[2];
     sprintf(s, "<%.3f, %.3f, %.3f>", x, y, z);
     return s;

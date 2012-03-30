@@ -11,7 +11,15 @@
 #include <math/vec.h>
 #include <GL/glut.h>
 
-void create_cell(Delaunay restrict d, Vec* (*V)[4])
+/*
+   Creates a tetrahedron.
+   @arg d is the delaunay tetrahedrization
+   @arg V is the list of 4 vertices <A, B, C, D>. the first vertex should be on the positive size of the plane of the other three.
+   @arg N is the list of the 4 neighboring tetrahedra of the one which is created
+
+   @return the tetrahedron ABCD
+*/
+HalfEdge create_cell(Delaunay restrict d, Vec* (*V)[4], HalfEdge (*N)[4])
 {
     Vec* restrict A = V[0][0];
     Vec* restrict B = V[0][1];
@@ -19,41 +27,51 @@ void create_cell(Delaunay restrict d, Vec* (*V)[4])
     Vec* restrict D = V[0][3];
     // A "sees" BCD from the positive side
 
-    // BDC                               pos : vert, next, oped, opfac
-    HalfEdge BD = arrPush(d->e, heConst(D, 0, 0, 0)); // # 0 :    D,   DC,   DB,  none
-    HalfEdge DC = arrPush(d->e, heConst(C, 0, 0, 0)); // # 1 :    C,   CB,   CD,  none
-    HalfEdge CB = arrPush(d->e, heConst(B, 0, 0, 0)); // # 2 :    B,   BD,   BC,  none
-
-    // ADB                               pos : vert, next, oped, opfac
-    HalfEdge AD = arrPush(d->e, heConst(D, 0, 0, 0)); // # 3 :    D,   DB,   DA,  none
-    HalfEdge DB = arrPush(d->e, heConst(B, 0, 0, 0)); // # 4 :    B,   BA,   BD,  none
-    HalfEdge BA = arrPush(d->e, heConst(A, 0, 0, 0)); // # 5 :    A,   AD,   AB,  none
+    // ABC                               pos : vert, next, oped, opfac
+    HalfEdge AB = arrPush(d->e, heConst(B, 0, 0, (*N)[0])); // # 9 :    B,   BC,   BA,  none
+    HalfEdge BC = arrPush(d->e, heConst(C, 0, 0, (*N)[0])); // #10 :    C,   CA,   CB,  none
+    HalfEdge CA = arrPush(d->e, heConst(A, 0, 0, (*N)[0])); // #11 :    A,   AB,   AC,  none
 
     // ACD                               pos : vert, next, oped, opfac
-    HalfEdge AC = arrPush(d->e, heConst(C, 0, 0, 0)); // # 6 :    C,   CD,   CA,  none
-    HalfEdge CD = arrPush(d->e, heConst(D, 0, 0, 0)); // # 7 :    D,   DA,   DC,  none
-    HalfEdge DA = arrPush(d->e, heConst(A, 0, 0, 0)); // # 8 :    A,   AC,   AD,  none
+    HalfEdge AC = arrPush(d->e, heConst(C, 0, 0, (*N)[1])); // # 6 :    C,   CD,   CA,  none
+    HalfEdge CD = arrPush(d->e, heConst(D, 0, 0, (*N)[1])); // # 7 :    D,   DA,   DC,  none
+    HalfEdge DA = arrPush(d->e, heConst(A, 0, 0, (*N)[1])); // # 8 :    A,   AC,   AD,  none
 
-    // ABC                               pos : vert, next, oped, opfac
-    HalfEdge AB = arrPush(d->e, heConst(B, 0, 0, 0)); // # 9 :    B,   BC,   BA,  none
-    HalfEdge BC = arrPush(d->e, heConst(C, 0, 0, 0)); // #10 :    C,   CA,   CB,  none
-    HalfEdge CA = arrPush(d->e, heConst(A, 0, 0, 0)); // #11 :    A,   AB,   AC,  none
+    // ADB                               pos : vert, next, oped, opfac
+    HalfEdge AD = arrPush(d->e, heConst(D, 0, 0, (*N)[2])); // # 3 :    D,   DB,   DA,  none
+    HalfEdge DB = arrPush(d->e, heConst(B, 0, 0, (*N)[2])); // # 4 :    B,   BA,   BD,  none
+    HalfEdge BA = arrPush(d->e, heConst(A, 0, 0, (*N)[2])); // # 5 :    A,   AD,   AB,  none
 
-    BD->n = DC; BD->o = DB;
-    DC->n = CB; DC->o = CD;
-    CB->n = BD; CB->o = BC;
+    // BDC                               pos : vert, next, oped, opfac
+    HalfEdge CB = arrPush(d->e, heConst(B, 0, 0, (*N)[3])); // # 2 :    B,   BD,   BC,  none
+    HalfEdge BD = arrPush(d->e, heConst(D, 0, 0, (*N)[3])); // # 0 :    D,   DC,   DB,  none
+    HalfEdge DC = arrPush(d->e, heConst(C, 0, 0, (*N)[3])); // # 1 :    C,   CB,   CD,  none
 
-    AD->n = DB; AD->o = DA;
-    DB->n = BA; DB->o = BD;
-    BA->n = AD; BA->o = AB;
+    AB->n = BC; AB->o = BA;
+    BC->n = CA; BC->o = CB;
+    CA->n = AB; CA->o = AC;
 
     AC->n = CD; AC->o = CA;
     CD->n = DA; CD->o = DC;
     DA->n = AC; DA->o = AD;
 
-    AB->n = BC; AB->o = BA;
-    BC->n = CA; BC->o = CB;
-    CA->n = AB; CA->o = AC;
+    AD->n = DB; AD->o = DA;
+    DB->n = BA; DB->o = BD;
+    BA->n = AD; BA->o = AB;
+
+    CB->n = BD; CB->o = BC;
+    BD->n = DC; BD->o = DB;
+    DC->n = CB; DC->o = CD;
+
+    return CA;
+}
+
+void neighborhood(HalfEdge e, HalfEdge (*n)[4])
+{
+    (*n)[0] = e->f;
+    (*n)[1] = e->o->f;
+    (*n)[2] = e->n->o->f;
+    (*n)[3] = e->n->n->o->f;
 }
 /*
 void delete_edge(Delaunay restrict d, HalfEdge e)
@@ -62,33 +80,36 @@ void delete_edge(Delaunay restrict d, HalfEdge e)
     unused(last);
 }
 */
-
-bool in_cell(HalfEdge restrict e, Vec* restrict p, real (*orient)[4])
+bool outside_cell(HalfEdge restrict e, Vec* restrict p, real (*orient)[4], uint8_t ignored_faces)
 {
-    HalfEdge const restrict A = e;
-    HalfEdge const restrict B = A->o;
-    HalfEdge const restrict C = A->n->o;
-    HalfEdge const restrict D = A->n->n->o;
+    HalfEdge N[4];
 
+    // get the neighboring faces
+    neighborhood(e, &N);
+    unsigned int i=0;
+    bool ret = false;
 
+    for (i=0; i<4; i++) {
+        (*orient)[i] = (ignored_faces & (1<<i))?(-1):(orient3d(*N[i]->v, *N[i]->n->v, *N[i]->n->n->v, *p));
+        ret |= (*orient)[i] > 0;
+    }
 
-    (*orient)[0] = orient3d(*p, *A->v, *A->n->v, *A->n->n->v);
-    (*orient)[1] = orient3d(*p, *B->v, *B->n->v, *B->n->n->v);
-    (*orient)[2] = orient3d(*p, *C->v, *C->n->v, *C->n->n->v);
-    (*orient)[3] = orient3d(*p, *D->v, *D->n->v, *D->n->n->v);
-
-    return ((*orient)[0] < 0)&&((*orient)[1] < 0)&&((*orient)[2] < 0)&&((*orient)[3] < 0);
+    return ret;
 }
 
-HalfEdge walk(HalfEdge restrict e, Vec* restrict p)
+HalfEdge walk(Delaunay restrict d, Vec* restrict p)
 {
     real where[4];
+    HalfEdge restrict e = d->t;
+    uint8_t ignore_faces = NONE;
 
-    while (!in_cell(e, p, &where)) {
-        if (where[0]<0) e = e->f; else
+    // this can be manually optimized not to check the neighbor we just came from
+    while (e && outside_cell(e, p, &where, ignore_faces)) {
+        if (!ignore_faces && where[0]<0) e = e->f; else
         if (where[1]<0) e = e->o->f; else
         if (where[2]<0) e = e->n->o->f; else
         if (where[3]<0) e = e->n->n->o->f;
+        ignore_faces = FIRST;
     }
 
     return e;
@@ -144,7 +165,8 @@ Delaunay delCreate(Vec (*hull)[4])
     printf("2: "); vPrint(V[2], stdout); printf("\n");
     printf("3: "); vPrint(V[3], stdout); printf("\n");
 */
-    create_cell(d, &V);
+    HalfEdge N[4] = {0, 0, 0, 0};
+    create_cell(d, &V, &N);
 
     return d;
 }
@@ -156,83 +178,104 @@ void delDestroy(Delaunay restrict d)
     oDestroy(d);
 }
 
+enum FlipCase { CASE_1, CASE_2, CASE_3, CASE_4, CASE_SKIP, CASE_UNHANDLED };
 
+enum FlipCase flip_case(HalfEdge* t) {
+
+    if (!t->n->n->o->f) return CASE_SKIP;
+
+    Vec* restrict p = t->v;
+    Vec* restrict a = t->n->v;
+    Vec* restrict b = t->n->n->v;
+    Vec* restrict c = t->o->n->v;
+    Vec* restrict d = t->n->n->o->f->n->n->v;
+
+    // if it is not in the sphere
+    if (insphere(*p, *a, *b, *c, *d) <= 0) return CASE_SKIP;
+
+    // orientations
+    const real abc = orient3d(*a, *b, *c, *p);
+    const real acd = orient3d(*a, *c, *d, *p);
+    const real adb = orient3d(*a, *b, *b, *p);
+    const real cbd = orient3d(*c, *d, *d, *p);
+
+    const uint8_t lt = (acd < 0) + (adb < 0) + (cbd < 0);
+    const uint8_t eq = (acd ==0) + (adb ==0) + (cbd ==0);
+
+    if (abc > 0) {
+        if (lt == 3) return CASE_1;
+        else if (lt == 2) {
+            if (eq == 0) {
+                if (acd > 0) *td = t->n->o->f;
+                else if (adb > 0) *td = t->f;
+                else if (cbd > 0) *td = t->o->f;
+                else *td = 0;
+                if (*td) return CASE_2; else return CASE_SKIP;
+            } else if (eq == 1) {
+                if (acd == 0) {*tb = t->n->o->f; *tc = (*tb)?():(0);};
+                else if (adb == 0) {*tb = t->f; *tc = (*tb)?():(0);};
+                else if (cbd == 0) {*tb = t->o->f; *tc = (*tb)?((*tb)->n->n->o->f):(0);};
+                else *tb = 0, *tc = 0;
+                if (*tb && *tc) return CASE_3; else  return CASE_SKIP;
+            }
+        }
+    } else if (abc == 0) {
+        if (lt == 3) return CASE_1; // degenerate case where p is on the face abc
+        if (eq == 1) return CASE_4;
+    }
+
+    return CASE_UNHANDLED;
+}
 
 void delInsert(Delaunay restrict d, Vec* restrict p)
 {
     Array stack = arrCreate(sizeof (HalfEdge), 2);
 
-    // 1:  τ ← Walk {to obtain tetra containing p}
     HalfEdge t = walk(arrFront(d->e), p);
 
-    {
-        // 2: insert p in τ with a flip14
-        HalfEdge out[4];
-        flip14(d, p, t, &out);
-        // 3: push 4 new tetrahedra on stack
-        arrPush(stack, out[0]);
-        arrPush(stack, out[1]);
-        arrPush(stack, out[2]);
-        arrPush(stack, out[3]);
+    if (!t) return;
+
+    flip14(d, &t, p);
+    if (t) {
+        arrPush(stack, t); t = t->n->o;
+        arrPush(stack, t); t = t->n->o;
+        arrPush(stack, t); t = t->n->o;
+        arrPush(stack, t);
     }
 
-    bool case1=0, case2=0, case3=0, case4=0;
-
-    // 4: while stack is non-empty do
     while (!arrIsEmpty(stack)) {
-    // 5:  τ = {p, a, b, c} ← pop from stack
         t = *oCast(HalfEdge*, arrBack(stack));
-    // 6:  τa = {a, b, c, d} ← get adjacent tetrahedron of τ having abc as a facet
-        HalfEdge ta = (t->n->n->o->f);
-        if (!ta) continue;
-    // 7:  if d is inside circumsphere of τ then
-        if (insphere(*(ta->n->v), *(t->v), *(ta->v), *(ta->n->v), *(ta->n->n->v))) {
-            // 8:     Flip(τ , τa )
-            // 1: if case #1 then
-            if (case1) {
-                // 2:    flip23(τ , τa )
-                HalfEdge in[2] = {t, ta};
-                HalfEdge out[3];
-                flip23(d, &in, &out);
-                // 3:    push tetrahedra pabd, pbcd and pacd on stack
-                arrPush(stack, out[0]);
-                arrPush(stack, out[1]);
-                arrPush(stack, out[2]);
-                // 4: else if case #2 AND T p has tetrahedron pdab then
-            } else if ( (case2) && () ) {
-                HalfEdge in[3] = {t, ta, pdab};
-                HalfEdge out[2];
-                // 5:    flip32(τ , τa , pdab)
-                flip32(d, &in, &out);
-                // 6:    push pacd and pbcd on stack
-                arrPush(stack, out[0]);
-                arrPush(stack, out[1]);
-                // 7: else if case #3 AND τ and τa are in config44 with τb and τc then
-            } else if ( case3 && ()) {
-                HalfEdge in[4] = {t, ta, tb, tc};
-                HalfEdge out[4];
-                // 8:    flip44(τ , τa , τb , τc )
-                flip44(d, &in, &out);
-                // 9:    push on stack the 4 tetrahedra created
-                arrPush(stack, out[0]);
-                arrPush(stack, out[1]);
-                arrPush(stack, out[2]);
-                arrPush(stack, out[3]);
-                //10: else if case #4 then
-            } else if (case4) {
-                HalfEdge in[2] = {t, ta};
-                HalfEdge out[4];
-                //11:    flip23(τ , τa )
-                flip23(d, &in, &out);
-                //12:    push tetrahedra pabd, pbcd and pacd on stack
-                arrPush(stack, out[0]);
-                arrPush(stack, out[1]);
-                arrPush(stack, out[2]);
-                //13: end if
-            }
-            // 9:  end if
+        arrPop(stack);
+        switch (flip_case(&t)) {
+            case CASE_4:
+            case CASE_1:
+                flip23(d, &t);
+                if (t) {
+                    arrPush(stack, t); t = t->f->o;
+                    arrPush(stack, t); t = t->f->o;
+                    arrPush(stack, t);
+                }
+                break;
+            case CASE_2:
+                flip32(d, &t);
+                if (t) {
+                    arrPush(stack, t);
+                    arrPush(stack, t->n->f);
+                }
+                break;
+            case CASE_3:
+                flip44(d, &t);
+                if (t) {
+                    arrPush(stack, t); t = t->f->o;
+                    arrPush(stack, t); t = t->f->o;
+                    arrPush(stack, t); t = t->f->o;
+                    arrPush(stack, t);
+                }
+                break;
+            default:
+                break;
+
         }
-        //10: end while
     }
 
 }

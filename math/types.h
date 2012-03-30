@@ -31,9 +31,19 @@
 #define safe(x)
 #endif
 
+#define NONE    (0x0)
+#define FIRST   (0x1)
+#define SECOND  (0x2)
+#define THIRD   (0x4)
+#define FOURTH  (0x8)
+#define FIFTH   (0x10)
+#define SIXTH   (0x11)
+#define SEVENTH (0x12)
+
 typedef float           real;
 typedef uint8_t         byte;
 typedef uint8_t         bool;
+typedef uint8_t         mask8;
 typedef real            Vec[3];
 typedef Vec             Mat[3];
 typedef void*           Obj;
