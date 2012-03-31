@@ -66,11 +66,11 @@ inline RedBlackNode rbnRotate(RedBlackNode h)
 inline void rbnColorFlip(RedBlackNode x)
 {
     // the props ^= COLOR operation flips the color bit
-    safe( if (!x) return 0; );
+    check( x );
     x->props ^= COLOR;
-    safe( if (!x->left) return x; );
+    check(x->left);
     x->left->props ^= COLOR;
-    safe( if (!x->right) return x; );
+    check(x->right);
     x->right->props ^= COLOR;
 }
 

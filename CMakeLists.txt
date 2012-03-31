@@ -37,7 +37,6 @@ set(math_sources
         math/obj.c
         math/math.c
         math/predicates.c
-        math/mesh.c
     )
 
 set(math_headers
@@ -49,8 +48,6 @@ set(math_headers
         math/frame_cls.h
         math/math.h
         math/predicates.h
-        math/mesh.h
-        math/mesh_cls.h
     )
 
 add_library(math ${libtype} ${math_sources})
@@ -82,7 +79,6 @@ set(vgt_sources
         vgt/scalar_field.c
         vgt/vector_field.c
         vgt/mesh.c
-        vgt/half_edge.c
         vgt/delaunay.c
    )
 
@@ -94,8 +90,7 @@ set(vgt_headers
         vgt/topology.h
         vgt/edge_cls.h
         vgt/mesh.h
-        vgt/half_edge.h
-        vgt/half_edge_cls.h
+        vgt/tet_cls.h
         vgt/delaunay.h
    )
 

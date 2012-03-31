@@ -5,8 +5,7 @@
 
 struct Delaunay {
     Array v;
-    Array e;
-    HalfEdge t;
+    Array t;
 };
 
 #endif//VGT_DELAUNAY_CLS_H

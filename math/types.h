@@ -25,15 +25,19 @@
 
 #define restrict __restrict__
 
+#define SAFE_MODE   1
+
 #ifdef SAFE_MODE
 #include <stdio.h>
 #include <stdlib.h>
 #define safe(x)     do {x} while (0)
 #define check(x)    do { if (!x) { fprintf(stderr, "[x] %s:%s:%d: Check failed.", __FILE__, __func__, __LINE__); } } while (0)
+#define stub        do { printf("[!] %s:%s:%d: Not yet implemented.", __FILE__, __func__, __LINE__); } while (0)
 #else
 #define safe(x)
 #define check(x)
 #endif
+
 
 #define NONE    (0x0)
 #define FIRST   (0x1)

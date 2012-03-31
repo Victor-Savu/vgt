@@ -13,7 +13,7 @@ typedef struct VectorField* VectorField;
 typedef struct VolumetricData* VolumetricData;
 typedef struct Mesh* Mesh;
 typedef struct Edge* Edge;
-typedef struct HalfEdge* HalfEdge;
+typedef struct Tet* Tet;
 
 // under developement
 typedef struct Delaunay* Delaunay;

@@ -43,7 +43,7 @@ Mesh mReadOff(Mesh restrict m, const char* restrict filename)
 
     FILE* f = fopen(filename, "r");
     if (!f) {
-        safe( printf("[x] %s: Failed to open file [%s].", __func__, filename); )
+        safe( printf("[x] %s: Failed to open file [%s].", __func__, filename); );
     }
 
 

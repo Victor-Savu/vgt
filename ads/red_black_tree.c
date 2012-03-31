@@ -36,7 +36,7 @@ rbtInsert(RedBlackTree tree, Obj data)
 
     // create a stack for traversing the tree and returning along the same path
     RedBlackNode* stack[tree->depth +1];
-    safe( memset(stack, 0, tree->height * sizeof (RedBlackNode*)); );
+    safe( memset(stack, 0, tree->depth * sizeof (RedBlackNode*)); );
     stack[0] = &tree->root;
 
     byte depth = 1;
@@ -66,6 +66,7 @@ rbtInsert(RedBlackTree tree, Obj data)
         if (rbnIsRed((**top)->right)) **top = rbnRotate(**top);
         if (rbnIsRed((**top)->left) && rbnIsRed((**top)->left->left)) **top = rbnRotate(**top);
     }
+
 
 }
 

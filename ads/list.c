@@ -58,7 +58,7 @@ ListElement lInsert(List l, ListElement at, Obj o)
 ListElement lImport(List l, ListElement at, ListElement e)
 {
     if (!e) {
-        safe( fprintf(stderr, "[!] Tried to import a null element into a list.\n"); fflush(stderr); )
+        safe( fprintf(stderr, "[!] Tried to import a null element into a list.\n"); fflush(stderr); );
         return at;
     }
 

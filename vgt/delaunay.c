@@ -4,67 +4,11 @@
 #include <stdio.h>
 
 #include <math/predicates.h>
-#include <vgt/half_edge.h>
-#include <vgt/half_edge_cls.h>
+#include <vgt/tet_cls.h>
 #include <math/obj.h>
 #include <ads/array.h>
 #include <math/vec.h>
 #include <GL/glut.h>
-
-/*
-   Creates a tetrahedron.
-   @arg d is the delaunay tetrahedrization
-   @arg V is the list of 4 vertices <A, B, C, D>. the first vertex should be on the positive size of the plane of the other three.
-   @arg N is the list of the 4 neighboring tetrahedra of the one which is created
-
-   @return the tetrahedron ABCD
-*/
-HalfEdge create_cell(Delaunay restrict d, Vec* (*V)[4], HalfEdge (*N)[4])
-{
-    Vec* restrict A = V[0][0];
-    Vec* restrict B = V[0][1];
-    Vec* restrict C = V[0][2];
-    Vec* restrict D = V[0][3];
-    // A "sees" BCD from the positive side
-
-    // ABC                               pos : vert, next, oped, opfac
-    HalfEdge AB = arrPush(d->e, heConst(B, 0, 0, (*N)[0])); // # 9 :    B,   BC,   BA,  none
-    HalfEdge BC = arrPush(d->e, heConst(C, 0, 0, (*N)[0])); // #10 :    C,   CA,   CB,  none
-    HalfEdge CA = arrPush(d->e, heConst(A, 0, 0, (*N)[0])); // #11 :    A,   AB,   AC,  none
-
-    // ACD                               pos : vert, next, oped, opfac
-    HalfEdge AC = arrPush(d->e, heConst(C, 0, 0, (*N)[1])); // # 6 :    C,   CD,   CA,  none
-    HalfEdge CD = arrPush(d->e, heConst(D, 0, 0, (*N)[1])); // # 7 :    D,   DA,   DC,  none
-    HalfEdge DA = arrPush(d->e, heConst(A, 0, 0, (*N)[1])); // # 8 :    A,   AC,   AD,  none
-
-    // ADB                               pos : vert, next, oped, opfac
-    HalfEdge AD = arrPush(d->e, heConst(D, 0, 0, (*N)[2])); // # 3 :    D,   DB,   DA,  none
-    HalfEdge DB = arrPush(d->e, heConst(B, 0, 0, (*N)[2])); // # 4 :    B,   BA,   BD,  none
-    HalfEdge BA = arrPush(d->e, heConst(A, 0, 0, (*N)[2])); // # 5 :    A,   AD,   AB,  none
-
-    // BDC                               pos : vert, next, oped, opfac
-    HalfEdge CB = arrPush(d->e, heConst(B, 0, 0, (*N)[3])); // # 2 :    B,   BD,   BC,  none
-    HalfEdge BD = arrPush(d->e, heConst(D, 0, 0, (*N)[3])); // # 0 :    D,   DC,   DB,  none
-    HalfEdge DC = arrPush(d->e, heConst(C, 0, 0, (*N)[3])); // # 1 :    C,   CB,   CD,  none
-
-    AB->n = BC; AB->o = BA;
-    BC->n = CA; BC->o = CB;
-    CA->n = AB; CA->o = AC;
-
-    AC->n = CD; AC->o = CA;
-    CD->n = DA; CD->o = DC;
-    DA->n = AC; DA->o = AD;
-
-    AD->n = DB; AD->o = DA;
-    DB->n = BA; DB->o = BD;
-    BA->n = AD; BA->o = AB;
-
-    CB->n = BD; CB->o = BC;
-    BD->n = DC; BD->o = DB;
-    DC->n = CB; DC->o = CD;
-
-    return CA;
-}
 
 void neighborhood(HalfEdge e, HalfEdge (*n)[4])
 {
@@ -73,13 +17,7 @@ void neighborhood(HalfEdge e, HalfEdge (*n)[4])
     (*n)[2] = e->n->o->f;
     (*n)[3] = e->n->n->o->f;
 }
-/*
-void delete_edge(Delaunay restrict d, HalfEdge e)
-{
-    Edge last = arrBack(d->e);
-    unused(last);
-}
-*/
+
 bool outside_cell(HalfEdge restrict e, Vec* restrict p, real (*orient)[4], uint8_t ignored_faces)
 {
     HalfEdge N[4];
@@ -115,6 +53,8 @@ HalfEdge walk(Delaunay restrict d, Vec* restrict p)
     return e;
 }
 
+
+
 void flip14(Delaunay d, Vec* p, HalfEdge cell, HalfEdge (*out)[4])
 {
 
@@ -132,41 +72,40 @@ void flip44(Delaunay d, HalfEdge (*in)[4], HalfEdge (*out)[4])
 {
 }
 
+void flip12()
+{
+    stub;
+}
+
+void flip21()
+{
+    stub;
+}
+
+void ins1()
+{
+    stub;
+}
+
+void ins2()
+{
+    stub;
+}
+
+void ins3()
+{
+    stub;
+}
+
 Delaunay delCreate(Vec (*hull)[4])
 {
+
     Delaunay d = oCreate(sizeof (struct Delaunay));
     d->v = arrCreate(sizeof (Vec), 2);
-    d->e = arrCreate(sizeof (struct HalfEdge), 4);
+    d->t = arrCreate(sizeof (struct HalfEdge), 2);
 
-    // vertices
-    Vec* V[4];
-
-    real side = orient3d((*hull)[0], (*hull)[1], (*hull)[2], (*hull)[3]);
-    if ( side == 0) {
-        fprintf(stderr, "Failed to initialize the delaunay tetrahedrization from coplanar points.\n");
-        return 0;
-    } else {
-        if (side > 0) {
-            V[0] = arrPush(d->v, &((*hull)[0]));
-            V[1] = arrPush(d->v, &((*hull)[1]));
-            V[2] = arrPush(d->v, &((*hull)[2]));
-            V[3] = arrPush(d->v, &((*hull)[3]));
-        } else {
-            V[0] = arrPush(d->v, &((*hull)[0]));
-            V[1] = arrPush(d->v, &((*hull)[1]));
-            V[2] = arrPush(d->v, &((*hull)[3]));
-            V[3] = arrPush(d->v, &((*hull)[2]));
-        }
-    }
-/*
-    printf("%s vectors:\n", __func__);
-    printf("0: "); vPrint(V[0], stdout); printf("\n");
-    printf("1: "); vPrint(V[1], stdout); printf("\n");
-    printf("2: "); vPrint(V[2], stdout); printf("\n");
-    printf("3: "); vPrint(V[3], stdout); printf("\n");
-*/
-    HalfEdge N[4] = {0, 0, 0, 0};
-    create_cell(d, &V, &N);
+    struct Tet t = { arrPush(d->v, &(*hull)[0]), arrPush(d->v, &(*hull)[1]), arrPush(d->v, &(*hull)[2]), arrPush(d->v, &(*hull)[3]), 0, 0, 0, 0 };
+    arrPush(d->t, &t);
 
     return d;
 }
