@@ -31,8 +31,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #define safe(x)     do {x} while (0)
-#define check(x)    do { if (!x) { fprintf(stderr, "[x] %s:%s:%d: Check failed.", __FILE__, __func__, __LINE__); } } while (0)
-#define stub        do { printf("[!] %s:%s:%d: Not yet implemented.", __FILE__, __func__, __LINE__); } while (0)
+#define check(x)    do { if (!x) { fprintf(stderr, "[x] %s:%s:%d: Check failed.\n", __FILE__, __func__, __LINE__); } } while (0)
+#define stub        do { printf("[!] %s:%s:%d: Not yet implemented.\n", __FILE__, __func__, __LINE__); } while (0)
 #else
 #define safe(x)
 #define check(x)

@@ -82,22 +82,62 @@ void flip21()
     stub;
 }
 
-enum TetEdge {AB, AC, AD, BC, CD, DB};
 
+void ins3(Delaunay d, Tet t, Vec* p)
+{
+    p = arrPush(d->v, p);
+    // new tets
+    struct Tet B = {p, t->a, t->d, t->c, t->ob, t, 0, 0};
+    struct Tet C = {p, t->a, t->b, t->d, t->oc, 0, t, 0};
+    struct Tet D = {p, t->a, t->c, t->b, t->od, 0, 0, t};
+
+    t->a = p; t->ob = arrPush(d->t, &B); t->oc = arrPush(d->t, &C); t->od = arrPush(d->t, &D);
+    t->ob->oc = t->od; t->ob->od = t->oc;
+    t->oc->ob = t->od; t->oc->od = t->ob;
+    t->od->ob = t->oc; t->od->oc = t->ob;
+
+    stub;
+}
+
+
+enum TetFace {ABC, ACD, ADB, BDC};
+void ins2(Delaunay d, Tet t, Vec* p, enum TetFace f)
+{
+    ins3(d, t, p);
+
+    Tet o = 0;
+    switch (f) {
+    case ABC:
+        o = t->od;
+        break;
+    case ACD:
+        o = t->ob;
+        break;
+    case ADB:
+        o = t->oc;
+        break;
+    case BDC:
+        o = t->oa;
+        break;
+    default:
+        check(0);
+        break;
+    }
+
+    t = o->oa;
+
+
+
+    stub;
+}
+
+enum TetEdge {AB, AC, AD, BD, DC, CB};
 void ins1(Delaunay d, Tet t, Vec* p, enum TetEdge e)
 {
     stub;
 }
 
-void ins2()
-{
-    stub;
-}
 
-void ins3()
-{
-    stub;
-}
 
 Delaunay delCreate(Vec (*hull)[4])
 {
@@ -178,19 +218,19 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
     while (t) {
         // check ABC
         o = orient3d(*t->a, *t->b, *t->c, *p);
-        if (o < 0) { t = t->od; continue; }
+        if (o > 0) { t = t->od; continue; }
         if (o == 0) {
             // p is on plane ABC
 
             // check ACD
             o = orient3d(*t->a, *t->c, *t->d, *p);
-            if (o < 0) { t = t->ob; continue; }
+            if (o > 0) { t = t->ob; continue; }
             if (o == 0) {
                 // p is on line AC
 
                 // check ADB
                 o = orient3d(*t->a, *t->d, *t->b, *p);
-                if (o < 0) { t = t->oc; continue; }
+                if (o > 0) { t = t->oc; continue; }
                 if (o == 0) {
                     // p coincides with A
                     return;
@@ -199,7 +239,7 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
 
                     // check BDC
                     o = orient3d(*t->b, *t->d, *t->c, *p);
-                    if (o < 0) { t = t->oa; continue; }
+                    if (o > 0) { t = t->oa; continue; }
                     if (o == 0) {
                         // p coincides with C
                         return;
@@ -214,13 +254,13 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
 
                 // check ADB
                 o = orient3d(*t->a, *t->d, *t->b, *p);
-                if (o < 0) { t = t->oc; continue; }
+                if (o > 0) { t = t->oc; continue; }
                 if (o == 0) {
                     // p is on half-line (AB
 
                     // check BDC
                     o = orient3d(*t->b, *t->d, *t->c, *p);
-                    if (o < 0) { t = t->oa; continue; }
+                    if (o > 0) { t = t->oa; continue; }
                     if (o == 0) {
                         // p coincides with B
                         return;
@@ -234,14 +274,14 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
 
                     // check BDC
                     o = orient3d(*t->b, *t->d, *t->c, *p);
-                    if (o < 0) { t = t->oa; continue; }
+                    if (o > 0) { t = t->oa; continue; }
                     if (o == 0) {
-                        // p is on segment (BC)
-                        ins1(d, t, p, BC);
+                        // p is on segment (CB)
+                        ins1(d, t, p, CB);
                         return;
                     } else {
                         // P is inside the face (ABC)
-                        ins2(d, t, p);
+                        ins2(d, t, p, ABC);
                         return;
                     }
                 }
@@ -251,19 +291,19 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
 
             // check ACD
             o = orient3d(*t->a, *t->c, *t->d, *p);
-            if (o < 0) { t = t->ob; continue; }
+            if (o > 0) { t = t->ob; continue; }
             if (o == 0) {
                 // p is on half plane (ACD
 
                 // check ADB
                 o = orient3d(*t->a, *t->d, *t->b, *p);
-                if (o < 0) { t = t->oc; continue; }
+                if (o > 0) { t = t->oc; continue; }
                 if (o == 0) {
                     // p is on half-line (AD
 
                     // check BDC
                     o = orient3d(*t->b, *t->d, *t->c, *p);
-                    if (o < 0) { t = t->oa; continue; }
+                    if (o > 0) { t = t->oa; continue; }
                     if (o == 0) {
                         // p coincides with D
                         return;
@@ -277,14 +317,14 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
 
                     // check BDC
                     o = orient3d(*t->b, *t->d, *t->c, *p);
-                    if (o < 0) { t = t->oa; continue; }
+                    if (o > 0) { t = t->oa; continue; }
                     if (o == 0) {
-                        // p is on segment (CD)
-                        ins1(d, t, p, CD);
+                        // p is on segment (DC)
+                        ins1(d, t, p, DC);
                         return;
                     } else {
                         // P is on face (ACD)
-                        ins2(d, t, p);
+                        ins2(d, t, p, ACD);
                         return;
                     }
                 }
@@ -292,20 +332,20 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
 
                 // check ADB
                 o = orient3d(*t->a, *t->d, *t->b, *p);
-                if (o < 0) { t = t->oc; continue; }
+                if (o > 0) { t = t->oc; continue; }
                 if (o == 0) {
                     // p is inside the angle <)BAD
 
                     // check BDC
                     o = orient3d(*t->b, *t->d, *t->c, *p);
-                    if (o < 0) { t = t->oa; continue; }
+                    if (o > 0) { t = t->oa; continue; }
                     if (o == 0) {
-                        // p is on segment (DB)
-                        ins1(d, t, p, DB);
+                        // p is on segment (BD)
+                        ins1(d, t, p, BD);
                         return;
                     } else {
                         // P is inside of face (ADB)
-                        ins2(d, t, p);
+                        ins2(d, t, p, ADB);
                         return;
                     }
                 } else {
@@ -313,10 +353,10 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
 
                     // check BDC
                     o = orient3d(*t->b, *t->d, *t->c, *p);
-                    if (o < 0) { t = t->oa; continue; }
+                    if (o > 0) { t = t->oa; continue; }
                     if (o == 0) {
-                        // p is inside face (BCD)
-                        ins2(d, t, p);
+                        // p is inside face (BDC)
+                        ins2(d, t, p, BDC);
                         return;
                     } else {
                         // P is inside the tetrahedron
