@@ -9,7 +9,7 @@
 #include <ads/array.h>
 #include <math/vec.h>
 #include <GL/glut.h>
-
+/*
 void neighborhood(HalfEdge e, HalfEdge (*n)[4])
 {
     (*n)[0] = e->f;
@@ -71,7 +71,7 @@ void flip32(Delaunay d, HalfEdge (*in)[3], HalfEdge (*out)[2])
 void flip44(Delaunay d, HalfEdge (*in)[4], HalfEdge (*out)[4])
 {
 }
-
+*/
 void flip12()
 {
     stub;
@@ -82,7 +82,9 @@ void flip21()
     stub;
 }
 
-void ins1()
+enum TetEdge {AB, AC, AD, BC, CD, DB};
+
+void ins1(Delaunay d, Tet t, Vec* p, enum TetEdge e)
 {
     stub;
 }
@@ -102,7 +104,7 @@ Delaunay delCreate(Vec (*hull)[4])
 
     Delaunay d = oCreate(sizeof (struct Delaunay));
     d->v = arrCreate(sizeof (Vec), 2);
-    d->t = arrCreate(sizeof (struct HalfEdge), 2);
+    d->t = arrCreate(sizeof (struct Tet), 2);
 
     struct Tet t = { arrPush(d->v, &(*hull)[0]), arrPush(d->v, &(*hull)[1]), arrPush(d->v, &(*hull)[2]), arrPush(d->v, &(*hull)[3]), 0, 0, 0, 0 };
     arrPush(d->t, &t);
@@ -113,10 +115,10 @@ Delaunay delCreate(Vec (*hull)[4])
 void delDestroy(Delaunay restrict d)
 {
     arrDestroy(d->v);
-    arrDestroy(d->e);
+    arrDestroy(d->t);
     oDestroy(d);
 }
-
+/*
 enum FlipCase { CASE_1, CASE_2, CASE_3, CASE_4, CASE_SKIP, CASE_UNHANDLED };
 
 enum FlipCase flip_case(HalfEdge* t) {
@@ -165,9 +167,170 @@ enum FlipCase flip_case(HalfEdge* t) {
 
     return CASE_UNHANDLED;
 }
-
+*/
 void delInsert(Delaunay restrict d, Vec* restrict p)
 {
+    Tet t = arrFront(d->t);
+
+    // find the tetrahedron containing p
+
+    real o;
+    while (t) {
+        // check ABC
+        o = orient3d(*t->a, *t->b, *t->c, *p);
+        if (o < 0) { t = t->od; continue; }
+        if (o == 0) {
+            // p is on plane ABC
+
+            // check ACD
+            o = orient3d(*t->a, *t->c, *t->d, *p);
+            if (o < 0) { t = t->ob; continue; }
+            if (o == 0) {
+                // p is on line AC
+
+                // check ADB
+                o = orient3d(*t->a, *t->d, *t->b, *p);
+                if (o < 0) { t = t->oc; continue; }
+                if (o == 0) {
+                    // p coincides with A
+                    return;
+                } else {
+                    // p is on half-line (AC
+
+                    // check BDC
+                    o = orient3d(*t->b, *t->d, *t->c, *p);
+                    if (o < 0) { t = t->oa; continue; }
+                    if (o == 0) {
+                        // p coincides with C
+                        return;
+                    } else {
+                        // P is on segment (AC)
+                        ins1(d, t, p, AC);
+                        return;
+                    }
+                }
+            } else {
+                // P is on half-plane (CAB
+
+                // check ADB
+                o = orient3d(*t->a, *t->d, *t->b, *p);
+                if (o < 0) { t = t->oc; continue; }
+                if (o == 0) {
+                    // p is on half-line (AB
+
+                    // check BDC
+                    o = orient3d(*t->b, *t->d, *t->c, *p);
+                    if (o < 0) { t = t->oa; continue; }
+                    if (o == 0) {
+                        // p coincides with B
+                        return;
+                    } else {
+                        // P is on segment (AB)
+                        ins1(d, t, p, AB);
+                        return;
+                    }
+                } else {
+                    // p is inside the angle BAC
+
+                    // check BDC
+                    o = orient3d(*t->b, *t->d, *t->c, *p);
+                    if (o < 0) { t = t->oa; continue; }
+                    if (o == 0) {
+                        // p is on segment (BC)
+                        ins1(d, t, p, BC);
+                        return;
+                    } else {
+                        // P is inside the face (ABC)
+                        ins2(d, t, p);
+                        return;
+                    }
+                }
+
+            }
+        } else {
+
+            // check ACD
+            o = orient3d(*t->a, *t->c, *t->d, *p);
+            if (o < 0) { t = t->ob; continue; }
+            if (o == 0) {
+                // p is on half plane (ACD
+
+                // check ADB
+                o = orient3d(*t->a, *t->d, *t->b, *p);
+                if (o < 0) { t = t->oc; continue; }
+                if (o == 0) {
+                    // p is on half-line (AD
+
+                    // check BDC
+                    o = orient3d(*t->b, *t->d, *t->c, *p);
+                    if (o < 0) { t = t->oa; continue; }
+                    if (o == 0) {
+                        // p coincides with D
+                        return;
+                    } else {
+                        // P is on segment (AD)
+                        ins1(d, t, p, AD);
+                        return;
+                    }
+                } else {
+                    // p is inside the angle CAD
+
+                    // check BDC
+                    o = orient3d(*t->b, *t->d, *t->c, *p);
+                    if (o < 0) { t = t->oa; continue; }
+                    if (o == 0) {
+                        // p is on segment (CD)
+                        ins1(d, t, p, CD);
+                        return;
+                    } else {
+                        // P is on face (ACD)
+                        ins2(d, t, p);
+                        return;
+                    }
+                }
+            } else {
+
+                // check ADB
+                o = orient3d(*t->a, *t->d, *t->b, *p);
+                if (o < 0) { t = t->oc; continue; }
+                if (o == 0) {
+                    // p is inside the angle <)BAD
+
+                    // check BDC
+                    o = orient3d(*t->b, *t->d, *t->c, *p);
+                    if (o < 0) { t = t->oa; continue; }
+                    if (o == 0) {
+                        // p is on segment (DB)
+                        ins1(d, t, p, DB);
+                        return;
+                    } else {
+                        // P is inside of face (ADB)
+                        ins2(d, t, p);
+                        return;
+                    }
+                } else {
+                    // p is inside the angle BAC
+
+                    // check BDC
+                    o = orient3d(*t->b, *t->d, *t->c, *p);
+                    if (o < 0) { t = t->oa; continue; }
+                    if (o == 0) {
+                        // p is inside face (BCD)
+                        ins2(d, t, p);
+                        return;
+                    } else {
+                        // P is inside the tetrahedron
+                        ins3(d, t, p);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    fprintf(stderr, "p is outside of the tetrahedrization.\n");
+
+/*
     Array stack = arrCreate(sizeof (HalfEdge), 2);
 
     HalfEdge t = walk(arrFront(d->e), p);
@@ -216,7 +379,7 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
 
         }
     }
-
+*/
 }
 
 void delDisplay(Delaunay restrict d)
@@ -227,39 +390,30 @@ void delDisplay(Delaunay restrict d)
     glDisable(GL_LIGHTING);
 
     glLineWidth(1.0);
-    glBegin(GL_LINES);
-    glColor4f(0.0, 0.0, 1.0, 1.0);
-    end = arrSize(d->e);
-    for (i=0; i<end; i++) {
-        HalfEdge e = arrGet(d->e, i);
-        if (e->v < e->n->v) {
-      /*      if (!once) {
-                printf("Segment: ");
-                vPrint(e->v, stdout);
-                printf(" ");
-                vPrint(e->n->v, stdout);
-                printf("\n");
-            } */
-            glVertex3fv(*(e->v));
-            glVertex3fv(*(e->n->v));
-        }
-    }
-    glEnd();
+    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
-    glPointSize(3.0);
+    glColor4f(0.0, 1.0, 0.0, 1.0);
+    end = arrSize(d->t);
+    for (i=0; i<end; i++) {
+        Tet t = arrGet(d->t, i);
+        glBegin(GL_TRIANGLE_STRIP);
+        glVertex3fv(*(t->a));   glVertex3fv(*(t->b));
+        glVertex3fv(*(t->c));   glVertex3fv(*(t->d));
+        glVertex3fv(*(t->a));   glVertex3fv(*(t->b));
+        glEnd();
+    }
+
+
+
+    glPointSize(5.0);
     glBegin(GL_POINTS);
     glColor4f(1.0, 0.0, 0.0, 1.0);
     end = arrSize(d->v);
     for (i=0; i<end; i++) {
         Vec* v = oCast(Vec*, arrGet(d->v, i));
-      //  glPushMatrix();
-      //  glTranslatef((*v)[0], (*v)[1], (*v)[2]);
-      //  glutSolidSphere (0.1, 5, 5);
-      //  glPopMatrix();
         glVertex3fv(*v);
     }
     glEnd();
 
     glEnable(GL_LIGHTING);
-  //  once = 1;
 }

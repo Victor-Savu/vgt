@@ -135,17 +135,23 @@ void cb_reshape(int w, int h)
 {
     glViewport(0, 0, w, h);
 
-    double scale = 1.0;
+    double scale = 10.0;
     double aspect = (double) w / (double) h;
 
     glMatrixMode(GL_PROJECTION);
 
     glLoadIdentity();
-    glFrustum(-1 * scale * aspect,
+    /*glFrustum(-1 * scale * aspect,
                    scale * aspect,
               -1 * scale,
                    scale,
+                   scale / 1.0,
+                   scale * 1000.0);*/
+    glOrtho(-1 * scale * aspect,
+                   scale * aspect,
+              -1 * scale,
                    scale,
+                   scale / 1.0,
                    scale * 1000.0);
     glMatrixMode(GL_MODELVIEW);
 
@@ -157,7 +163,7 @@ void cb_keyboard(unsigned char key, int x, int y)
     switch (key) {
     case 27:
         instance.props |= REQ_SHUTDOWN;
-        exit(0);
+        pthread_exit(0);
     case '-': // zoom out
         camZoom(&instance.camera, 1.05);
         break;
@@ -247,7 +253,7 @@ void* init_rendering(void* arg)
     glEnable(GL_LIGHT0);
     glDepthFunc(GL_LEQUAL);
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
+    //glEnable(GL_CULL_FACE);
     glEnable(GL_NORMALIZE);
     glEnable(GL_LINE_SMOOTH);
     glEnable(GL_POINT_SMOOTH);

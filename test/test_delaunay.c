@@ -1,5 +1,5 @@
 #include <vgt/delaunay.h>
-#include <vgt/half_edge_cls.h>
+#include <view/renderer.h>
 
 int main()
 {
@@ -10,6 +10,13 @@ int main()
         {0.0, 0.0, 10.0}
     };
     Delaunay d = delCreate(&tetra);
-    unused(d);
+    
+    Renderer r = rCreate("Hello world!");
+
+
+    rDisplayDelaunay(r, d);
+
+    rDestroy(r);
+
     return 0;
 }

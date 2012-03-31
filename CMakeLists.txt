@@ -145,7 +145,7 @@ target_link_libraries(test_view view)
 target_link_libraries(test_mesh vgt)
 target_link_libraries(test_array m vgt math rt)
 target_link_libraries(test_vector ads rt)
-target_link_libraries(test_delaunay vgt)
+target_link_libraries(test_delaunay vgt view)
 
 
 
