@@ -37,7 +37,7 @@ set(math_sources
         math/obj.c
         math/math.c
         math/predicates.c
-        math/simplex.c
+        math/mesh.c
     )
 
 set(math_headers
@@ -49,8 +49,8 @@ set(math_headers
         math/frame_cls.h
         math/math.h
         math/predicates.h
-        math/simplex.h
-        math/simplex_cls.h
+        math/mesh.h
+        math/mesh_cls.h
     )
 
 add_library(math ${libtype} ${math_sources})

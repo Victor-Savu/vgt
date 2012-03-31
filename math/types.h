@@ -56,7 +56,7 @@ typedef void*           Obj;
 typedef struct Spherical*   Spherical;
 typedef struct Frame*       Frame;
 
-typedef struct Simplex* Simplex;
+typedef struct Mesh* Mesh;
 
 #endif//MATH_TYPES_H
 
