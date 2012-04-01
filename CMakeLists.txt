@@ -80,6 +80,7 @@ set(vgt_sources
         vgt/vector_field.c
         vgt/mesh.c
         vgt/delaunay.c
+        vgt/tet.c
    )
 
 set(vgt_headers
@@ -91,6 +92,7 @@ set(vgt_headers
         vgt/edge_cls.h
         vgt/mesh.h
         vgt/tet_cls.h
+        vgt/tet.h
         vgt/delaunay.h
    )
 

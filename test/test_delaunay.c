@@ -10,7 +10,7 @@ int main()
         {0.0, 0.0, 10.0}
     };
 
-    Vec v[14] = {
+   /* Vec v[14] = {
         {5.0, 0.0, 0.0},
         {0.0, 5.0, 0.0},
         {0.0, 0.0, 5.0},
@@ -26,12 +26,16 @@ int main()
         {0.0, 10.0, 0.0},
         {0.0, 0.0, 10.0}
     };
-
+*/
     Delaunay d = delCreate(&tetra);
-
+    Vec p = {2.0, 2.0, 0.0};
+    delInsert(d, &p);
+/*
     uint8_t i = 0;
-    for (i=0; i<14; i++) delInsert(d, &v[i]);
-
+    for (i=0; i<14; i++) {
+        delInsert(d, &v[i]);
+    }
+*/
    // delDestroy(d);
 
     Renderer r = rCreate("Hello world!");

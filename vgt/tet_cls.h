@@ -4,14 +4,10 @@
 #include <vgt/types.h>
 
 struct Tet {
-    Vec* a;
-    Vec* b;
-    Vec* c;
-    Vec* d;
-    Tet oa;
-    Tet ob;
-    Tet oc;
-    Tet od;
+    Vec* v[4];
+    Tet n[4];
+    // a map. Each neighbor of this tet sees it as either opposite to a (00), b (01), c (10), or d (11).
+    byte m;
 };
 
 #endif//VGT_TET_CLS_H

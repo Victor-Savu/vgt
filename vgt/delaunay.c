@@ -3,58 +3,19 @@
 
 #include <stdio.h>
 
-#include <math/predicates.h>
-#include <vgt/tet_cls.h>
 #include <math/obj.h>
-#include <ads/array.h>
 #include <math/vec.h>
+#include <math/predicates.h>
+
+#include <ads/array.h>
+
+#include <vgt/tet_cls.h>
+#include <vgt/tet.h>
+
+
 #include <GL/glut.h>
+
 /*
-void neighborhood(HalfEdge e, HalfEdge (*n)[4])
-{
-    (*n)[0] = e->f;
-    (*n)[1] = e->o->f;
-    (*n)[2] = e->n->o->f;
-    (*n)[3] = e->n->n->o->f;
-}
-
-bool outside_cell(HalfEdge restrict e, Vec* restrict p, real (*orient)[4], uint8_t ignored_faces)
-{
-    HalfEdge N[4];
-
-    // get the neighboring faces
-    neighborhood(e, &N);
-    unsigned int i=0;
-    bool ret = false;
-
-    for (i=0; i<4; i++) {
-        (*orient)[i] = (ignored_faces & (1<<i))?(-1):(orient3d(*N[i]->v, *N[i]->n->v, *N[i]->n->n->v, *p));
-        ret |= (*orient)[i] > 0;
-    }
-
-    return ret;
-}
-
-HalfEdge walk(Delaunay restrict d, Vec* restrict p)
-{
-    real where[4];
-    HalfEdge restrict e = d->t;
-    uint8_t ignore_faces = NONE;
-
-    // this can be manually optimized not to check the neighbor we just came from
-    while (e && outside_cell(e, p, &where, ignore_faces)) {
-        if (!ignore_faces && where[0]<0) e = e->f; else
-        if (where[1]<0) e = e->o->f; else
-        if (where[2]<0) e = e->n->o->f; else
-        if (where[3]<0) e = e->n->n->o->f;
-        ignore_faces = FIRST;
-    }
-
-    return e;
-}
-
-
-
 void flip14(Delaunay d, Vec* p, HalfEdge cell, HalfEdge (*out)[4])
 {
 
@@ -83,58 +44,157 @@ void flip21()
 }
 
 
-void ins3(Delaunay d, Tet t, Vec* p)
+Array ins3(Delaunay del, Tet t, Vec* p)
 {
-    p = arrPush(d->v, p);
-    // new tets
-    struct Tet B = {p, t->a, t->d, t->c, t->ob, t, 0, 0};
-    struct Tet C = {p, t->a, t->b, t->d, t->oc, 0, t, 0};
-    struct Tet D = {p, t->a, t->c, t->b, t->od, 0, 0, t};
+    p = arrPush(del->v, p);
 
-    t->a = p; t->ob = arrPush(d->t, &B); t->oc = arrPush(d->t, &C); t->od = arrPush(d->t, &D);
-    t->ob->oc = t->od; t->ob->od = t->oc;
-    t->oc->ob = t->od; t->oc->od = t->ob;
-    t->od->ob = t->oc; t->od->oc = t->ob;
+    // new tets
+    struct Tet tet_b = {{p, t->v[A], t->v[D], t->v[C]}, {0, 0, 0, 0}, 0};
+    struct Tet tet_c = {{p, t->v[A], t->v[B], t->v[D]}, {0, 0, 0, 0}, 0};
+    struct Tet tet_d = {{p, t->v[A], t->v[C], t->v[B]}, {0, 0, 0, 0}, 0};
+
+    Tet b = arrPush(del->t, &tet_b);
+    tetConnect(b, oA, t->n[oB], tetReadMap(t->m, oB));
+    tetConnect(b, oB, t, oB);
+
+    Tet c = arrPush(del->t, &tet_c);
+    tetConnect(c, oA, t->n[oC], tetReadMap(t->m, oC));
+    tetConnect(c, oC, t, oC);
+    tetConnect(c, oD, b, oD);
+
+    Tet d = arrPush(del->t, &tet_d);
+    tetConnect(d, oA, t->n[oD], tetReadMap(t->m, oD));
+    tetConnect(d, oD, t, oD);
+    tetConnect(d, oC, b, oC);
+    tetConnect(d, oB, c, oB);
+
+    Array stack = arrCreate(sizeof(Tet), 2);
+    arrPush(stack, t);
+    arrPush(stack, b);
+    arrPush(stack, c);
+    arrPush(stack, d);
 
     stub;
+
+    return stack;
 }
 
 
-enum TetFace {ABC, ACD, ADB, BDC};
-void ins2(Delaunay d, Tet t, Vec* p, enum TetFace f)
+Array ins2(Delaunay del, Tet t, Vec* p, enum TetFacet f)
 {
-    ins3(d, t, p);
+    Array stack = arrCreate(sizeof(Tet), 2);
 
-    Tet o = 0;
+    Tet o = t->n[f];
+    TetFace g = tetReadMap(t->m, f);
+
+    if (f == oA) {
+        Tet t_b, t_c;
+        {
+            struct Tet tmp = {{p, t->v[A], t->v[D], t->v[C]}, {0, 0, 0, 0}, 0};
+            t_b = arrPush(del->t, &tmp);
+            tetConnect(t_b, oA, t->n[oB], tetReadMap(t->m, oB));
+            tetConnect(t_b, oC, t, oB);
+        }
+        {
+            struct Tet tmp = {{p, t->v[D], t->v[A], t->v[B]}, {0, 0, 0, 0}, 0};
+            t_c = arrPush(del->t, &tmp);
+            tetConnect(t_c, oA, t->n[oC], tetReadMap(t->m, oC));
+            tetConnect(t_c, oB, t, oC);
+        }
+        tetConnect(t_b, oD, t_c, oD);
+
+        t->v[D] = t->v[A];
+        t->v[A] = p;
+        tetConnect(t, oA, t->n[oD], tetReadMap(t->m, oD));
+        // still need to connect t_b in oB, t_c in oC and t in oA and oD
+    } else {
+        Tet x, y;
+        {
+            struct Tet tmp = {{p, t->v[], t->v[], t->v[A]}, {0, 0, 0, 0}, 0};
+            t_b = arrPush(del->t, &tmp);
+            tetConnect(t_b, oA, t->n[oB], tetReadMap(t->m, oB));
+            tetConnect(t_b, oC, t, oB);
+        }
+    }
+
+    arrPush(stack, o);
+
+
+    t->v[(f+2)&3] = o->v[g];
+    tetConnect(t, f, o->n[(g+1)&3], tetReadMap(o->m, (g+1)&3));
+    tetConnect(t, (f+1)&3, o, (g+1)&3);
+
+
+
+    struct Tet embrio = { {p, 0, 0, 0},{ 0, 0, 0, 0}, 0};
+    Tet Charlie = arrPush(d->t, &embrio);
+    arrPush(stack, Charlie);
+
+
+    void ins2ABC() {
+        o = t->n[oD];
+        arrPush(stack, o);
+
+        if (t == o->n[oA]) {
+
+        } else if (t == o->n[oB]) {
+
+        } else if (t == o->n[oC]) {
+
+        } else if (t == o->n[oD]) {
+
+        } else check(0);
+
+    };
+
+    void ins2ACD() {
+        o = t->n[oB];
+        arrPush(stack, o);
+
+    };
+
+    void ins2ADB() {
+        o = t->n[oC];
+        arrPush(stack, o);
+
+    };
+
+    void ins2BDC() {
+        o = t->n[oA];
+        arrPush(stack, o);
+
+    }
+
     switch (f) {
     case ABC:
-        o = t->od;
+        ins2ABC();
         break;
     case ACD:
-        o = t->ob;
+        ins2ACD();
         break;
     case ADB:
-        o = t->oc;
+        ins2ADB();
         break;
     case BDC:
-        o = t->oa;
+        ins2BDC();
         break;
     default:
         check(0);
         break;
     }
 
-    t = o->oa;
-
-
-
     stub;
+
+    return stack;
 }
 
-enum TetEdge {AB, AC, AD, BD, DC, CB};
-void ins1(Delaunay d, Tet t, Vec* p, enum TetEdge e)
+Array ins1(Delaunay d, Tet t, Vec* p, enum TetEdge e)
 {
+    Array stack = 0;
+
     stub;
+
+    return stack;
 }
 
 
@@ -146,7 +206,12 @@ Delaunay delCreate(Vec (*hull)[4])
     d->v = arrCreate(sizeof (Vec), 2);
     d->t = arrCreate(sizeof (struct Tet), 2);
 
-    struct Tet t = { arrPush(d->v, &(*hull)[0]), arrPush(d->v, &(*hull)[1]), arrPush(d->v, &(*hull)[2]), arrPush(d->v, &(*hull)[3]), 0, 0, 0, 0 };
+    struct Tet t = {
+        {   arrPush(d->v, &(*hull)[0]),
+            arrPush(d->v, &(*hull)[1]),
+            arrPush(d->v, &(*hull)[2]),
+            arrPush(d->v, &(*hull)[3]) },
+        {0, 0, 0, 0}, 0 };
     arrPush(d->t, &t);
 
     return d;
@@ -208,29 +273,37 @@ enum FlipCase flip_case(HalfEdge* t) {
     return CASE_UNHANDLED;
 }
 */
+
+void flip(Array stack)
+{
+    arrDestroy(stack);
+    stub;
+}
+
 void delInsert(Delaunay restrict d, Vec* restrict p)
 {
     Tet t = arrFront(d->t);
+    Tet ot = t;
 
     // find the tetrahedron containing p
 
     real o;
     while (t) {
         // check ABC
-        o = orient3d(*t->a, *t->b, *t->c, *p);
-        if (o > 0) { t = t->od; continue; }
+        o = (t->n[oD] == ot)?(-1.0):orient3d(*t->v[A], *t->v[B], *t->v[C], *p);
+        if (o > 0) { ot = t; t = t->n[oD]; continue; }
         if (o == 0) {
             // p is on plane ABC
 
             // check ACD
-            o = orient3d(*t->a, *t->c, *t->d, *p);
-            if (o > 0) { t = t->ob; continue; }
+            o = (t->n[oB] == ot)?(-1.0):orient3d(*t->v[A], *t->v[C], *t->v[D], *p);
+            if (o > 0) { ot = t; t = t->n[oB]; continue; }
             if (o == 0) {
                 // p is on line AC
 
                 // check ADB
-                o = orient3d(*t->a, *t->d, *t->b, *p);
-                if (o > 0) { t = t->oc; continue; }
+                o = (t->n[oC] == ot)?(-1.0):orient3d(*t->v[A], *t->v[D], *t->v[B], *p);
+                if (o > 0) { ot = t; t = t->n[oC]; continue; }
                 if (o == 0) {
                     // p coincides with A
                     return;
@@ -238,14 +311,14 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
                     // p is on half-line (AC
 
                     // check BDC
-                    o = orient3d(*t->b, *t->d, *t->c, *p);
-                    if (o > 0) { t = t->oa; continue; }
+                    o = (t->n[oA] == ot)?(-1.0):orient3d(*t->v[B], *t->v[D], *t->v[C], *p);
+                    if (o > 0) { ot = t; t = t->n[oA]; continue; }
                     if (o == 0) {
                         // p coincides with C
                         return;
                     } else {
                         // P is on segment (AC)
-                        ins1(d, t, p, AC);
+                        flip(ins1(d, t, p, AC));
                         return;
                     }
                 }
@@ -253,35 +326,35 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
                 // P is on half-plane (CAB
 
                 // check ADB
-                o = orient3d(*t->a, *t->d, *t->b, *p);
-                if (o > 0) { t = t->oc; continue; }
+                o = (t->n[oC] == ot)?(-1.0):orient3d(*t->v[A], *t->v[D], *t->v[B], *p);
+                if (o > 0) { ot = t; t = t->n[oC]; continue; }
                 if (o == 0) {
                     // p is on half-line (AB
 
                     // check BDC
-                    o = orient3d(*t->b, *t->d, *t->c, *p);
-                    if (o > 0) { t = t->oa; continue; }
+                    o = (t->n[oA] == ot)?(-1.0):orient3d(*t->v[B], *t->v[D], *t->v[C], *p);
+                    if (o > 0) { ot = t; t = t->n[oA]; continue; }
                     if (o == 0) {
                         // p coincides with B
                         return;
                     } else {
                         // P is on segment (AB)
-                        ins1(d, t, p, AB);
+                        flip(ins1(d, t, p, AB));
                         return;
                     }
                 } else {
                     // p is inside the angle BAC
 
                     // check BDC
-                    o = orient3d(*t->b, *t->d, *t->c, *p);
-                    if (o > 0) { t = t->oa; continue; }
+                    o = (t->n[oA] == ot)?(-1.0):orient3d(*t->v[B], *t->v[D], *t->v[C], *p);
+                    if (o > 0) { ot = t; t = t->n[oA]; continue; }
                     if (o == 0) {
                         // p is on segment (CB)
-                        ins1(d, t, p, CB);
+                        flip(ins1(d, t, p, CB));
                         return;
                     } else {
                         // P is inside the face (ABC)
-                        ins2(d, t, p, ABC);
+                        flip(ins2(d, t, p, ABC));
                         return;
                     }
                 }
@@ -290,77 +363,77 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
         } else {
 
             // check ACD
-            o = orient3d(*t->a, *t->c, *t->d, *p);
-            if (o > 0) { t = t->ob; continue; }
+            o = (t->n[oB] == ot)?(-1.0):orient3d(*t->v[A], *t->v[C], *t->v[D], *p);
+            if (o > 0) { ot = t; t = t->n[oB]; continue; }
             if (o == 0) {
                 // p is on half plane (ACD
 
                 // check ADB
-                o = orient3d(*t->a, *t->d, *t->b, *p);
-                if (o > 0) { t = t->oc; continue; }
+                o = (t->n[oC] == ot)?(-1.0):orient3d(*t->v[A], *t->v[D], *t->v[B], *p);
+                if (o > 0) { ot = t; t = t->n[oC]; continue; }
                 if (o == 0) {
                     // p is on half-line (AD
 
                     // check BDC
-                    o = orient3d(*t->b, *t->d, *t->c, *p);
-                    if (o > 0) { t = t->oa; continue; }
+                    o = (t->n[oA] == ot)?(-1.0):orient3d(*t->v[B], *t->v[D], *t->v[C], *p);
+                    if (o > 0) { ot = t; t = t->n[oA]; continue; }
                     if (o == 0) {
                         // p coincides with D
                         return;
                     } else {
                         // P is on segment (AD)
-                        ins1(d, t, p, AD);
+                        flip(ins1(d, t, p, AD));
                         return;
                     }
                 } else {
                     // p is inside the angle CAD
 
                     // check BDC
-                    o = orient3d(*t->b, *t->d, *t->c, *p);
-                    if (o > 0) { t = t->oa; continue; }
+                    o = (t->n[oA] == ot)?(-1.0):orient3d(*t->v[B], *t->v[D], *t->v[C], *p);
+                    if (o > 0) { ot = t; t = t->n[oA]; continue; }
                     if (o == 0) {
                         // p is on segment (DC)
-                        ins1(d, t, p, DC);
+                        flip(ins1(d, t, p, DC));
                         return;
                     } else {
                         // P is on face (ACD)
-                        ins2(d, t, p, ACD);
+                        flip(ins2(d, t, p, ACD));
                         return;
                     }
                 }
             } else {
 
                 // check ADB
-                o = orient3d(*t->a, *t->d, *t->b, *p);
-                if (o > 0) { t = t->oc; continue; }
+                o = (t->n[oC] == ot)?(-1.0):orient3d(*t->v[A], *t->v[D], *t->v[B], *p);
+                if (o > 0) { ot = t; t = t->n[oC]; continue; }
                 if (o == 0) {
                     // p is inside the angle <)BAD
 
                     // check BDC
-                    o = orient3d(*t->b, *t->d, *t->c, *p);
-                    if (o > 0) { t = t->oa; continue; }
+                    o = (t->n[oA] == ot)?(-1.0):orient3d(*t->v[B], *t->v[D], *t->v[C], *p);
+                    if (o > 0) { ot = t; t = t->n[oA]; continue; }
                     if (o == 0) {
                         // p is on segment (BD)
-                        ins1(d, t, p, BD);
+                        flip(ins1(d, t, p, BD));
                         return;
                     } else {
                         // P is inside of face (ADB)
-                        ins2(d, t, p, ADB);
+                        flip(ins2(d, t, p, ADB));
                         return;
                     }
                 } else {
                     // p is inside the angle BAC
 
                     // check BDC
-                    o = orient3d(*t->b, *t->d, *t->c, *p);
-                    if (o > 0) { t = t->oa; continue; }
+                    o = (t->n[oA] == ot)?(-1.0):orient3d(*t->v[B], *t->v[D], *t->v[C], *p);
+                    if (o > 0) { ot = t; t = t->n[oA]; continue; }
                     if (o == 0) {
                         // p is inside face (BDC)
-                        ins2(d, t, p, BDC);
+                        flip(ins2(d, t, p, BDC));
                         return;
                     } else {
                         // P is inside the tetrahedron
-                        ins3(d, t, p);
+                        flip(ins3(d, t, p));
                         return;
                     }
                 }
@@ -437,9 +510,9 @@ void delDisplay(Delaunay restrict d)
     for (i=0; i<end; i++) {
         Tet t = arrGet(d->t, i);
         glBegin(GL_TRIANGLE_STRIP);
-        glVertex3fv(*(t->a));   glVertex3fv(*(t->b));
-        glVertex3fv(*(t->c));   glVertex3fv(*(t->d));
-        glVertex3fv(*(t->a));   glVertex3fv(*(t->b));
+        glVertex3fv(*(t->v[A]));   glVertex3fv(*(t->v[B]));
+        glVertex3fv(*(t->v[C]));   glVertex3fv(*(t->v[D]));
+        glVertex3fv(*(t->v[A]));   glVertex3fv(*(t->v[B]));
         glEnd();
     }
 
