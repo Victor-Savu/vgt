@@ -82,106 +82,101 @@ Array ins3(Delaunay del, Tet t, Vec* p)
 
 Array ins2(Delaunay del, Tet t, Vec* p, enum TetFacet f)
 {
-    Array stack = arrCreate(sizeof(Tet), 2);
 
     Tet o = t->n[f];
     TetFace g = tetReadMap(t->m, f);
 
-    if (f == oA) {
-        Tet t_b, t_c;
-        {
-            struct Tet tmp = {{p, t->v[A], t->v[D], t->v[C]}, {0, 0, 0, 0}, 0};
-            t_b = arrPush(del->t, &tmp);
-            tetConnect(t_b, oA, t->n[oB], tetReadMap(t->m, oB));
-            tetConnect(t_b, oC, t, oB);
-        }
-        {
-            struct Tet tmp = {{p, t->v[D], t->v[A], t->v[B]}, {0, 0, 0, 0}, 0};
-            t_c = arrPush(del->t, &tmp);
-            tetConnect(t_c, oA, t->n[oC], tetReadMap(t->m, oC));
-            tetConnect(t_c, oB, t, oC);
-        }
-        tetConnect(t_b, oD, t_c, oD);
+    if (f == oA) { // if it's degenerate, swap it to normal
+        Obj swap = 0;
+        // swap vertices
+        swap = t->v[A]; t->v[A] = t->v[D]; t->v[D] = swap;
+        swap = t->v[C]; t->v[C] = t->v[B]; t->v[B] = swap;
+        // swap neighbors
+        swap = t->n[A]; t->n[A] = t->n[D]; t->n[D] = swap;
+        swap = t->n[C]; t->n[C] = t->n[B]; t->n[B] = swap;
+        // notify neighbors
+        byte m = t->m;
+        tetConnect(t, oA, t->n[oA], tetReadMap(m, oD));
+        tetConnect(t, oB, t->n[oB], tetReadMap(m, oC));
+        tetConnect(t, oC, t->n[oC], tetReadMap(m, oB));
+        tetConnect(t, oD, t->n[oD], tetReadMap(m, oA));
+        f = oD;
+    }
 
-        t->v[D] = t->v[A];
-        t->v[A] = p;
-        tetConnect(t, oA, t->n[oD], tetReadMap(t->m, oD));
-        // still need to connect t_b in oB, t_c in oC and t in oA and oD
+    Tet x, y;
+    {
+        struct Tet tmp = {{p, t->v[A], t->v[f], t->v[(f+3-(f==oB))&3]}, {0, 0, 0, 0}, 0};
+        x = arrPush(del->t, &tmp);
+        tetConnect(x, oA, t->n[(f+1+(f==oD))&3], tetReadMap(t->m, (f+1+(f==oD))&3));
+        tetConnect(x, oB, t, (f+3-(f==oB))&3);
+    }
+    {
+        struct Tet tmp = {{p, t->v[(f+1+(f==oD))&3], t->v[f], t->v[A]}, {0, 0, 0, 0}, 0};
+        y = arrPush(del->t, &tmp);
+        tetConnect(y, oA, t->n[(f+3-(f==oB))&3], tetReadMap(t->m, (f+3-(f==oB))&3));
+        tetConnect(y, oD, t, (f+1+(f==oD))&3);
+    }
+
+    t->v[A] = p;
+
+
+    if (g == oA) { // if it's degenerate, swap it to normal
+        Obj swap = 0;
+        // swap vertices
+        swap = o->v[A]; o->v[A] = o->v[D]; o->v[D] = swap;
+        swap = o->v[C]; o->v[C] = o->v[B]; o->v[B] = swap;
+        // swap neighbors
+        swap = o->n[A]; o->n[A] = o->n[D]; o->n[D] = swap;
+        swap = o->n[C]; o->n[C] = o->n[B]; o->n[B] = swap;
+        // notify neighbors
+        byte m = o->m;
+        tetConnect(o, oA, o->n[oA], tetReadMap(m, oD));
+        tetConnect(o, oB, o->n[oB], tetReadMap(m, oC));
+        tetConnect(o, oC, o->n[oC], tetReadMap(m, oB));
+        g = oD;
+    }
+
+    Tet xx, yy;
+    {
+        struct Tet tmp = {{p, o->v[A], o->v[g], o->v[(g+3-(g==oB))&3]}, {0, 0, 0, 0}, 0};
+        xx = arrPush(del->t, &tmp);
+        tetConnect(xx, oA, o->n[(g+1+(g==oD))&3], tetReadMap(o->m, (g+1+(g==oD))&3));
+        tetConnect(xx, oB, o, (g+3-(g==oB))&3);
+    }
+    {
+        struct Tet tmp = {{p, o->v[(g+1+(g==oD))&3], o->v[g], o->v[A]}, {0, 0, 0, 0}, 0};
+        yy = arrPush(del->t, &tmp);
+        tetConnect(yy, oA, o->n[(g+3-(g==oB))&3], tetReadMap(o->m, (g+3-(g==oB))&3));
+        tetConnect(yy, oD, o, (g+1+(g==oD))&3);
+    }
+
+    o->v[A] = p;
+
+    if (t->v[f+3-(f==oB)] == o->v[g+1+(g==oD)]) {
+        tetConnect(x, f, yy, g);
+        tetConnect(t, f,  o, g);
+        tetConnect(y, f, xx, g);
+    } else  if (t->v[f+3-(f==oB)] == o->v[g+3-(g==oB)]) {
+        tetConnect(x, f,  o, g);
+        tetConnect(t, f, xx, g);
+        tetConnect(y, f, yy, g);
     } else {
-        Tet x, y;
-        {
-            struct Tet tmp = {{p, t->v[], t->v[], t->v[A]}, {0, 0, 0, 0}, 0};
-            t_b = arrPush(del->t, &tmp);
-            tetConnect(t_b, oA, t->n[oB], tetReadMap(t->m, oB));
-            tetConnect(t_b, oC, t, oB);
-        }
+        tetConnect(x, f, xx, g);
+        tetConnect(t, f, yy, g);
+        tetConnect(y, f,  o, g);
     }
 
+
+
+
+    Array stack = arrCreate(sizeof(Tet), 2);
+    arrPush(stack, t);
+    arrPush(stack, x);
+    arrPush(stack, y);
     arrPush(stack, o);
+    arrPush(stack, xx);
+    arrPush(stack, yy);
 
-
-    t->v[(f+2)&3] = o->v[g];
-    tetConnect(t, f, o->n[(g+1)&3], tetReadMap(o->m, (g+1)&3));
-    tetConnect(t, (f+1)&3, o, (g+1)&3);
-
-
-
-    struct Tet embrio = { {p, 0, 0, 0},{ 0, 0, 0, 0}, 0};
-    Tet Charlie = arrPush(d->t, &embrio);
-    arrPush(stack, Charlie);
-
-
-    void ins2ABC() {
-        o = t->n[oD];
-        arrPush(stack, o);
-
-        if (t == o->n[oA]) {
-
-        } else if (t == o->n[oB]) {
-
-        } else if (t == o->n[oC]) {
-
-        } else if (t == o->n[oD]) {
-
-        } else check(0);
-
-    };
-
-    void ins2ACD() {
-        o = t->n[oB];
-        arrPush(stack, o);
-
-    };
-
-    void ins2ADB() {
-        o = t->n[oC];
-        arrPush(stack, o);
-
-    };
-
-    void ins2BDC() {
-        o = t->n[oA];
-        arrPush(stack, o);
-
-    }
-
-    switch (f) {
-    case ABC:
-        ins2ABC();
-        break;
-    case ACD:
-        ins2ACD();
-        break;
-    case ADB:
-        ins2ADB();
-        break;
-    case BDC:
-        ins2BDC();
-        break;
-    default:
-        check(0);
-        break;
-    }
 
     stub;
 
