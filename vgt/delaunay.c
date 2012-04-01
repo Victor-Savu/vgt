@@ -68,13 +68,14 @@ Array ins3(Delaunay del, Tet t, Vec* p)
     tetConnect(d, oC, b, oC);
     tetConnect(d, oB, c, oB);
 
+    t->v[A] = p;
+
     Array stack = arrCreate(sizeof(Tet), 2);
     arrPush(stack, t);
     arrPush(stack, b);
     arrPush(stack, c);
     arrPush(stack, d);
 
-    stub;
 
     return stack;
 }
@@ -119,66 +120,64 @@ Array ins2(Delaunay del, Tet t, Vec* p, enum TetFacet f)
 
     t->v[A] = p;
 
-
-    if (g == oA) { // if it's degenerate, swap it to normal
-        Obj swap = 0;
-        // swap vertices
-        swap = o->v[A]; o->v[A] = o->v[D]; o->v[D] = swap;
-        swap = o->v[C]; o->v[C] = o->v[B]; o->v[B] = swap;
-        // swap neighbors
-        swap = o->n[A]; o->n[A] = o->n[D]; o->n[D] = swap;
-        swap = o->n[C]; o->n[C] = o->n[B]; o->n[B] = swap;
-        // notify neighbors
-        byte m = o->m;
-        tetConnect(o, oA, o->n[oA], tetReadMap(m, oD));
-        tetConnect(o, oB, o->n[oB], tetReadMap(m, oC));
-        tetConnect(o, oC, o->n[oC], tetReadMap(m, oB));
-        g = oD;
-    }
-
-    Tet xx, yy;
-    {
-        struct Tet tmp = {{p, o->v[A], o->v[g], o->v[(g+3-(g==oB))&3]}, {0, 0, 0, 0}, 0};
-        xx = arrPush(del->t, &tmp);
-        tetConnect(xx, oA, o->n[(g+1+(g==oD))&3], tetReadMap(o->m, (g+1+(g==oD))&3));
-        tetConnect(xx, oB, o, (g+3-(g==oB))&3);
-    }
-    {
-        struct Tet tmp = {{p, o->v[(g+1+(g==oD))&3], o->v[g], o->v[A]}, {0, 0, 0, 0}, 0};
-        yy = arrPush(del->t, &tmp);
-        tetConnect(yy, oA, o->n[(g+3-(g==oB))&3], tetReadMap(o->m, (g+3-(g==oB))&3));
-        tetConnect(yy, oD, o, (g+1+(g==oD))&3);
-    }
-
-    o->v[A] = p;
-
-    if (t->v[f+3-(f==oB)] == o->v[g+1+(g==oD)]) {
-        tetConnect(x, f, yy, g);
-        tetConnect(t, f,  o, g);
-        tetConnect(y, f, xx, g);
-    } else  if (t->v[f+3-(f==oB)] == o->v[g+3-(g==oB)]) {
-        tetConnect(x, f,  o, g);
-        tetConnect(t, f, xx, g);
-        tetConnect(y, f, yy, g);
-    } else {
-        tetConnect(x, f, xx, g);
-        tetConnect(t, f, yy, g);
-        tetConnect(y, f,  o, g);
-    }
-
-
-
-
     Array stack = arrCreate(sizeof(Tet), 2);
     arrPush(stack, t);
     arrPush(stack, x);
     arrPush(stack, y);
-    arrPush(stack, o);
-    arrPush(stack, xx);
-    arrPush(stack, yy);
+
+    if (o) {
 
 
-    stub;
+        if (g == oA) { // if it's degenerate, swap it to normal
+            Obj swap = 0;
+            // swap vertices
+            swap = o->v[A]; o->v[A] = o->v[D]; o->v[D] = swap;
+            swap = o->v[C]; o->v[C] = o->v[B]; o->v[B] = swap;
+            // swap neighbors
+            swap = o->n[A]; o->n[A] = o->n[D]; o->n[D] = swap;
+            swap = o->n[C]; o->n[C] = o->n[B]; o->n[B] = swap;
+            // notify neighbors
+            byte m = o->m;
+            tetConnect(o, oA, o->n[oA], tetReadMap(m, oD));
+            tetConnect(o, oB, o->n[oB], tetReadMap(m, oC));
+            tetConnect(o, oC, o->n[oC], tetReadMap(m, oB));
+            g = oD;
+        }
+
+        Tet xx, yy;
+        {
+            struct Tet tmp = {{p, o->v[A], o->v[g], o->v[(g+3-(g==oB))&3]}, {0, 0, 0, 0}, 0};
+            xx = arrPush(del->t, &tmp);
+            tetConnect(xx, oA, o->n[(g+1+(g==oD))&3], tetReadMap(o->m, (g+1+(g==oD))&3));
+            tetConnect(xx, oB, o, (g+3-(g==oB))&3);
+        }
+        {
+            struct Tet tmp = {{p, o->v[(g+1+(g==oD))&3], o->v[g], o->v[A]}, {0, 0, 0, 0}, 0};
+            yy = arrPush(del->t, &tmp);
+            tetConnect(yy, oA, o->n[(g+3-(g==oB))&3], tetReadMap(o->m, (g+3-(g==oB))&3));
+            tetConnect(yy, oD, o, (g+1+(g==oD))&3);
+        }
+
+        o->v[A] = p;
+
+        if (t->v[f+3-(f==oB)] == o->v[g+1+(g==oD)]) {
+            tetConnect(x, f, yy, g);
+            tetConnect(t, f,  o, g);
+            tetConnect(y, f, xx, g);
+        } else  if (t->v[f+3-(f==oB)] == o->v[g+3-(g==oB)]) {
+            tetConnect(x, f,  o, g);
+            tetConnect(t, f, xx, g);
+            tetConnect(y, f, yy, g);
+        } else {
+            tetConnect(x, f, xx, g);
+            tetConnect(t, f, yy, g);
+            tetConnect(y, f,  o, g);
+        }
+
+        arrPush(stack, o);
+        arrPush(stack, xx);
+        arrPush(stack, yy);
+    }
 
     return stack;
 }

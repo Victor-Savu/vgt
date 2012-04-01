@@ -55,12 +55,13 @@ void camPosition(Camera c)
     };
 
     Vec up = {
-        v->rho * cos(v->phi) * sin (v->theta - M_PI/2),
-        v->rho * sin(v->phi) * sin(v->theta - M_PI/2),
-        v->rho * cos(v->theta - M_PI/2)
+        cos(v->phi) * sin (v->theta - M_PI/2),
+        sin(v->phi) * sin(v->theta - M_PI/2),
+        cos(v->theta - M_PI/2)
     };
     frTransformI(&c->frame, &f);
     matCrossI(&c->frame.rot, &up);
+
     gluLookAt(
             f[0], f[1], f[2],   // from
             c->frame.trans[0], c->frame.trans[1], c->frame.trans[2], // to
