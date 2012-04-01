@@ -140,10 +140,10 @@ Vec* vSet(Vec* restrict a, real x, real y, real z)
 void vPrint(Vec* restrict a, FILE* restrict fp)
 {
     char s[128];
-    fprintf(fp, "%s", vStrPrint(a, s));
+    fprintf(fp, "%s", vPrintStr(a, s));
 }
 
-char* vStrPrint(Vec* restrict a, char* restrict s)
+char* vPrintStr(Vec* restrict a, char* restrict s)
 {
     if (!a) strcpy(s, "<null>");
     float x = (*a)[0], y = (*a)[1], z = (*a)[2];

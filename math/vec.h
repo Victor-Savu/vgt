@@ -30,7 +30,7 @@ Vec* vNormalizeI(Vec* restrict a);
 Vec* vSet(Vec* restrict a, real x, real y, real z);
 
 void vPrint(Vec* restrict a, FILE* restrict fp);
-char* vStrPrint(Vec* restrict a, char* s);
+char* vPrintStr(Vec* restrict a, char* s);
 
 #endif//VGT_VEC_H
 

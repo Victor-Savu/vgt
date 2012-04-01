@@ -2,6 +2,8 @@
 #define MATH_TYPES_H
 
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define false   (0)
 #define true    (1)
@@ -25,17 +27,23 @@
 
 #define restrict __restrict__
 
-#define SAFE_MODE   1
+//#define SAFE_MODE           1
+//#define SAFE_MODE_VERBOSE   1
 
 #ifdef SAFE_MODE
-#include <stdio.h>
-#include <stdlib.h>
-#define safe(x)     do {x} while (0)
-#define check(x)    do { if (!x) { fprintf(stderr, "[x] %s:%s:%d: Check failed.\n", __FILE__, __func__, __LINE__); } } while (0)
-#define stub        do { printf("[!] %s:%s:%d: Not yet implemented.\n", __FILE__, __func__, __LINE__); } while (0)
+# define safe(x)     do {x} while (0)
+# define check(x)    do { if (!(x)) { fprintf(stderr, "[x] %s:%s:%d: Check failed.\n", __FILE__, __func__, __LINE__); exit(EXIT_FAILURE); } } while (0)
+# define stub        do { printf("[!] %s:%s:%d: Not yet implemented.\n", __FILE__, __func__, __LINE__); } while (0)
+# ifdef SAFE_MODE_VERBOSE
+#  define call       do { printf("[i] %s:%s:%d: Calling function [%s].\n", __FILE__, __func__, __LINE__, __func__); } while (0)
+# else
+#  define call
+# endif
 #else
-#define safe(x)
-#define check(x)
+# define safe(x)
+# define check(x)
+# define call
+# define stub
 #endif
 
 
@@ -56,6 +64,7 @@ typedef real            Vec[3];
 typedef Vec             Mat[3];
 typedef void*           Obj;
 
+typedef void (*ObjPrint)(Obj, FILE*);
 
 typedef struct Spherical*   Spherical;
 typedef struct Frame*       Frame;

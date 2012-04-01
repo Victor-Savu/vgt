@@ -35,6 +35,11 @@ Array arrCreate(uint8_t elem_size, uint8_t fact);
 void arrDestroy(Array restrict arr);
 
 /*
+  Create a deep copy of an array.
+*/
+Array arrCopy(Array restrict arr);
+
+/*
    Retrieves an element from the array.
 
    @arg pos is the position of the element to be retrieved.
@@ -47,6 +52,8 @@ Obj arrGet(Array restrict arr, uint64_t pos);
 Obj arrFront(Array restrict arr);
 Obj arrBack(Array restrict arr);
 
+void arrForEach(Array restrict arr, ArrOperation op, Obj data);
+
 bool arrIsEmpty(Array restrict arr);
 
 
@@ -57,5 +64,6 @@ void arrPop(Array restrict arr);
 
 uint64_t arrSize(Array restrict arr);
 void printStatus(Array restrict arr);
+void arrPrint(Array restrict a, FILE* f, ObjPrint print);
 
 #endif//ADS_ARRAY_H

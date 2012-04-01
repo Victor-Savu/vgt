@@ -28,5 +28,6 @@ typedef struct RedBlackNode* RedBlackNode;
 /* Methods */
 typedef bool (*CompareMethod)(const Obj a, const Obj b);
 typedef void (*DeleteMethod)(Obj a);
+typedef void (*ArrOperation)(uint64_t, Obj, Obj);
 
 #endif//ADS_TYPES_H

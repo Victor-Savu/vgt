@@ -10,8 +10,9 @@
 #include <string.h>
 
 struct Array {
-    Obj* index;
-    uint32_t index_size;
+    Obj* begin;
+    Obj* end;
+    uint32_t size;
     uint32_t s;
     uint32_t d;
     uint64_t n;
@@ -46,7 +47,7 @@ void arr_grow(Array restrict arr)
             arr->s++;
             // if s is odd, double the number of data blocks in a superblock
             if (arr->s & 1) arr->ns <<= 1;
-            // otherwise, double the number of elements in a data block
+            // otherwise, double the number of segments in a data block
             else arr->nd <<= 1;
             // set the occupancy of the last superblock to empty
             arr->os = 0;
@@ -57,11 +58,16 @@ void arr_grow(Array restrict arr)
         if (!arr->empty_db) {
           //  ignore printf("There are no empty data blocks.\n"); fflush(stdout);
             // if the index block is full, reallocate it to twice its current size
-            if (arr->d == arr->index_size) { arr->index_size <<= 1; arr->index = realloc(arr->index, arr->index_size * sizeof(Obj)); }
+            if (arr->d == arr->size) {
+                arr->size <<= 1;
+                arr->begin = realloc(arr->begin, arr->size * sizeof(Obj));
+                arr->end   = realloc(arr->end, arr->size * sizeof(Obj));
+            }
             // allocate a new data block and store its pointer in the index block
           //  ignore printf("New data block with %u segments.\n", arr->nd);
             if (arr->nd != (1 << ((arr->s)>>1))) { printf("Buba superblock %u has %u segments per data block!\n", arr->s, arr->nd); fflush(stdout);}
-            arr->index[arr->d] = malloc(arr->segment_size * arr->nd);
+            arr->end[arr->d] = arr->begin[arr->d] = malloc(arr->segment_size * arr->nd);
+            //arr->end[arr->d] = oCast(char*, arr->begin[arr->d]) + arr->segment_size * arr->nd;
         } else {
         //    ignore printf("There was an empty data block.\n"); fflush(stdout);
         }
@@ -91,9 +97,13 @@ void arr_shrink(Array restrict arr)
     // if the last nonempty datablock is now empty
     if (arr->od == 0) {
         // if there is another empty data block, deallocate it
-        if (arr->empty_db) free(arr->index[arr->d]);
+        if (arr->empty_db) free(arr->begin[arr->d]);
         // if the index block is a quarter full, reallocate it to half its size
-        if (arr->index_size > (arr->d << 2)) { arr->index_size >>=1; arr->index = realloc(arr->index, arr->index_size * sizeof(Obj)); }
+        if (arr->size > (arr->d << 2)) {
+            arr->size >>=1;
+            arr->begin = realloc(arr->begin, arr->size * sizeof(Obj));
+            arr->end = realloc(arr->end, arr->size * sizeof(Obj));
+        }
         // decrement d and the number of data blocks occupying the last superblock
         arr->d--;  arr->os--;
         // if the last superblock is empty
@@ -102,7 +112,7 @@ void arr_shrink(Array restrict arr)
             arr->s--;
             // if s is even, half the number of data blocks in a superblock
             if (!(arr->s&1)) arr->ns >>=1;
-            // otherwise, halve the number of elements in a data block
+            // otherwise, halve the number of segments in a data block
             else arr->nd >>= 1;
             // set the occupancy of the last superblock to full
             arr->os = arr->ns;
@@ -130,12 +140,13 @@ Array arrCreate(uint8_t elem_size, uint8_t fact)
     // TODO: limit the segment size and check that it is at least 8 bytes
 
     Array arr = oCreate(sizeof (struct Array));
-    arr->index = oCreate(4 * sizeof (Obj));
-    arr->index_size = 4;
+    arr->begin = oCreate(4 * sizeof (Obj));
+    arr->end   = oCreate(4 * sizeof (Obj));
+    arr->size = 4;
     arr->fact = fact;
     arr->element_size = elem_size;
     arr->segment_size = elem_size << arr->fact;
-    arr->index[0] = oCreate(arr->segment_size);
+    arr->end[0] = arr->begin[0] = oCreate(arr->segment_size);
     arr->nseg = (1 << arr->fact);
     arr->oseg = arr->nseg;
     arr->od = 1;
@@ -149,16 +160,34 @@ Array arrCreate(uint8_t elem_size, uint8_t fact)
 
 void arrDestroy(Array restrict arr)
 {
-    if (!arr) {
-        fprintf(stderr, "[x] %s: Illegal memory access.\n", __func__);
-        exit(EXIT_FAILURE);
-    }
-    Obj* const end = arr->index + arr->d;
-    Obj* i = arr->index;
-    for (i=arr->index; i < end; i++) oDestroy(*i);
+    check(arr) ;
+    Obj* const end = arr->begin + arr->d;
+    Obj* i = arr->begin;
+    for (i=arr->begin; i < end; i++) oDestroy(*i);
     if (arr->empty_db) oDestroy(*end);
-    oDestroy(arr->index);
+    oDestroy(arr->begin);
+    oDestroy(arr->end);
     oDestroy(arr);
+}
+
+Array arrCopy(Array restrict arr)
+{
+    check(arr);
+    Array c = oCopy(arr, sizeof (struct Array));
+    c->begin = oCopy(arr->begin, arr->size * sizeof(Obj));
+    c->end = oCopy(arr->end, arr->size * sizeof(Obj));
+    uint32_t i=0;
+    if (arr->d) {
+        for (i=0; i < arr->d -1; i++) {
+            c->begin[i] = oCopy(arr->begin[i], (char*) arr->end[i] - (char*)arr->begin[i]);
+            c->end[i] = oCast(char*, c->begin[i]) + (oCast(char*, arr->end[i]) - oCast(char*, arr->begin[i]));
+        }
+        c->begin[i] = oCopy(arr->begin[i], arr->nd * arr->segment_size);
+        c->end[i] = oCast(char*, c->begin[i]) + (arr->od-1) * arr->segment_size + (arr->oseg) * arr->element_size;
+    }
+    if (arr->empty_db) c->end[arr->d] = c->begin[arr->d] = oCopy(arr->begin[arr->d], (arr->nd << ((arr->os == arr->ns) && (arr->ns & 1))) * arr->segment_size);
+
+    return c;
 }
 
 Obj arrSet(Array restrict arr, Obj restrict o, uint64_t pos)
@@ -179,7 +208,8 @@ Obj arrPush(Array restrict arr, Obj restrict o)
     // otherwise, grow the array and set the new segment occupancy to 1
     else { arr_grow(arr); arr->oseg = 1; }
 
-    Obj const dest = oCast(char*, arr->index[arr->d-1 - arr->empty_db]) + arr->segment_size * (arr->od-1) + arr->element_size * (arr->oseg-1);
+    Obj const dest = arr->end[arr->d-1];
+    arr->end[arr->d-1] += arr->element_size;
 
     memcpy(dest, o, arr->element_size);
 
@@ -192,8 +222,10 @@ void arrPop(Array arr)
         fprintf(stderr, "[x] %s: Illegal memory access.\n", __func__);
         exit(EXIT_FAILURE);
     }
+    // there should always be something in the last non-empty segment
+    check(arr->oseg);
     // decrease the occupancy of the last segment
-    arr->oseg--;
+    arr->oseg--; arr->end[arr->d-1]-=arr->element_size;
 
     // if there are no more elements in the segment, shrink the array and set the occupancy of the last segment to full
     if (!arr->oseg) { arr_shrink(arr); arr->oseg = arr->nseg; }
@@ -208,9 +240,9 @@ Obj arrGet(Array restrict arr, uint64_t p)
         fprintf(stderr, "[x] %s: Illegal memory access.\n", __func__);
         exit(EXIT_FAILURE);
     }
-    if (pos == 0) return oCast(char*, arr->index[0]) + arr->element_size * elm;
-    if (pos == 1) return arr->index[1] + arr->element_size * elm;
-    if (pos == 2) return oCast(char*, arr->index[1]) + arr->segment_size + arr->element_size * elm;
+    if (pos == 0) return oCast(char*, arr->begin[0]) + arr->element_size * elm;
+    if (pos == 1) return arr->begin[1] + arr->element_size * elm;
+    if (pos == 2) return oCast(char*, arr->begin[1]) + arr->segment_size + arr->element_size * elm;
 
     //ignore printf("Accessing element #%lu ", pos); fflush(stdout);
     pos+= 1;
@@ -230,7 +262,7 @@ Obj arrGet(Array restrict arr, uint64_t p)
     const uint64_t seg = pos & mask_seg; // the index of the data segment in the b-th data block
     //ignore printf("segment  #%lu\n   ---- using mask_b %lu   and mask_e %lu\n", e, mask_b, mask_e); fflush(stdout);
 
-    char* d = arr->index[(notKdiv2 << 1) + (k&1) * oneShlKdiv2 + b]; // access the corresponding data block
+    char* d = arr->begin[(notKdiv2 << 1) + (k&1) * oneShlKdiv2 + b]; // access the corresponding data block
     d += arr->element_size * ((seg << arr->fact) | elm);  // access the element within
     return d;
 }
@@ -241,7 +273,7 @@ Obj arrFront(Array restrict arr)
         fprintf(stderr, "[x] %s: Illegal memory access.\n", __func__);
         exit(EXIT_FAILURE);
     }
-    return arr->index[0];
+    return arr->begin[0];
 }
 
 Obj arrBack(Array restrict arr)
@@ -250,8 +282,24 @@ Obj arrBack(Array restrict arr)
         fprintf(stderr, "[x] %s: Illegal memory access.\n", __func__);
         exit(EXIT_FAILURE);
     }
-    return oCast(char*, arr->index[arr->d-1 - arr->empty_db]) + arr->segment_size * (arr->od-1) + arr->element_size * (arr->oseg-1);
+    //return oCast(char*, arr->begin[arr->d-1 - arr->empty_db]) + arr->segment_size * (arr->od-1) + arr->element_size * (arr->oseg-1);
+    check( (arr->begin[arr->d-1] != arr->end[arr->d-1]) );
+    return oCast(char*, arr->end[arr->d-1]) - arr->element_size;
+}
 
+void arrForEach(Array restrict arr, ArrOperation op, Obj data)
+{
+    uint64_t i = 0;
+    Obj* datablock_begin = arr->begin;
+    Obj* datablock_end = arr->end;
+    Obj* stop_begin = arr->begin + arr->d;
+    Obj* stop_end = arr->end + arr->d;
+    Obj element;
+    while (datablock_begin < stop_begin && datablock_end < stop_end) {
+        for (element = *datablock_begin; element < *datablock_end; i++, element += arr->element_size) op(i, element, data);
+        datablock_begin++;
+        datablock_end++;
+    }
 }
 
 bool arrIsEmpty(Array restrict arr)
@@ -261,7 +309,7 @@ bool arrIsEmpty(Array restrict arr)
 
 uint64_t arrSize(Array restrict arr)
 {
-    return (arr->n)?(((arr->n-1) << arr->fact)|arr->oseg):(0);
+    return (arr->n)?(((arr->n-1) << arr->fact)+arr->oseg):(0);
 }
 
 void printStatus(Array restrict arr)
@@ -272,6 +320,40 @@ void printStatus(Array restrict arr)
             arr->s, arr->os, arr->ns,
             arr->d, arr->od, arr->nd, (arr->empty_db)?("(+1)"):(""),
             arr->n, arr->oseg, arr->nseg,
-            arr->index_size, arr->segment_size, arr->element_size); fflush(stdout);
+            arr->size, arr->segment_size, arr->element_size); fflush(stdout);
 }
+/*
+void arrPrint(Array restrict arr, FILE* f, ObjPrint print)
+{
+    uint64_t i=0;
 
+    void op(uint64_t i, Obj o) {
+        ignore(i);
+        fprint
+    }
+
+    for (i=0; i+1 < arrSize(arr); i++) {
+        Obj* const o = arrGet(arr, i);
+        print(o, f); fprintf(f, ", ");
+    }
+    if (arrSize(arr)) print(arrBack(arr), f);
+    safe(fflush(f););
+}
+*/
+struct printing_kit { FILE* f; ObjPrint print; uint64_t nelem; };
+
+void op(uint64_t i, Obj o, Obj k) {
+    //Obj* const o = arrGet(arr, i);
+    struct printing_kit* const kit = k;
+    kit->print(o, kit->f);
+    if (i+1 != kit->nelem) fprintf(kit->f, ", ");
+}
+void arrPrint(Array restrict arr, FILE* f, ObjPrint print)
+{
+    check(arr && f && print);
+
+    struct printing_kit kit = {f, print, arrSize(arr)};
+    arrForEach(arr, op, &kit);
+
+    safe(fflush(f););
+}

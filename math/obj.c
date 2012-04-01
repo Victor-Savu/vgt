@@ -4,6 +4,50 @@
 #include <stdlib.h>
 #include <string.h>
 
+void oIntPrint(Obj i, FILE* f)
+{
+    fprintf(f, "%d", *oCast(int*, i));
+    safe(fflush(f);)
+}
+
+void oLongPrint(Obj i, FILE* f)
+{
+    fprintf(f, "%ld", *oCast(long*, i));
+    safe(fflush(f);)
+}
+
+void oUintPrint(Obj i, FILE* f)
+{
+    fprintf(f, "%u", *oCast(unsigned int*, i));
+    safe(fflush(f);)
+}
+
+void oUlongPrint(Obj i, FILE* f)
+{
+    fprintf(f, "%lu", *oCast(unsigned long*, i));
+    safe(fflush(f);)
+}
+
+void oFloatPrint(Obj i, FILE* f)
+{
+    fprintf(f, "%f", *oCast(float*, i));
+    safe(fflush(f);)
+}
+
+void oDoublePrint(Obj i, FILE* f)
+{
+    fprintf(f, "%lf", *oCast(double*, i));
+    safe(fflush(f);)
+}
+
+void oLongDoublePrint(Obj i, FILE* f)
+{
+    fprintf(f, "%Lf", *oCast(long double*, i));
+    safe(fflush(f);)
+}
+
+
+
 Obj oCreate(size_t size) //__attribute__((alloc_size(1)))
 {
     Obj restrict o = malloc(size);

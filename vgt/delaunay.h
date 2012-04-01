@@ -9,6 +9,7 @@ void delDestroy(Delaunay restrict d);
 
 void delDisplay(Delaunay restrict d);
 
+Delaunay delCopy(Delaunay restrict d);
 
 void delInsert(Delaunay restrict d, Vec* restrict p);
 

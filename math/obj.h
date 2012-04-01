@@ -4,6 +4,17 @@
 #include <math/types.h>
 #include <stddef.h>
 
+
+
+void oIntPrint(Obj i, FILE* f);
+void oLongPrint(Obj i, FILE* f);
+void oUintPrint(Obj i, FILE* f);
+void oUlongPrint(Obj i, FILE* f);
+void oFloatPrint(Obj i, FILE* f);
+void oDoublePrint(Obj i, FILE* f);
+void oLongDoublePrint(Obj i, FILE* f);
+
+
 /*
    Allocates an object. In case an allocation error occurs, the method
    issues a message and terminates the program.

@@ -52,23 +52,23 @@ Array ins3(Delaunay del, Tet t, Vec* p)
     struct Tet tet_b = {{p, t->v[A], t->v[D], t->v[C]}, {0, 0, 0, 0}, 0};
     struct Tet tet_c = {{p, t->v[A], t->v[B], t->v[D]}, {0, 0, 0, 0}, 0};
     struct Tet tet_d = {{p, t->v[A], t->v[C], t->v[B]}, {0, 0, 0, 0}, 0};
+    t->v[A] = p;
 
     Tet b = arrPush(del->t, &tet_b);
     tetConnect(b, oA, t->n[oB], tetReadMap(t->m, oB));
-    tetConnect(b, oB, t, oB);
 
     Tet c = arrPush(del->t, &tet_c);
     tetConnect(c, oA, t->n[oC], tetReadMap(t->m, oC));
-    tetConnect(c, oC, t, oC);
-    tetConnect(c, oD, b, oD);
+    tetConnect(c, oC, b, oD);
 
     Tet d = arrPush(del->t, &tet_d);
     tetConnect(d, oA, t->n[oD], tetReadMap(t->m, oD));
-    tetConnect(d, oD, t, oD);
-    tetConnect(d, oC, b, oC);
-    tetConnect(d, oB, c, oB);
+    tetConnect(d, oD, b, oC);
+    tetConnect(d, oC, c, oD);
 
-    t->v[A] = p;
+    tetConnect(b, oB, t, oB);
+    tetConnect(c, oB, t, oC);
+    tetConnect(d, oB, t, oD);
 
     Array stack = arrCreate(sizeof(Tet), 2);
     arrPush(stack, t);
@@ -77,12 +77,14 @@ Array ins3(Delaunay del, Tet t, Vec* p)
     arrPush(stack, d);
 
 
+    stub;
     return stack;
 }
 
 
 Array ins2(Delaunay del, Tet t, Vec* p, enum TetFacet f)
 {
+    p = arrPush(del->v, p);
 
     Tet o = t->n[f];
     TetFace g = tetReadMap(t->m, f);
@@ -179,12 +181,14 @@ Array ins2(Delaunay del, Tet t, Vec* p, enum TetFacet f)
         arrPush(stack, yy);
     }
 
+    stub;
     return stack;
 }
 
-Array ins1(Delaunay d, Tet t, Vec* p, enum TetEdge e)
+Array ins1(Delaunay del, Tet t, Vec* p, enum TetEdge e)
 {
-    Array stack = 0;
+    p = arrPush(del->v, p);
+    Array stack = arrCreate(sizeof(Tet), 2);
 
     stub;
 
@@ -217,6 +221,16 @@ void delDestroy(Delaunay restrict d)
     arrDestroy(d->t);
     oDestroy(d);
 }
+
+Delaunay delCopy(Delaunay restrict d)
+{
+    check(d);
+    Delaunay c = oCreate(sizeof (struct Delaunay));
+    c->v = arrCopy(d->v);
+    c->t = arrCopy(d->t);
+    return c;
+}
+
 /*
 enum FlipCase { CASE_1, CASE_2, CASE_3, CASE_4, CASE_SKIP, CASE_UNHANDLED };
 
@@ -499,18 +513,20 @@ void delDisplay(Delaunay restrict d)
     glLineWidth(1.0);
     glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
-    glColor4f(0.0, 1.0, 0.0, 1.0);
+    glColor4f(0.0, 0.0, 1.0, 1.0);
     end = arrSize(d->t);
     for (i=0; i<end; i++) {
         Tet t = arrGet(d->t, i);
-        glBegin(GL_TRIANGLE_STRIP);
+        glBegin(GL_LINE_STRIP);
         glVertex3fv(*(t->v[A]));   glVertex3fv(*(t->v[B]));
-        glVertex3fv(*(t->v[C]));   glVertex3fv(*(t->v[D]));
-        glVertex3fv(*(t->v[A]));   glVertex3fv(*(t->v[B]));
+        glVertex3fv(*(t->v[D]));   glVertex3fv(*(t->v[C]));
+        glVertex3fv(*(t->v[A]));
+        glEnd();
+        glVertex3fv(*(t->v[B]));   glVertex3fv(*(t->v[C]));
+        glBegin(GL_LINES);
+
         glEnd();
     }
-
-
 
     glPointSize(5.0);
     glBegin(GL_POINTS);
