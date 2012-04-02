@@ -13,12 +13,15 @@ struct Renderer
     Mesh m;
     Mesh new_m;
 
+    Victor v;
+    Victor new_v;
+
     Delaunay d;
     Delaunay new_d;
 
     pthread_t threadId;
     pthread_mutex_t mutex;
-    pthread_cond_t cond;
+//    pthread_cond_t cond;
     byte props;
 
     struct Camera camera;

@@ -7,6 +7,8 @@
 #include <errno.h>
 #include <stdlib.h>
 
+#include <math/obj.h>
+
 #include <vgt/topology.h>
 #include <vgt/scalar_field.h>
 #include <vgt/vector_field.h>
@@ -19,21 +21,20 @@ static char* strip(char* line);
 VolumetricData
 vdCreate(const char* filename)
 {
-    VolumetricData v = malloc(sizeof (struct VolumetricData));
-    if (!v) {
-        fprintf(stderr, "Out of memory.\n"); fflush(stderr);
-        return 0;
-    }
-    memset(v, 0, sizeof (struct VolumetricData));
-    if (vdRead(v, filename)) {
-        return v;
-    } else {
-        vdClear(v);
-        free(v);
-        return 0;
-    }
+    VolumetricData v = oCreate(sizeof (struct VolumetricData));
+    bool b = vdRead(v, filename);
+    check(b);
+    return v;
 }
 
+VolumetricData vdCopy(VolumetricData v)
+{
+    VolumetricData c = oCopy(v, sizeof(struct VolumetricData));
+    c->scal = sfCopy(v->scal);
+    c->grad = vfCopy(v->grad);
+    c->lapl = sfCopy(v->lapl);
+    return c;
+}
 
 bool
 vdRead(VolumetricData v, const char* filename)

@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <math/obj.h>
 #include <vgt/vector_field.h>
 
 ScalarField sfCreate(   uint64_t x, uint64_t y, uint64_t z,
@@ -45,6 +46,13 @@ ScalarField sfCreate(   uint64_t x, uint64_t y, uint64_t z,
     f->dz = dz;
 
     return f;
+}
+
+ScalarField sfCopy(ScalarField s)
+{
+    ScalarField c = oCopy(s, sizeof (struct ScalarField));
+    c->data = oCopy(s->data, s->nx * s->ny * s->nz * sizeof (real));
+    return c;
 }
 
 bool sfReadRaw(ScalarField s, const char* fname)

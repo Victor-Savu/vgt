@@ -23,6 +23,8 @@ bool sfReadRaw(ScalarField s, const char* fname);
 */
 void sfClear(ScalarField s);
 
+ScalarField sfCopy(ScalarField s);
+
 /*
    Clears and then deallocates the field structure.
    After the execution, @s will point to an unallocated clunk of memory.

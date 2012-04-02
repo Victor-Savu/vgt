@@ -7,9 +7,11 @@
 
 #include <math/obj.h>
 #include <vgt/mesh.h>
+#include <vgt/victor.h>
 #include <vgt/delaunay.h>
 #include <view/camera.h>
 #include <view/graphics.h>
+
 
 #include <GL/glut.h>
 
@@ -30,10 +32,12 @@ void* init_rendering(void*);
 struct Renderer instance = {
     .m = 0,
     .new_m = 0,
+    .v = 0,
+    .new_v = 0,
     .d = 0,
     .new_d = 0,
     .mutex = PTHREAD_MUTEX_INITIALIZER,
-    .cond = PTHREAD_COND_INITIALIZER,
+    //.cond = PTHREAD_COND_INITIALIZER,
     .props = 0,
 
     .camera = {
@@ -70,11 +74,15 @@ void rDestroy(Renderer restrict r)
 
     if (instance.m) mDestroy(instance.m);
     if (instance.new_m) mDestroy(instance.new_m);
+    if (instance.v) vicDestroy(instance.v);
+    if (instance.new_v) vicDestroy(instance.new_v);
     if (instance.d) delDestroy(instance.d);
     if (instance.new_d) delDestroy(instance.new_d);
 
     instance.m = 0;
     instance.new_m = 0;
+    instance.v = 0;
+    instance.new_v = 0;
     instance.d = 0;
     instance.new_d = 0;
     instance.props = 0;
@@ -104,7 +112,14 @@ void rDisplayDelaunay(Renderer restrict r, Delaunay restrict d)
     if (old) delDestroy(old);
 }
 
-
+void rDisplayVictor(Renderer restrict r, Victor restrict v)
+{
+    pthread_mutex_lock(&instance.mutex);
+    Victor restrict old = instance.new_v;
+    instance.new_v = v;
+    pthread_mutex_unlock(&instance.mutex);
+    if (old) vicDestroy(old);
+}
 
 void cb_display(void)
 {
@@ -122,6 +137,7 @@ void cb_display(void)
 
     //glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
     if (instance.m) mDisplay(instance.m);
+    if (instance.v) vicDisplay(instance.v);
     if (instance.d) delDisplay(instance.d);
     //glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 

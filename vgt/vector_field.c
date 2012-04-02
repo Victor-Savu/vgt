@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <math/obj.h>
 #include <vgt/scalar_field.h>
 
 VectorField vfCreate(   uint64_t x, uint64_t y, uint64_t z,
@@ -60,6 +61,13 @@ void vfClear(VectorField s)
         s->data = 0;
     }
     memset(s, 0, sizeof (struct VectorField));
+}
+
+VectorField vfCopy(VectorField s)
+{
+    VectorField c = oCopy(s, sizeof (struct VectorField));
+    c->data = oCopy(s->data, s->nx * s->ny * s->nz * sizeof (Vec));
+    return c;
 }
 
 void vfDestroy(VectorField s)

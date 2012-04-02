@@ -23,6 +23,8 @@ bool vfReadRaw(VectorField s, const char* fname);
 */
 void vfClear(VectorField s);
 
+VectorField vfCopy(VectorField s);
+
 /*
    Clears and then deallocates the field structure.
    After the execution, @s will point to an unallocated clunk of memory.

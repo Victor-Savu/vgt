@@ -81,6 +81,7 @@ set(vgt_sources
         vgt/mesh.c
         vgt/delaunay.c
         vgt/tet.c
+        vgt/victor.c
    )
 
 set(vgt_headers
@@ -94,6 +95,9 @@ set(vgt_headers
         vgt/tet_cls.h
         vgt/tet.h
         vgt/delaunay.h
+        vgt/victor.h
+        vgt/victor_cls.h
+        vgt/half_edge_cls.h
    )
 
 add_library(vgt ${libtype} ${vgt_sources})

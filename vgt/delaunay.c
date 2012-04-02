@@ -192,7 +192,7 @@ Array ins2(Delaunay del, Tet t, Vec* p, enum TetFacet f)
 Array ins1(Delaunay del, Tet t, Vec* p, enum TetEdge e)
 {
     p = arrPush(del->v, p);
-
+/*
     // get the triangles which share edge e
     Tet dont = t;
     enum TetEdge ie_left;
@@ -232,7 +232,7 @@ Array ins1(Delaunay del, Tet t, Vec* p, enum TetEdge e)
     while (it)
     if (e == AB) {
     }
-
+*/
 
     Array stack = arrCreate(sizeof(Tet), 2);
 

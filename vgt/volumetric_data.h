@@ -1,5 +1,5 @@
-#ifndef VGT_FIELD_H
-#define VGT_FIELD_H
+#ifndef VGT_VOLUMETRIC_DATA_H
+#define VGT_VOLUMETRIC_DATA_H
 
 #include <vgt/types.h>
 
@@ -14,6 +14,8 @@
    pointer on error.
 */
 VolumetricData vdCreate(const char* filename);
+
+VolumetricData vdCopy(VolumetricData v);
 
 /*
    Clears the contents of a struct VolumetricData pointed by @v while freeing the
@@ -35,4 +37,4 @@ bool vdRead(VolumetricData v, const char* filename);
 */
 void vdDestroy(VolumetricData v);
 
-#endif//VGT_FIELD_H
+#endif//VGT_VOLUMETRIC_DATA_H
