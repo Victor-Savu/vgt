@@ -301,11 +301,11 @@ Obj arrBack(Array restrict arr)
 void arrForEach(Array restrict arr, ArrOperation op, Obj data)
 {
     uint64_t i = 0;
-    Obj* datablock_begin = arr->begin;
-    Obj* datablock_end = arr->end;
-    Obj* stop_begin = arr->begin + arr->d;
-    Obj* stop_end = arr->end + arr->d;
-    Obj element;
+    Obj* restrict datablock_begin = arr->begin;
+    Obj* restrict datablock_end = arr->end;
+    Obj* const stop_begin = arr->begin + arr->d;
+    Obj* const stop_end = arr->end + arr->d;
+    Obj restrict element;
     while (datablock_begin < stop_begin && datablock_end < stop_end) {
         for (element = *datablock_begin; element < *datablock_end; i++, element += arr->element_size) op(i, element, data);
         datablock_begin++;
@@ -353,7 +353,7 @@ void arrPrint(Array restrict arr, FILE* f, ObjPrint print)
 */
 struct printing_kit { FILE* f; ObjPrint print; uint64_t nelem; };
 
-void op(uint64_t i, Obj o, Obj k) {
+static inline void op(uint64_t i, Obj o, Obj k) {
     //Obj* const o = arrGet(arr, i);
     struct printing_kit* const kit = k;
     kit->print(o, kit->f);

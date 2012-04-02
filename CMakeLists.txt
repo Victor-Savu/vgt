@@ -35,7 +35,6 @@ set(math_sources
         math/mat.c
         math/frame.c
         math/obj.c
-        math/math.c
         math/predicates.c
     )
 
@@ -46,7 +45,6 @@ set(math_headers
         math/spherical_cls.h
         math/frame.h
         math/frame_cls.h
-        math/math.h
         math/predicates.h
     )
 

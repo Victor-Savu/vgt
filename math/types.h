@@ -41,7 +41,7 @@
 # endif
 #else
 # define safe(x)
-# define check(x)
+# define check(x)   unused(x)
 # define call
 # define stub
 #endif
