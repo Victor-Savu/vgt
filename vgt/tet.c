@@ -1,6 +1,8 @@
 #include <vgt/tet.h>
 #include <vgt/tet_cls.h>
 
+#include <stdio.h>
+#include <math/vec.h>
 
 inline
 void tetConnect(Tet x, TetFace fx, Tet y, TetFace fy)
@@ -25,4 +27,14 @@ inline
 TetFace tetReadMap(byte m, TetNeighbour n)
 {
     return (m >> (n<<1)) & 3;
+}
+
+void tetPrint(Obj tet, FILE* f)
+{
+    Tet const t = tet;
+    fprintf(f, "[");
+    vPrint(t->v[0], f); fprintf(f, ", ");
+    vPrint(t->v[1], f); fprintf(f, ", ");
+    vPrint(t->v[2], f); fprintf(f, ", ");
+    vPrint(t->v[3], f); fprintf(f, "]\n");
 }

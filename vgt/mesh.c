@@ -237,12 +237,12 @@ void mDisplay(Mesh restrict m)
             Vec* const restrict nb = m->norm + ib;
             Vec* const restrict nc = m->norm + ic;
 
-            glNormal3fv(*na);
-            glVertex3fv(*va);
-            glNormal3fv(*nb);
-            glVertex3fv(*vb);
-            glNormal3fv(*nc);
-            glVertex3fv(*vc);
+            glNormal3v(*na);
+            glVertex3v(*va);
+            glNormal3v(*nb);
+            glVertex3v(*vb);
+            glNormal3v(*nc);
+            glVertex3v(*vc);
     //        printf("Triangle : "); vPrint(va, stdout); vPrint(vb, stdout); vPrint(vc, stdout);
     //        printf("\n");
         }

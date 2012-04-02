@@ -27,8 +27,8 @@
 
 #define restrict __restrict__
 
-//#define SAFE_MODE           1
-//#define SAFE_MODE_VERBOSE   1
+#define SAFE_MODE           1
+#define SAFE_MODE_VERBOSE   1
 
 #ifdef SAFE_MODE
 # define safe(x)     do {x} while (0)
@@ -56,7 +56,16 @@
 #define SIXTH   (0x11)
 #define SEVENTH (0x12)
 
+/*
 typedef float           real;
+#define glNormal3v       glNormal3fv
+#define glVertex3v       glVertex3fv
+*/
+
+typedef double           real;
+#define glNormal3v       glNormal3dv
+#define glVertex3v       glVertex3dv
+
 typedef uint8_t         byte;
 typedef uint8_t         bool;
 typedef uint8_t         mask8;

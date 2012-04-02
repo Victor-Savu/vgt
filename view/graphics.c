@@ -5,7 +5,7 @@
 #include <stdio.h>
 void GRAPHICS_DRAW_3D_ARROW(void)
 {
-    GLfloat normals[5][3] = {
+    real normals[5][3] = {
         {0.0, 0.0, -1.0},
         {1.0, -3.0, 4.0},
         {-1.0, 3.0, -4.0},
@@ -13,7 +13,7 @@ void GRAPHICS_DRAW_3D_ARROW(void)
         {2.0,  1.0, 2.0}
     };
 
-    GLfloat vertices[5][3] = {
+    real vertices[5][3] = {
         {0.0, 0.0, 1.0},
         {-1.0, 0.0, 0.0},
         {-2.0, -2.0, 0.0},
@@ -21,7 +21,7 @@ void GRAPHICS_DRAW_3D_ARROW(void)
         {4.0, 0.0, 0.0},
     };
 
-    GLfloat* triangles[6][4] = {
+    real* triangles[6][4] = {
         {vertices[0], vertices[3], vertices[1], normals[4]},
         {vertices[0], vertices[1], vertices[2], normals[3]},
         {vertices[0], vertices[4], vertices[3], normals[2]},
@@ -38,10 +38,10 @@ void GRAPHICS_DRAW_3D_ARROW(void)
     uint64_t t;
     glBegin(GL_TRIANGLES);
     for (t = 0; t < 6; t++) {
-        glNormal3fv(triangles[t][3]);
-        glVertex3fv(triangles[t][0]);
-        glVertex3fv(triangles[t][1]);
-        glVertex3fv(triangles[t][2]);
+        glNormal3v(triangles[t][3]);
+        glVertex3v(triangles[t][0]);
+        glVertex3v(triangles[t][1]);
+        glVertex3v(triangles[t][2]);
     }
     glEnd();
     glColor4fv(white);

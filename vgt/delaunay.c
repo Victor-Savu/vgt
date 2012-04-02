@@ -111,14 +111,15 @@ Array ins2(Delaunay del, Tet t, Vec* p, enum TetFacet f)
         struct Tet tmp = {{p, t->v[A], t->v[f], t->v[(f+3-(f==oB))&3]}, {0, 0, 0, 0}, 0};
         x = arrPush(del->t, &tmp);
         tetConnect(x, oA, t->n[(f+1+(f==oD))&3], tetReadMap(t->m, (f+1+(f==oD))&3));
-        tetConnect(x, oB, t, (f+3-(f==oB))&3);
+        tetConnect(x, oB, t, (f+1+(f==oD))&3);
     }
     {
         struct Tet tmp = {{p, t->v[(f+1+(f==oD))&3], t->v[f], t->v[A]}, {0, 0, 0, 0}, 0};
         y = arrPush(del->t, &tmp);
         tetConnect(y, oA, t->n[(f+3-(f==oB))&3], tetReadMap(t->m, (f+3-(f==oB))&3));
-        tetConnect(y, oD, t, (f+1+(f==oD))&3);
+        tetConnect(y, oD, t, (f+3-(f==oB))&3);
     }
+    tetConnect(x, oD, y, oB);
 
     t->v[A] = p;
 
@@ -151,14 +152,15 @@ Array ins2(Delaunay del, Tet t, Vec* p, enum TetFacet f)
             struct Tet tmp = {{p, o->v[A], o->v[g], o->v[(g+3-(g==oB))&3]}, {0, 0, 0, 0}, 0};
             xx = arrPush(del->t, &tmp);
             tetConnect(xx, oA, o->n[(g+1+(g==oD))&3], tetReadMap(o->m, (g+1+(g==oD))&3));
-            tetConnect(xx, oB, o, (g+3-(g==oB))&3);
+            tetConnect(xx, oB, o, (g+1+(g==oD))&3);
         }
         {
             struct Tet tmp = {{p, o->v[(g+1+(g==oD))&3], o->v[g], o->v[A]}, {0, 0, 0, 0}, 0};
             yy = arrPush(del->t, &tmp);
             tetConnect(yy, oA, o->n[(g+3-(g==oB))&3], tetReadMap(o->m, (g+3-(g==oB))&3));
-            tetConnect(yy, oD, o, (g+1+(g==oD))&3);
+            tetConnect(yy, oD, o, (g+3-(g==oB))&3);
         }
+        tetConnect(xx, oD, yy, oB);
 
         o->v[A] = p;
 
@@ -180,6 +182,8 @@ Array ins2(Delaunay del, Tet t, Vec* p, enum TetFacet f)
         arrPush(stack, xx);
         arrPush(stack, yy);
     }
+
+    arrPrint(del->t, stdout, tetPrint);
 
     stub;
     return stack;
@@ -518,13 +522,13 @@ void delDisplay(Delaunay restrict d)
     for (i=0; i<end; i++) {
         Tet t = arrGet(d->t, i);
         glBegin(GL_LINE_STRIP);
-        glVertex3fv(*(t->v[A]));   glVertex3fv(*(t->v[B]));
-        glVertex3fv(*(t->v[D]));   glVertex3fv(*(t->v[C]));
-        glVertex3fv(*(t->v[A]));
+        glVertex3v(*(t->v[A]));   glVertex3v(*(t->v[B]));
+        glVertex3v(*(t->v[D]));   glVertex3v(*(t->v[C]));
+        glVertex3v(*(t->v[A]));   glVertex3v(*(t->v[D]));
         glEnd();
-        glVertex3fv(*(t->v[B]));   glVertex3fv(*(t->v[C]));
-        glBegin(GL_LINES);
 
+        glBegin(GL_LINES);
+        glVertex3v(*(t->v[B]));   glVertex3v(*(t->v[C]));
         glEnd();
     }
 
@@ -534,7 +538,7 @@ void delDisplay(Delaunay restrict d)
     end = arrSize(d->v);
     for (i=0; i<end; i++) {
         Vec* v = oCast(Vec*, arrGet(d->v, i));
-        glVertex3fv(*v);
+        glVertex3v(*v);
     }
     glEnd();
 

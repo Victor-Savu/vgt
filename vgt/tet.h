@@ -19,4 +19,6 @@ void tetConnect(Tet x, TetFace fx, Tet y, TetFace fy);
 // the neighbor leads to "home", so it consults the map
 TetFace tetReadMap(byte m, TetNeighbour n);
 
+void tetPrint(Obj tet, FILE* f);
+
 #endif//VGT_TET_H

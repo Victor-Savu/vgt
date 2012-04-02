@@ -139,9 +139,10 @@ void cb_reshape(int w, int h)
     double aspect = (double) w / (double) h;
 
     glMatrixMode(GL_PROJECTION);
+    //glMatrixMode(GL_MODELVIEW);
 
     glLoadIdentity();
-    gluPerspective(90, aspect, 0.1, 1000.0);
+    gluPerspective(45, aspect, 1, 1000.0);
     /*glFrustum(-1 * scale * aspect,
                    scale * aspect,
               -1 * scale,
@@ -155,6 +156,8 @@ void cb_reshape(int w, int h)
                    scale / 1.0,
                    scale * 1000.0);*/
     glMatrixMode(GL_MODELVIEW);
+
+    glScalef(10, 10, 10);
 
     glutPostRedisplay();
 }
