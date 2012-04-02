@@ -192,7 +192,50 @@ Array ins2(Delaunay del, Tet t, Vec* p, enum TetFacet f)
 Array ins1(Delaunay del, Tet t, Vec* p, enum TetEdge e)
 {
     p = arrPush(del->v, p);
+
+    // get the triangles which share edge e
+    Tet dont = t;
+    enum TetEdge ie_left;
+    enum TetEdge ie_right;
+    enum TetFacet if_left;
+    enum TetFacet if_right;
+
+    Tet it = 0;
+
+    switch(e) {
+    case AB:
+        if_left = C;
+        if_right = D;
+        break;
+    case AC:
+        if_left = B;
+        if_right = D;
+        break;
+    case AD:
+        if_left = C;
+        if_right = B;
+        break;
+    case BD:
+        if_left = C;
+        if_right = A;
+        break;
+    case DC:
+        if_left = A;
+        if_right = B;
+        break;
+    case CB:
+        if_left = A;
+        if_right = D;
+        break;
+    }
+
+    while (it)
+    if (e == AB) {
+    }
+
+
     Array stack = arrCreate(sizeof(Tet), 2);
+
 
     stub;
 
@@ -235,56 +278,6 @@ Delaunay delCopy(Delaunay restrict d)
     return c;
 }
 
-/*
-enum FlipCase { CASE_1, CASE_2, CASE_3, CASE_4, CASE_SKIP, CASE_UNHANDLED };
-
-enum FlipCase flip_case(HalfEdge* t) {
-
-    if (!t->n->n->o->f) return CASE_SKIP;
-
-    Vec* restrict p = t->v;
-    Vec* restrict a = t->n->v;
-    Vec* restrict b = t->n->n->v;
-    Vec* restrict c = t->o->n->v;
-    Vec* restrict d = t->n->n->o->f->n->n->v;
-
-    // if it is not in the sphere
-    if (insphere(*p, *a, *b, *c, *d) <= 0) return CASE_SKIP;
-
-    // orientations
-    const real abc = orient3d(*a, *b, *c, *p);
-    const real acd = orient3d(*a, *c, *d, *p);
-    const real adb = orient3d(*a, *b, *b, *p);
-    const real cbd = orient3d(*c, *d, *d, *p);
-
-    const uint8_t lt = (acd < 0) + (adb < 0) + (cbd < 0);
-    const uint8_t eq = (acd ==0) + (adb ==0) + (cbd ==0);
-
-    if (abc > 0) {
-        if (lt == 3) return CASE_1;
-        else if (lt == 2) {
-            if (eq == 0) {
-                if (acd > 0) *td = t->n->o->f;
-                else if (adb > 0) *td = t->f;
-                else if (cbd > 0) *td = t->o->f;
-                else *td = 0;
-                if (*td) return CASE_2; else return CASE_SKIP;
-            } else if (eq == 1) {
-                if (acd == 0) {*tb = t->n->o->f; *tc = (*tb)?():(0);};
-                else if (adb == 0) {*tb = t->f; *tc = (*tb)?():(0);};
-                else if (cbd == 0) {*tb = t->o->f; *tc = (*tb)?((*tb)->n->n->o->f):(0);};
-                else *tb = 0, *tc = 0;
-                if (*tb && *tc) return CASE_3; else  return CASE_SKIP;
-            }
-        }
-    } else if (abc == 0) {
-        if (lt == 3) return CASE_1; // degenerate case where p is on the face abc
-        if (eq == 1) return CASE_4;
-    }
-
-    return CASE_UNHANDLED;
-}
-*/
 
 void flip(Array stack)
 {
@@ -455,56 +448,6 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
 
     fprintf(stderr, "p is outside of the tetrahedrization.\n");
 
-/*
-    Array stack = arrCreate(sizeof (HalfEdge), 2);
-
-    HalfEdge t = walk(arrFront(d->e), p);
-
-    if (!t) return;
-
-    flip14(d, &t, p);
-    if (t) {
-        arrPush(stack, t); t = t->n->o;
-        arrPush(stack, t); t = t->n->o;
-        arrPush(stack, t); t = t->n->o;
-        arrPush(stack, t);
-    }
-
-    while (!arrIsEmpty(stack)) {
-        t = *oCast(HalfEdge*, arrBack(stack));
-        arrPop(stack);
-        switch (flip_case(&t)) {
-            case CASE_4:
-            case CASE_1:
-                flip23(d, &t);
-                if (t) {
-                    arrPush(stack, t); t = t->f->o;
-                    arrPush(stack, t); t = t->f->o;
-                    arrPush(stack, t);
-                }
-                break;
-            case CASE_2:
-                flip32(d, &t);
-                if (t) {
-                    arrPush(stack, t);
-                    arrPush(stack, t->n->f);
-                }
-                break;
-            case CASE_3:
-                flip44(d, &t);
-                if (t) {
-                    arrPush(stack, t); t = t->f->o;
-                    arrPush(stack, t); t = t->f->o;
-                    arrPush(stack, t); t = t->f->o;
-                    arrPush(stack, t);
-                }
-                break;
-            default:
-                break;
-
-        }
-    }
-*/
 }
 
 void delDisplay(Delaunay restrict d)
