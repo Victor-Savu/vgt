@@ -1,6 +1,5 @@
 #include <ads/array.h>
 
-#include <math/math.h>
 #include <math/obj.h>
 
 #include <math/obj.h>
@@ -231,6 +230,18 @@ void arrPop(Array arr)
     if (!arr->oseg) { arr_shrink(arr); arr->oseg = arr->nseg; }
 }
 
+#include <signal.h>
+static inline uint64_t log2_uint64(uint64_t x)
+{
+    if (!x) raise(SIGFPE);
+    uint64_t y;
+    __asm__ ( "\tbsr %1, %0\n"
+            : "=r"(y)
+            : "r" (x)
+        );
+    return y;
+}
+
 Obj arrGet(Array restrict arr, uint64_t p)
 {
     uint64_t elm = p & (arr->nseg-1);
@@ -246,7 +257,7 @@ Obj arrGet(Array restrict arr, uint64_t p)
 
     //ignore printf("Accessing element #%lu ", pos); fflush(stdout);
     pos+= 1;
-    const uint64_t k = math_log2_uint64(pos); // the number of the superblock
+    const uint64_t k = log2_uint64(pos); // the number of the superblock
     //ignore printf("from superblock #%u ", k); fflush(stdout);
 
     const uint64_t kdiv2 = k>>1;
