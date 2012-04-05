@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
     rDisplayMesh(r, m);
 
 
-    Vec tetra[4] = {
+    Vertex tetra[4] = {
         {0.0, 0.0, 0.0},
         {260.0, 0.0, 0.0},
         {0.0, 260.0, 0.0},

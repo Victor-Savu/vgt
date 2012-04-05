@@ -5,8 +5,8 @@
 
 struct Mesh {
     ind n_vert;
-    Vec* vert;
-    Vec* norm;
+    Vertex* vert;
+    Vertex* norm;
 
     ind n_edges;
     struct Edge* edges;

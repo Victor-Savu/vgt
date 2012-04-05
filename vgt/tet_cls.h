@@ -4,7 +4,7 @@
 #include <vgt/types.h>
 
 struct Tet {
-    Vec* v[4];
+    Vertex* v[4];
     Tet n[4];
     // a map. Each neighbor of this tet sees it as either opposite to a (00), b (01), c (10), or d (11).
     byte m;

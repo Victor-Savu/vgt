@@ -31,7 +31,7 @@ set(INSTALL_INCLUDE_DIR "$ENV{CUSTOM_MODULES_PATH}/include" CACHE PATH
         "Installation directory for header files")
 
 set(math_sources
-        math/vec.c
+        math/vertex.c
         math/mat.c
         math/frame.c
         math/obj.c
@@ -39,7 +39,7 @@ set(math_sources
     )
 
 set(math_headers
-        math/vec.h
+        math/vertex.h
         math/mat.h
         math/spherical.h
         math/spherical_cls.h

@@ -4,19 +4,19 @@
 #include <vgt/delaunay_cls.h>
 #include <vgt/tet_cls.h>
 #include <math/predicates.h>
-#include <math/vec.h>
+#include <math/vertex.h>
 #include <ads/array.h>
 
 int main()
 {
-    Vec tetra[4] = {
+    Vertex tetra[4] = {
         {0.0, 0.0, 0.0},
         {20.0, 0.0, 0.0},
         {0.0, 20.0, 0.0},
         {0.0, 0.0, 20.0}
     };
 
-    Vec v[14] = {
+    Vertex v[14] = {
       {5.0, 0.0, 0.0},
       {0.0, 5.0, 0.0},
       {0.0, 0.0, 5.0},
@@ -43,9 +43,9 @@ int main()
                 (orient3d(*t->v[0], *t->v[1], *t->v[2], *t->v[3]) < 0)?("good"):("bad"));
     }
 
-    Vec p = {5.0, 5.0, 5.0};
+    Vertex p = {5.0, 5.0, 5.0};
     delInsert(d, &p);
-    Vec q = {5.0, 10.0, 5.0};
+    Vertex q = {5.0, 10.0, 5.0};
     delInsert(d, &q);
 
     for (i=0; i < arrSize(d->t); i++) {

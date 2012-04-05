@@ -4,7 +4,7 @@
 #include <vgt/types.h>
 
 struct HalfEdge {
-    Vec* v;
+    Vertex* v;
     HalfEdge n;
     HalfEdge o;
 };

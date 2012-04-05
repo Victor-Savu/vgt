@@ -149,7 +149,7 @@ VectorField sfGradient(ScalarField field)
     VectorField grad = vfCreate(field->nx, field->ny, field->nz, field->dx, field->dy, field->dz);
 
     real* s = sfAt(field, 0, 0, 0);
-    Vec* v = vfAt(grad, 0, 0, 0);
+    Vertex* v = vfAt(grad, 0, 0, 0);
 
     real dx = field->dx;
     real dy = field->dy;

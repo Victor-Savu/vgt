@@ -1,7 +1,7 @@
 #include <math/mat.h>
 
 #include <math/obj.h>
-#include <math/vec.h>
+#include <math/vertex.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -14,9 +14,9 @@ Mat* matCopy(Mat* restrict a, Mat* restrict b)
 
 Mat* matScale(Mat* restrict a, real s, Mat* restrict b)
 {
-    Vec* restrict v0 = (*a);
-    Vec* restrict v1 = (*a)+1;
-    Vec* restrict v2 = (*a)+2;
+    Vertex* restrict v0 = (*a);
+    Vertex* restrict v1 = (*a)+1;
+    Vertex* restrict v2 = (*a)+2;
     vScale(v0, s, (*b));
     vScale(v1, s, (*b)+1);
     vScale(v2, s, (*b)+2);
@@ -49,7 +49,7 @@ Mat* matMul(Mat* restrict a, Mat* restrict b, Mat* restrict c)
     return c;
 }
 
-Vec* matCross(Mat* restrict a, Vec* restrict b, Vec* restrict c)
+Vertex* matCross(Mat* restrict a, Vertex* restrict b, Vertex* restrict c)
 {
     (*c)[0] = vDot((*a), b);
     (*c)[1] = vDot((*a)+1, b);
@@ -59,9 +59,9 @@ Vec* matCross(Mat* restrict a, Vec* restrict b, Vec* restrict c)
 
 Mat* matScaleI(Mat* restrict a, real s)
 {
-    Vec* restrict v0 = (*a);
-    Vec* restrict v1 = (*a)+1;
-    Vec* restrict v2 = (*a)+2;
+    Vertex* restrict v0 = (*a);
+    Vertex* restrict v1 = (*a)+1;
+    Vertex* restrict v2 = (*a)+2;
     vScaleI(v0, s);
     vScaleI(v1, s);
     vScaleI(v2, s);
@@ -83,9 +83,9 @@ Mat* matMulI(Mat* restrict a, Mat* restrict b)
     return matCopy(matMul(a, b, &c), a);
 }
 
-Vec* matCrossI(Mat* restrict a, Vec* restrict b)
+Vertex* matCrossI(Mat* restrict a, Vertex* restrict b)
 {
-    Vec c;
+    Vertex c;
     return vCopy(matCross(a, b, &c), b);
 }
 

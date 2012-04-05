@@ -7,7 +7,7 @@
 
 struct Frame {
     Mat rot;
-    Vec trans;
+    Vertex trans;
 };
 
 

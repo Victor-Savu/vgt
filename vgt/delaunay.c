@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include <math/obj.h>
-#include <math/vec.h>
+#include <math/vertex.h>
 #include <math/predicates.h>
 
 #include <ads/array.h>
@@ -16,7 +16,7 @@
 #include <GL/glut.h>
 
 
-Array ins3(Delaunay del, Tet t, Vec* p)
+Array ins3(Delaunay del, Tet t, Vertex* p)
 {
     p = arrPush(del->v, p);
 
@@ -54,7 +54,7 @@ Array ins3(Delaunay del, Tet t, Vec* p)
 }
 
 
-Array ins2(Delaunay del, Tet t, Vec* p, enum TetFacet f)
+Array ins2(Delaunay del, Tet t, Vertex* p, enum TetFacet f)
 {
     p = arrPush(del->v, p);
 
@@ -163,11 +163,11 @@ Array ins2(Delaunay del, Tet t, Vec* p, enum TetFacet f)
 
 
 //static
-void orient(Delaunay del, Tet t,  Vec* p, enum TetEdge e)
+void orient(Delaunay del, Tet t,  Vertex* p, enum TetEdge e)
 {
     // see Fig #1
     // find x, y, z and t, where xy = e
-    //Vec *x, *y, *z, *t;
+    //Vertex *x, *y, *z, *t;
    // Tet oX, oY, oZ, oT;
 
     switch(e) {
@@ -214,7 +214,7 @@ void orient(Delaunay del, Tet t,  Vec* p, enum TetEdge e)
     */
 }
 
-Array ins1(Delaunay del, Tet t, Vec* p, enum TetEdge e)
+Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
 {
     return ins3(del, t, p);
 }
@@ -222,10 +222,12 @@ Array ins1(Delaunay del, Tet t, Vec* p, enum TetEdge e)
 
 Array flip23(Delaunay del, Array stack)
 {
+    return stack;
 }
 
 Array flip32(Delaunay del, Array stack)
 {
+    return stack;
 }
 
 Array flip44(Delaunay del, Array stack)
@@ -254,7 +256,7 @@ void flip(Delaunay del, Array stack)
         // if D is in the circumsphere of t, apply one of the 3 flip operations
         if (insphere(*t->v[0], *t->v[1], *t->v[2], *t->v[3], *ta->v[tetReadMap(t->m, oD)]) > 0) {
             // determine which of the 4 cases we are in
-            real o = orient3d(t->);
+           // real o = orient3d(t->);
         }
     }
 
@@ -263,11 +265,11 @@ void flip(Delaunay del, Array stack)
 }
 
 
-Delaunay delCreate(Vec (*hull)[4])
+Delaunay delCreate(Vertex (*hull)[4])
 {
 
     Delaunay d = oCreate(sizeof (struct Delaunay));
-    d->v = arrCreate(sizeof (Vec), 2);
+    d->v = arrCreate(sizeof (Vertex), 2);
     d->t = arrCreate(sizeof (struct Tet), 2);
 
     struct Tet t = {
@@ -298,7 +300,7 @@ Delaunay delCopy(Delaunay restrict d)
 }
 
 
-void delInsert(Delaunay restrict d, Vec* restrict p)
+void delInsert(Delaunay restrict d, Vertex* restrict p)
 {
     Tet t = arrFront(d->t);
     Tet ot = t;
@@ -336,7 +338,7 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
                         return;
                     } else {
                         // P is on segment (AC)
-                        flip(ins1(d, t, p, AC));
+                        flip(d, ins1(d, t, p, AC));
                         return;
                     }
                 }
@@ -357,7 +359,7 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
                         return;
                     } else {
                         // P is on segment (AB)
-                        flip(ins1(d, t, p, AB));
+                        flip(d, ins1(d, t, p, AB));
                         return;
                     }
                 } else {
@@ -368,11 +370,11 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
                     if (o > 0) { ot = t; t = t->n[oA]; continue; }
                     if (o == 0) {
                         // p is on segment (CB)
-                        flip(ins1(d, t, p, CB));
+                        flip(d, ins1(d, t, p, CB));
                         return;
                     } else {
                         // P is inside the face (ABC)
-                        flip(ins2(d, t, p, ABC));
+                        flip(d, ins2(d, t, p, ABC));
                         return;
                     }
                 }
@@ -400,7 +402,7 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
                         return;
                     } else {
                         // P is on segment (AD)
-                        flip(ins1(d, t, p, AD));
+                        flip(d, ins1(d, t, p, AD));
                         return;
                     }
                 } else {
@@ -411,11 +413,11 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
                     if (o > 0) { ot = t; t = t->n[oA]; continue; }
                     if (o == 0) {
                         // p is on segment (DC)
-                        flip(ins1(d, t, p, DC));
+                        flip(d, ins1(d, t, p, DC));
                         return;
                     } else {
                         // P is on face (ACD)
-                        flip(ins2(d, t, p, ACD));
+                        flip(d, ins2(d, t, p, ACD));
                         return;
                     }
                 }
@@ -432,11 +434,11 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
                     if (o > 0) { ot = t; t = t->n[oA]; continue; }
                     if (o == 0) {
                         // p is on segment (BD)
-                        flip(ins1(d, t, p, BD));
+                        flip(d, ins1(d, t, p, BD));
                         return;
                     } else {
                         // P is inside of face (ADB)
-                        flip(ins2(d, t, p, ADB));
+                        flip(d, ins2(d, t, p, ADB));
                         return;
                     }
                 } else {
@@ -447,11 +449,11 @@ void delInsert(Delaunay restrict d, Vec* restrict p)
                     if (o > 0) { ot = t; t = t->n[oA]; continue; }
                     if (o == 0) {
                         // p is inside face (BDC)
-                        flip(ins2(d, t, p, BDC));
+                        flip(d, ins2(d, t, p, BDC));
                         return;
                     } else {
                         // P is inside the tetrahedron
-                        flip(ins3(d, t, p));
+                        flip(d, ins3(d, t, p));
                         return;
                     }
                 }
@@ -493,7 +495,7 @@ void delDisplay(Delaunay restrict d)
     glColor4f(1.0, 0.0, 0.0, 1.0);
     end = arrSize(d->v);
     for (i=0; i<end; i++) {
-        Vec* v = oCast(Vec*, arrGet(d->v, i));
+        Vertex* v = oCast(Vertex*, arrGet(d->v, i));
         glVertex3v(*v);
     }
     glEnd();

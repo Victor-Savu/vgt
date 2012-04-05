@@ -3,7 +3,7 @@
 
 #include <math.h>
 #include <math/mat.h>
-#include <math/vec.h>
+#include <math/vertex.h>
 
 #include <GL/glut.h>
 #include <stdio.h>
@@ -48,13 +48,13 @@ void camZoom(Camera c, real f)
 void camPosition(Camera c)
 {
     Spherical restrict v = &c->view;
-    Vec f = {
+    Vertex f = {
         v->rho * cos(v->phi) * sin (v->theta),
         v->rho * sin(v->phi) * sin(v->theta),
         v->rho * cos(v->theta)
     };
 
-    Vec up = {
+    Vertex up = {
         cos(v->phi) * sin (v->theta - M_PI/2),
         sin(v->phi) * sin(v->theta - M_PI/2),
         cos(v->theta - M_PI/2)

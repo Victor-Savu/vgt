@@ -8,11 +8,11 @@ Mat* matCopy(Mat* restrict a, Mat* restrict b);
 Mat* matScale(Mat* restrict a, real s,  Mat* restrict b);
 Mat* matTranspose(Mat* restrict a, Mat* restrict b);
 Mat* matMul(Mat* restrict a, Mat* restrict b, Mat* restrict c);
-Vec* matCross(Mat* restrict a, Vec* restrict b, Vec* restrict c);
+Vertex* matCross(Mat* restrict a, Vertex* restrict b, Vertex* restrict c);
 
 Mat* matScaleI(Mat* restrict a, real s);
 Mat* matTransposeI(Mat* restrict a);
 Mat* matMulI(Mat* restrict a, Mat* restrict b);
-Vec* matCrossI(Mat* restrict a, Vec* restrict b);
+Vertex* matCrossI(Mat* restrict a, Vertex* restrict b);
 
 #endif//MATH_MAT_H

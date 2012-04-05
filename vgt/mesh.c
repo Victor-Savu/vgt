@@ -3,7 +3,7 @@
 
 #include <vgt/edge_cls.h>
 #include <math/obj.h>
-#include <math/vec.h>
+#include <math/vertex.h>
 #define EMPTY_MESH  { 0, 0, 0, 0}
 
 #include <stdio.h>
@@ -16,7 +16,7 @@ Mesh mCopy(Mesh restrict m)
     if (!m) return 0;
 
     Mesh restrict c = oCopy(m, sizeof(struct Mesh));
-    c->vert = oCopy(m->vert, c->n_vert * sizeof(Vec));
+    c->vert = oCopy(m->vert, c->n_vert * sizeof(Vertex));
     c->edges = oCopy(m->edges, c->n_edges * sizeof(struct Edge));
 
     return c;
@@ -66,8 +66,8 @@ Mesh mReadOff(Mesh restrict m, const char* restrict filename)
 
         m->n_edges = faces * 3;
         m->n_vert = vert;
-        m->vert = oCreate(m->n_vert * sizeof(Vec));
-        m->norm = oCreate(m->n_vert * sizeof(Vec));
+        m->vert = oCreate(m->n_vert * sizeof(Vertex));
+        m->norm = oCreate(m->n_vert * sizeof(Vertex));
         m->edges = oCreate(m->n_edges * sizeof (struct Edge));
     }
 
@@ -75,8 +75,8 @@ Mesh mReadOff(Mesh restrict m, const char* restrict filename)
 
 
     {// read vertices
-        Vec* const end = m->vert + m->n_vert;
-        Vec* i;
+        Vertex* const end = m->vert + m->n_vert;
+        Vertex* i;
         float x, y, z;
         double gx=0, gy=0, gz=0;
         for (i = m->vert; i < end; i++) {
@@ -95,15 +95,15 @@ Mesh mReadOff(Mesh restrict m, const char* restrict filename)
         gx /= m->n_vert;
         gy /= m->n_vert;
         gz /= m->n_vert;
-//        Vec g = {gx, gy, gz};
+//        Vertex g = {gx, gy, gz};
 //        for (i = m->vert; i < end; i++) vSubI(i, &g);
     }
 
     {// read faces
         Edge restrict e = m->edges;
-        Vec* restrict n = m->norm;
+        Vertex* restrict n = m->norm;
         unsigned int a, b, c, cnt;
-        Vec p, q, norm;
+        Vertex p, q, norm;
         ind i;
 
         for (i = 0; i < m->n_edges; i+=3, e+=3, n+=3) {
@@ -229,13 +229,13 @@ void mDisplay(Mesh restrict m)
             const ind ib = m->edges[eb].v;
             const ind ic = m->edges[ec].v;
 
-            Vec* const restrict va = m->vert + ia;
-            Vec* const restrict vb = m->vert + ib;
-            Vec* const restrict vc = m->vert + ic;
+            Vertex* const restrict va = m->vert + ia;
+            Vertex* const restrict vb = m->vert + ib;
+            Vertex* const restrict vc = m->vert + ic;
 
-            Vec* const restrict na = m->norm + ia;
-            Vec* const restrict nb = m->norm + ib;
-            Vec* const restrict nc = m->norm + ic;
+            Vertex* const restrict na = m->norm + ia;
+            Vertex* const restrict nb = m->norm + ib;
+            Vertex* const restrict nc = m->norm + ic;
 
             glNormal3v(*na);
             glVertex3v(*va);

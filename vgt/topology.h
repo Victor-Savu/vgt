@@ -9,7 +9,7 @@ typedef struct CriticalPoint *CriticalPoint;
 struct CriticalPoint {
     real isovalue;
     enum CRITICAL_POINT_TYPE type;
-    Vec pos;
+    Vertex pos;
 };
 
 typedef struct Toplology *Topology;

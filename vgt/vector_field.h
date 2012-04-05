@@ -34,12 +34,12 @@ void vfDestroy(VectorField s);
 /*
    Accesses an element of the vector field.
 */
-Vec* vfAt(VectorField s, uint64_t x, uint64_t y, uint64_t z);
+Vertex* vfAt(VectorField s, uint64_t x, uint64_t y, uint64_t z);
 
 /*
    Access an element of the scalar field relative to another element.
 */
-Vec* vfRel(VectorField v_field, Vec* e, int x, int y, int z);
+Vertex* vfRel(VectorField v_field, Vertex* e, int x, int y, int z);
 
 /*
    Computes the divergence of the vector field

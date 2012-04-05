@@ -12,12 +12,12 @@ void frDestroy(Frame restrict f);
 
 Frame frRotate(Frame restrict f, Mat* restrict r, Frame restrict g);
 
-Frame frTranslate(Frame restrict f, Vec* restrict p, Frame restrict g);
+Frame frTranslate(Frame restrict f, Vertex* restrict p, Frame restrict g);
 
 Frame frCompose(Frame restrict f, Frame restrict r, Frame restrict g);
 
-Vec* frTransform(Frame restrict f, Vec* restrict p, Vec* restrict t);
+Vertex* frTransform(Frame restrict f, Vertex* restrict p, Vertex* restrict t);
 
-Vec* frTransformI(Frame restrict f, Vec* restrict p);
+Vertex* frTransformI(Frame restrict f, Vertex* restrict p);
 
 #endif//MATH_FRAME_H

@@ -3,7 +3,7 @@
 
 #include <math/obj.h>
 #include <math/mat.h>
-#include <math/vec.h>
+#include <math/vertex.h>
 
 Frame frCreate()
 {
@@ -22,7 +22,7 @@ Frame frRotate(Frame restrict f, Mat* restrict r, Frame restrict g)
     return g;
 }
 
-Frame frTranslate(Frame restrict f, Vec* restrict p, Frame restrict g)
+Frame frTranslate(Frame restrict f, Vertex* restrict p, Frame restrict g)
 {
     matCopy(&f->rot, &g->rot);
     vAdd(&f->trans, p, &g->trans);
@@ -35,9 +35,9 @@ Frame frCompose(Frame restrict f, Frame restrict r, Frame restrict g)
     Mat* restrict r2 = &r->rot;
     Mat* restrict r3 = &g->rot;
 
-    Vec* restrict t1 = &f->trans;
-    Vec* restrict t2 = &r->trans;
-    Vec* restrict t3 = &g->trans;
+    Vertex* restrict t1 = &f->trans;
+    Vertex* restrict t2 = &r->trans;
+    Vertex* restrict t3 = &g->trans;
 
     matMul(r1, r2, r3);
     matCross(r1, t2, t3);
@@ -46,14 +46,14 @@ Frame frCompose(Frame restrict f, Frame restrict r, Frame restrict g)
     return g;
 }
 
-Vec* frTransform(Frame restrict f, Vec* restrict p, Vec* restrict t)
+Vertex* frTransform(Frame restrict f, Vertex* restrict p, Vertex* restrict t)
 {
     ignore matCross(&f->rot, p, t);
     ignore vAddI(t, &f->trans);
     return t;
 }
 
-Vec* frTransformI(Frame restrict f, Vec* restrict p)
+Vertex* frTransformI(Frame restrict f, Vertex* restrict p)
 {
     ignore matCrossI(&f->rot, p);
     ignore vAddI(p, &f->trans);

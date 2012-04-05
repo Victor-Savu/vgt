@@ -69,8 +69,8 @@ typedef double           real;
 typedef uint8_t         byte;
 typedef uint8_t         bool;
 typedef uint8_t         mask8;
-typedef real            Vec[3];
-typedef Vec             Mat[3];
+typedef real            Vertex[3];
+typedef Vertex             Mat[3];
 typedef void*           Obj;
 
 typedef void (*ObjPrint)(Obj, FILE*);

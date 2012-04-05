@@ -3,7 +3,7 @@
 
 #include <vgt/types.h>
 
-Delaunay delCreate(Vec (*hull)[4]);
+Delaunay delCreate(Vertex (*hull)[4]);
 
 void delDestroy(Delaunay restrict d);
 
@@ -11,7 +11,7 @@ void delDisplay(Delaunay restrict d);
 
 Delaunay delCopy(Delaunay restrict d);
 
-void delInsert(Delaunay restrict d, Vec* restrict p);
+void delInsert(Delaunay restrict d, Vertex* restrict p);
 
 
 #endif//VGT_DELAUNAY_H

@@ -2,7 +2,7 @@
 #include <vgt/tet_cls.h>
 
 #include <stdio.h>
-#include <math/vec.h>
+#include <math/vertex.h>
 
 inline
 void tetConnect(Tet x, TetFace fx, Tet y, TetFace fy)
@@ -40,7 +40,7 @@ void tetRot(Tet restrict t, TetVertex v)
     const TetVertex mm = tetReadMap(t->m, m);
     
     // roate t->v
-    Vec* const a = t->v[m]; t->v[m] = t->v[n]; t->v[n] = a;
+    Vertex* const a = t->v[m]; t->v[m] = t->v[n]; t->v[n] = a;
 
     // rotate t->n & t->m
     tetConnect(t, m, t->n[n], tetReadMap(t->m, n)); // overwrites t->n[m] and t->m[m]
