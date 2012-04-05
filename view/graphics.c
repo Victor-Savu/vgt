@@ -50,6 +50,25 @@ void GRAPHICS_DRAW_3D_ARROW(void)
 
 }
 
+void GRAPHICS_DRAW_XYZ(void)
+{
+    glDisable(GL_LIGHTING);
+    glBegin(GL_LINES);
+    glColor3d(1.0, 0.0, 0.0);
+    glVertex3d(0.0, 0.0, 0.0);
+    glVertex3d(1.0, 0.0, 0.0);
+
+    glColor3d(0.0, 1.0, 0.0);
+    glVertex3d(0.0, 0.0, 0.0);
+    glVertex3d(0.0, 1.0, 0.0);
+
+    glColor3d(0.0, 0.0, 1.0);
+    glVertex3d(0.0, 0.0, 0.0);
+    glVertex3d(0.0, 0.0, 1.0);
+    glEnd();
+    glEnable(GL_LIGHTING);
+}
+
 //Graphics gfxCreate(const Method draw);
 //void gfxDestroy(Graphics g);
 

@@ -178,7 +178,7 @@ Array arrCopy(Array restrict arr)
     uint32_t i=0;
     if (arr->d) {
         for (i=0; i < arr->d -1; i++) {
-            c->begin[i] = oCopy(arr->begin[i], (char*) arr->end[i] - (char*)arr->begin[i]);
+            c->begin[i] = oCopy(arr->begin[i], oCast(char*, arr->end[i]) - oCast(char*, arr->begin[i]));
             c->end[i] = oCast(char*, c->begin[i]) + (oCast(char*, arr->end[i]) - oCast(char*, arr->begin[i]));
         }
         c->begin[i] = oCopy(arr->begin[i], arr->nd * arr->segment_size);
@@ -187,6 +187,12 @@ Array arrCopy(Array restrict arr)
     if (arr->empty_db) c->end[arr->d] = c->begin[arr->d] = oCopy(arr->begin[arr->d], (arr->nd << ((arr->os == arr->ns) && (arr->ns & 1))) * arr->segment_size);
 
     return c;
+}
+
+inline
+size_t arrElementSize(Array restrict arr)
+{
+    return arr->element_size;
 }
 
 Obj arrSet(Array restrict arr, Obj restrict o, uint64_t pos)
@@ -200,15 +206,21 @@ Obj arrSet(Array restrict arr, Obj restrict o, uint64_t pos)
     return dest;
 }
 
-Obj arrPush(Array restrict arr, Obj restrict o)
+Obj arrPushSafe(Array restrict arr, Obj restrict o, size_t objsize, const char* filename, const char* funcname, int lineno)
 {
+    if (objsize != arr->element_size) {
+        fprintf(stderr, "[x] %s:%s:%d: Trying to push element of different size onto the array.", filename, funcname, lineno);
+        fflush(stderr);
+        exit(EXIT_FAILURE);
+    }
+
     // if there is a non-full segment, increase its occupancy
     if (arr->oseg < arr->nseg) arr->oseg++;
     // otherwise, grow the array and set the new segment occupancy to 1
     else { arr_grow(arr); arr->oseg = 1; }
 
     Obj const dest = arr->end[arr->d-1];
-    arr->end[arr->d-1] += arr->element_size;
+    arr->end[arr->d-1] = oCast(char*, arr->end[arr->d-1]) + arr->element_size;
 
     memcpy(dest, o, arr->element_size);
 
@@ -224,11 +236,13 @@ void arrPop(Array arr)
     // there should always be something in the last non-empty segment
     check(arr->oseg);
     // decrease the occupancy of the last segment
-    arr->oseg--; arr->end[arr->d-1]-=arr->element_size;
+    arr->oseg--; arr->end[arr->d-1] = oCast(char*, arr->end[arr->d-1]) - arr->element_size;
 
     // if there are no more elements in the segment, shrink the array and set the occupancy of the last segment to full
     if (!arr->oseg) { arr_shrink(arr); arr->oseg = arr->nseg; }
 }
+
+
 
 #include <signal.h>
 static inline uint64_t log2_uint64(uint64_t x)
@@ -287,9 +301,16 @@ Obj arrFront(Array restrict arr)
     return arr->begin[0];
 }
 
+inline
+bool arrIsEmpty(Array restrict arr)
+{
+    return (!arrSize(arr));
+}
+
+
 Obj arrBack(Array restrict arr)
 {
-    if (!arrSize(arr)) {
+    if (arrIsEmpty(arr)) {
         fprintf(stderr, "[x] %s: Illegal memory access.\n", __func__);
         exit(EXIT_FAILURE);
     }
@@ -313,10 +334,6 @@ void arrForEach(Array restrict arr, ArrOperation op, Obj data)
     }
 }
 
-bool arrIsEmpty(Array restrict arr)
-{
-    return (!arrSize(arr));
-}
 
 uint64_t arrSize(Array restrict arr)
 {

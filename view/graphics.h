@@ -6,6 +6,7 @@
 
 /* Global methods */
 void GRAPHICS_DRAW_3D_ARROW(void);
+void GRAPHICS_DRAW_XYZ(void);
 
 //Graphics gfxCreate(const Method draw);
 //void gfxDestroy(Graphics g);

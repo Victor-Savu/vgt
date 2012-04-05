@@ -21,8 +21,6 @@ real orient2dfast(real* pa, real* pb, real* pc);
 /*               times the signed volume of the tetrahedron defined by the   */
 /*               four points.                                                */
 /*                                                                           */
-/*  Only the first and last routine should be used; the middle two are for   */
-/*  timings.                                                                 */
 /*                                                                           */
 /*  The last three use exact arithmetic to ensure a correct answer.  The     */
 /*  result returned is the determinant of a matrix.  In orient3d() only,     */
@@ -53,8 +51,6 @@ real incirclefast(real* pa, real* pb, real* pc, real* pd);
 /*               so that they have a positive orientation (as defined by     */
 /*               orient3d()), or the sign of the result will be reversed.    */
 /*                                                                           */
-/*  Only the first and last routine should be used; the middle two are for   */
-/*  timings.                                                                 */
 /*                                                                           */
 /*  The last three use exact arithmetic to ensure a correct answer.  The     */
 /*  result returned is the determinant of a matrix.  In insphere() only,     */

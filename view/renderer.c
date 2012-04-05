@@ -37,26 +37,30 @@ struct Renderer instance = {
     .d = 0,
     .new_d = 0,
     .mutex = PTHREAD_MUTEX_INITIALIZER,
-    //.cond = PTHREAD_COND_INITIALIZER,
     .props = 0,
 
     .camera = {
         .view = {.rho = 100.0, .phi = 0.0, .theta = 0.00001},
         .frame = FRAME_I,
         .focus_point = {
-            .draw = GRAPHICS_DRAW_3D_ARROW
+          //  .draw = GRAPHICS_DRAW_3D_ARROW
+            .draw = GRAPHICS_DRAW_XYZ
         },
     },
     .mouse = {
         .buttons = 0,
         .x = 0,
         .y = 0
-    }
+    },
+    .wait_key = PTHREAD_MUTEX_INITIALIZER,
+    .key_pressed = PTHREAD_COND_INITIALIZER
 };
 
 Renderer rCreate(const char* winname)
 {
     if (instance.props & REQ_SHUTDOWN) rDestroy(&instance);
+
+    pthread_mutex_lock(&instance.wait_key);
 
     instance.props = (RUNNING);
     pthread_create(&instance.threadId, 0, init_rendering, 0);
@@ -121,6 +125,12 @@ void rDisplayVictor(Renderer restrict r, Victor restrict v)
     if (old) vicDestroy(old);
 }
 
+void rWaitKey(Renderer r, char* c) {
+    r->key = c;
+    pthread_cond_wait(&r->key_pressed, &r->wait_key);
+    r->key = 0;
+}
+
 void cb_display(void)
 {
     //printf("Drawing..\n");
@@ -142,7 +152,7 @@ void cb_display(void)
     //glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 
     //if (instance.props & DRAW_FOCUS_POINT) {
-     //     gfxDraw(&instance.camera.focus_point);
+          gfxDraw(&instance.camera.focus_point);
     //}
     glutSwapBuffers();
 }
@@ -191,6 +201,9 @@ void cb_keyboard(unsigned char key, int x, int y)
         camZoom(&instance.camera,1/1.05);
         break;
     default:
+        if (instance.key && key == *instance.key) {
+            pthread_cond_signal(&instance.key_pressed);
+        }
         break;
     }
 }

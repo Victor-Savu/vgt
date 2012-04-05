@@ -13,4 +13,6 @@ void rDisplayDelaunay(Renderer r, Delaunay m);
 
 void rWait(Renderer r);
 
+void rWaitKey(Renderer r, char* c);
+
 #endif//VIEW_RENDERER_H

@@ -21,11 +21,15 @@ struct Renderer
 
     pthread_t threadId;
     pthread_mutex_t mutex;
-//    pthread_cond_t cond;
+
     byte props;
 
     struct Camera camera;
     struct Mouse mouse;
+
+    pthread_mutex_t wait_key;
+    pthread_cond_t  key_pressed;
+    char* key;
 };
 
 #endif//VIEW_RENDERER_CLS_H

@@ -25,20 +25,21 @@
 #define unused(x) (void)(x)
 #define ignore    (void)
 
-#define restrict __restrict__
+//#define restrict __restrict__
+#define restrict
 
 #define SAFE_MODE           1
 #define SAFE_MODE_VERBOSE   1
 
-#define conjecture(x, fail_message)  do { if (!(x)) { fprintf(stderr, "[x] %s:%s:%d: %s\n", __FILE__, __func__, __LINE__, (fail_message)); exit(EXIT_FAILURE); } } while (0)
+#define conjecture(x, fail_message)  do { if (!(x)) { fprintf(stderr, "[x] %s:%s:%d: %s\n", __FILE__, __func__, __LINE__, (fail_message)); fflush(stderr); exit(EXIT_FAILURE); } } while (0)
 
 
 #ifdef SAFE_MODE
 # define safe(x)     do {x} while (0)
 # define check(x)    conjecture((x), "Check failed.")
-# define stub        do { printf("[!] %s:%s:%d: Not yet implemented.\n", __FILE__, __func__, __LINE__); } while (0)
+# define stub        do { fprintf(stderr, "[!] %s:%s:%d: Not yet implemented.\n", __FILE__, __func__, __LINE__); fflush(stderr); } while (0)
 # ifdef SAFE_MODE_VERBOSE
-#  define call       do { printf("[i] %s:%s:%d: Calling function [%s].\n", __FILE__, __func__, __LINE__, __func__); } while (0)
+#  define call       do { fprintf(stderr, "[i] %s:%s:%d: Calling function [%s].\n", __FILE__, __func__, __LINE__, __func__); fflush(stderr); } while (0)
 # else
 #  define call
 # endif
