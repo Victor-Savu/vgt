@@ -216,17 +216,20 @@ void orient(Delaunay del, Tet t,  Vertex* p, enum TetEdge e)
 
 Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
 {
+    stub;
     return ins3(del, t, p);
 }
 
 
 Array flip23(Delaunay del, Array stack)
 {
+    stub;
     return stack;
 }
 
 Array flip32(Delaunay del, Array stack)
 {
+    stub;
     return stack;
 }
 
@@ -234,7 +237,7 @@ Array flip44(Delaunay del, Array stack)
 {
     return stack;
 }
-
+/*
 void flip12()
 {
     stub;
@@ -244,19 +247,99 @@ void flip21()
 {
     stub;
 }
-
+*/
 
 void flip(Delaunay del, Array stack)
 {
     while (!arrIsEmpty(stack)) {
-        Tet t = arrBack(stack); // t = <P, A, B, C>
+        Tet t = arrBack(stack);
+        conjecture(t->n[oB]->v[0] == t->v[0], "there is a tet incident in p with vertex A not in p.");
+        conjecture(t->n[oC]->v[0] == t->v[0], "there is a tet incident in p with vertex A not in p.");
+        conjecture(t->n[oD]->v[0] == t->v[0], "there is a tet incident in p with vertex A not in p.");
+        // t = <A, B, C, D> = <p, a, b, c>
+        real* const p = *t->v[A];
+        real* const a = *t->v[B];
+        real* const b = *t->v[C];
+        real* const c = *t->v[D];
         arrPop(stack);
+        // assume no degenerate triangles
+        conjecture(orient3d(p, a, b, c) > 0, "Found a degenerate tetrahedron.");
 
-        Tet ta = t->n[oA]; // ta = < A, B, C, D>
-        // if D is in the circumsphere of t, apply one of the 3 flip operations
-        if (insphere(*t->v[0], *t->v[1], *t->v[2], *t->v[3], *ta->v[tetReadMap(t->m, oD)]) > 0) {
+        Tet ta = t->n[oA];
+        // ta = <A, B, C, D> = <X, Y, Z, d> where <X, Y, Z> is a circular permutation of <a, b, c>
+        real* const d = *ta->v[tetReadMap(t->m, oA)];
+
+        // if the opposing vertex of ta is in the circumsphere of t, apply one of the 3 flip operations
+        if (insphere(p, a, b, c, d) > 0) {
             // determine which of the 4 cases we are in
-           // real o = orient3d(t->);
+            real o = orient3d(p, a, b, d);
+            if (o < 0) {
+                // d should lie strictly below other two faces
+                conjecture(orient3d(p, b, c, d) > 0, "d does not lie below pbc.");
+                conjecture(orient3d(p, c, a, d) > 0, "d does not lie below pca.");
+
+                if (t->n[oD] == ta->n[tetVertexLabel(ta, t->v[D])]) {
+                    conjecture(t->n[oD]->v[0] == t->v[0], "there is a tet incident on p with vertex A not in p.");
+                    // perform a flip32 on t, ta and their common neighbor t->n[oD]
+                    stack = flip32(del, stack);
+                } else {
+                    conjecture(0, "Cannot perform flip32 in case #2 because pdab does not exist.");
+                }
+
+            } else if (o > 0) {
+                o = orient3d(p, b, c, d);
+                if (o < 0) {
+                    // d should lie strictly below pca
+                    conjecture(orient3d(p, c, a, d) > 0, "d does not lie below pca");
+
+                    if (t->n[oB] == ta->n[tetVertexLabel(ta, t->v[B])]) {
+                        // perform a flip32 on t, ta and their common neighbor t->n[oB]
+                        stack = flip32(del, stack);
+                    } else {
+                        conjecture(0, "Cannot perform flip32 in case #2 because pdbc does not exist.");
+                    }
+
+                } else if (o > 0) {
+                    o = orient3d(p, c, a, d);
+
+                    if (o < 0) {
+                        if (t->n[oC] == ta->n[tetVertexLabel(ta, t->v[C])]) {
+                            stack = flip32(del, stack);
+                        } else {
+                            conjecture(0, "Cannot perform flip32 in case #2 because pdca does not exist.");
+                        }
+                    } else if (o > 0) {
+                        stack = flip23(del, stack);
+                    } else {// o = 0  =>  d is on plane pca
+                        Tet tb = t->n[oC];
+                        Tet tc = tb->n[oA];
+                        if (tc == ta->n[tetVertexLabel(ta, t->v[C])]) {
+                            stack = flip44(del, stack);
+                        } else {
+                            conjecture(0, "Cannot perform flip44 in case #2 because tb and tc do not exist.");
+                        }
+                    }
+
+                } else {// o = 0  =>  d is on plane pbc
+                    Tet tb = t->n[oB];
+                    Tet tc = tb->n[oA];
+                    if (tc == ta->n[tetVertexLabel(ta, t->v[B])]) {
+                        stack = flip44(del, stack);
+                    } else {
+                        conjecture(0, "Cannot perform flip44 in case #2 because tb and tc do not exist.");
+                    }
+
+                }
+            } else {// o = 0  => d  is on plane pab
+                Tet tb = t->n[oD];
+                Tet tc = tb->n[oA];
+                if (tc == ta->n[tetVertexLabel(ta, t->v[D])]) {
+                    stack = flip44(del, stack);
+                } else {
+                    conjecture(0, "Cannot perform flip44 in case #2 because tb and tc do not exist.");
+                }
+
+            }
         }
     }
 

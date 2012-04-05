@@ -30,6 +30,16 @@ TetFace tetReadMap(byte m, TetNeighbour n)
 }
 
 inline
+TetVertex tetVertexLabel(Tet t, Vertex * v)
+{
+    if (v == t->v[0]) return A;
+    if (v == t->v[1]) return B;
+    if (v == t->v[2]) return C;
+    if (v == t->v[3]) return D;
+    return INVALID_FACET;
+}
+
+inline
 void tetRot(Tet restrict t, TetVertex v)
 {
     // swap variables
