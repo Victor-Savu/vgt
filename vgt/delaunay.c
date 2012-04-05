@@ -15,34 +15,6 @@
 
 #include <GL/glut.h>
 
-/*
-void flip14(Delaunay d, Vec* p, HalfEdge cell, HalfEdge (*out)[4])
-{
-
-}
-
-void flip23(Delaunay d, HalfEdge (*in)[2], HalfEdge (*out)[3])
-{
-}
-
-void flip32(Delaunay d, HalfEdge (*in)[3], HalfEdge (*out)[2])
-{
-}
-
-void flip44(Delaunay d, HalfEdge (*in)[4], HalfEdge (*out)[4])
-{
-}
-*/
-void flip12()
-{
-    stub;
-}
-
-void flip21()
-{
-    stub;
-}
-
 
 Array ins3(Delaunay del, Tet t, Vec* p)
 {
@@ -189,59 +161,106 @@ Array ins2(Delaunay del, Tet t, Vec* p, enum TetFacet f)
     return stack;
 }
 
-Array ins1(Delaunay del, Tet t, Vec* p, enum TetEdge e)
-{
-    p = arrPush(del->v, p);
-/*
-    // get the triangles which share edge e
-    Tet dont = t;
-    enum TetEdge ie_left;
-    enum TetEdge ie_right;
-    enum TetFacet if_left;
-    enum TetFacet if_right;
 
-    Tet it = 0;
+//static
+void orient(Delaunay del, Tet t,  Vec* p, enum TetEdge e)
+{
+    // see Fig #1
+    // find x, y, z and t, where xy = e
+    //Vec *x, *y, *z, *t;
+   // Tet oX, oY, oZ, oT;
 
     switch(e) {
-    case AB:
-        if_left = C;
-        if_right = D;
-        break;
-    case AC:
-        if_left = B;
-        if_right = D;
-        break;
-    case AD:
-        if_left = C;
-        if_right = B;
-        break;
     case BD:
-        if_left = C;
-        if_right = A;
-        break;
     case DC:
-        if_left = A;
-        if_right = B;
-        break;
     case CB:
-        if_left = A;
-        if_right = D;
+        tetRot(t, (e << (e&1))|(e&4)); // lambda BD => C | DC => B | CB => D
+        e = (e^1)&3; // lambda BD => AD | DC => AC | CB => AB
+    default:
         break;
     }
 
-    while (it)
-    if (e == AB) {
-    }
-*/
+    // lambda AD => <C, B> | AC => <B, D> | AB => <D, C>
+    TetVertex base[2] = { ((e^1)<<1)|(e!=0), ((e>>1)^1)|(e<<(e&1)) };
 
+    struct Tet tmp = {
+        {p, A, t->v[base[0]], t->v[base[1]]},
+        {0, 0, 0, 0},
+        0};
+
+    Tet o = arrPush(del->t, &tmp);
+//    ignore arrPush(stack, o);
+
+    // lambda AD => oD | AC => oC | AB => oB
+    tetConnect(o, oA, t->n[e^3], tetReadMap(t->m, e^3));
+    tetConnect(o, e^3, t, e^3);
+
+    //split(t->
+
+
+    //ignore(x && y && z && t);
+    // split t, create o = { }
+
+
+
+    /*
+    p = arrPush(del->v, p);
     Array stack = arrCreate(sizeof(Tet), 2);
 
 
     stub;
 
     return stack;
+    */
 }
 
+Array ins1(Delaunay del, Tet t, Vec* p, enum TetEdge e)
+{
+    return ins3(del, t, p);
+}
+
+
+Array flip23(Delaunay del, Array stack)
+{
+}
+
+Array flip32(Delaunay del, Array stack)
+{
+}
+
+Array flip44(Delaunay del, Array stack)
+{
+    return stack;
+}
+
+void flip12()
+{
+    stub;
+}
+
+void flip21()
+{
+    stub;
+}
+
+
+void flip(Delaunay del, Array stack)
+{
+    while (!arrIsEmpty(stack)) {
+        Tet t = arrBack(stack); // t = <P, A, B, C>
+        arrPop(stack);
+
+        Tet ta = t->n[oA]; // ta = < A, B, C, D>
+        // if D is in the circumsphere of t, apply one of the 3 flip operations
+        if (insphere(*t->v[0], *t->v[1], *t->v[2], *t->v[3], *ta->v[tetReadMap(t->m, oD)]) > 0) {
+            // determine which of the 4 cases we are in
+            real o = orient3d(t->);
+        }
+    }
+
+    arrDestroy(stack);
+    stub;
+}
 
 
 Delaunay delCreate(Vec (*hull)[4])
@@ -278,12 +297,6 @@ Delaunay delCopy(Delaunay restrict d)
     return c;
 }
 
-
-void flip(Array stack)
-{
-    arrDestroy(stack);
-    stub;
-}
 
 void delInsert(Delaunay restrict d, Vec* restrict p)
 {
