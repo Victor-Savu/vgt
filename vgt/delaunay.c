@@ -48,8 +48,28 @@ Array ins3(Delaunay del, Tet t, Vertex* p)
     arrPush(stack, &c);
     arrPush(stack, &d);
 
+    // check vertices
+    check(t->v[A] == p);
+    check(b->v[A] == p);
+    check(c->v[A] == p);
+    check(d->v[A] == p);
 
- //   stub;
+    // check neighbors
+    TetNeighbour n = A;
+    for (n = A; n<=D; n++) {
+        if (t->n[n]) conjecture(t->n[n]->n[tetReadMap(t->m, n)] == t, "");
+        if (b->n[n]) conjecture(b->n[n]->n[tetReadMap(b->m, n)] == b, "");
+        if (c->n[n]) conjecture(c->n[n]->n[tetReadMap(c->m, n)] == c, "");
+        if (d->n[n]) conjecture(d->n[n]->n[tetReadMap(d->m, n)] == d, "");
+    }
+
+    // check that the tetrahedra have the right orientation
+    check(orient3d(*t->v[A], *t->v[B], *t->v[C], *t->v[D]) > 0);
+    check(orient3d(*b->v[A], *b->v[B], *b->v[C], *b->v[D]) > 0);
+    check(orient3d(*c->v[A], *c->v[B], *c->v[C], *c->v[D]) > 0);
+    check(orient3d(*d->v[A], *d->v[B], *d->v[C], *d->v[D]) > 0);
+
+    stub;
     return stack;
 }
 
@@ -153,11 +173,39 @@ Array ins2(Delaunay del, Tet t, Vertex* p, enum TetFacet f)
         arrPush(stack, &o);
         arrPush(stack, &xx);
         arrPush(stack, &yy);
+
+
+        // check vertices
+        check(o->v[A] == p);
+        check(xx->v[A] == p);
+        check(yy->v[A] == p);
+
+        // check neighbors
+        TetNeighbour n = A;
+        for (n = A; n<=D; n++) {
+            if (o->n[n]) conjecture(o->n[n]->n[tetReadMap(o->m, n)] == o, "");
+            if (x->n[n]) conjecture(x->n[n]->n[tetReadMap(x->m, n)] == x, "");
+            if (y->n[n]) conjecture(y->n[n]->n[tetReadMap(y->m, n)] == y, "");
+        }
+
+        // check vertices
+        check(o->v[A] == p);
+        check(xx->v[A] == p);
+        check(yy->v[A] == p);
+
+        // check neighbors
+        n = A;
+        for (n = A; n<=D; n++) {
+            if (o->n[n]) conjecture(o->n[n]->n[tetReadMap(o->m, n)] == o, "");
+            if (xx->n[n]) conjecture(xx->n[n]->n[tetReadMap(xx->m, n)] == xx, "");
+            if (yy->n[n]) conjecture(yy->n[n]->n[tetReadMap(yy->m, n)] == yy, "");
+        }
+
     }
 
     //arrPrint(del->t, stdout, tetPrint);
 
- //   stub;
+    stub;
     return stack;
 }
 
@@ -233,8 +281,120 @@ Array flip32(Delaunay del, Array stack)
     return stack;
 }
 
-Array flip44(Delaunay del, Array stack)
+Array flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
 {
+    Tet restrict tb = t->n[tV];
+    if (!tb) return stack;
+
+    Tet restrict tc = tb->n[oA];
+    if (!tb) return stack;
+
+    Tet restrict ta = t->n[oA];
+
+    if (tc != ta->n[tetVertexLabel(ta, t->v[tV])]) return stack;
+
+    // we know that tU = A
+    const TetVertex tW = (tV + 1 + (tV == D))&3;
+    const TetVertex tY = (tW + 1 + (tW == D))&3;
+
+    // t
+    // aX is opposite to the common face with t
+    const TetVertex taX = tetReadMap(t->m, A);
+    const TetVertex taY = tetVertexLabel(ta, t->v[tY]);
+    const TetVertex taW = tetVertexLabel(ta, t->v[tW]);
+
+    // tbU = A
+    // tbZ is opposite to the common face with t
+    const TetVertex tbZ = tetReadMap(t->m, tV);
+    const TetVertex tbY = (tbZ + 1 + (tbZ == D))&3;
+    const TetVertex tbW = (tbY + 1 + (tbY == D))&3;
+
+    const TetVertex tcY = tetVertexLabel(tc, t->v[tY]);
+    const TetVertex tcW = tetVertexLabel(tc, t->v[tW]);
+
+    Vertex* const U = t->v[A];
+    Vertex* const V = t->v[tV];
+    Vertex* const W = t->v[tW];
+    Vertex* const X = ta->v[taX];
+    Vertex* const Y = ta->v[taY];
+    Vertex* const Z = tb->v[tbZ];
+
+    if (orient3d(*U, *V, *Y, *Z) > 0) return stack;
+    if (orient3d(*U, *W, *V, *Z) > 0) return stack;
+
+    Tet const taoW = ta->n[taW]; const TetFace taoWm = tetReadMap(ta->m, taW);
+    Tet const tcoW = tc->n[tcW]; const TetFace tcoWm = tetReadMap(tc->m, tcW);
+
+    // moving vertices
+    ta->v[A] = t->v[A];   tc->v[A] = t->v[A];
+    ta->v[B] = Y;   tc->v[B] = Z;
+    ta->v[C] = V;   tc->v[C] = Y;
+    ta->v[D] = X;   tc->v[D] = X;
+
+    t->v[tY] = X;   tb->v[tbY] = X;
+
+    // 9 connects
+    tetConnect(t, oA, ta->n[taY], tetReadMap(ta->m, taY));
+    tetConnect(tb, oA, tc->n[tcY], tetReadMap(tc->m, tcY));
+
+    tetConnect(ta, oD, t->n[tW], tetReadMap(t->m, tW));
+    tetConnect(tc, oD, tc->n[tW], tetReadMap(tc->m, tcW));
+
+    tetConnect(t, tW, ta, B);
+    tetConnect(tb, tbW, tc, C);
+    tetConnect(ta, C, tc, B);
+
+    tetConnect(ta, A, taoW, taoWm);
+    tetConnect(tc, A, tcoW, tcoWm);
+
+
+    arrPush(stack, &t);
+    arrPush(stack, &ta);
+    arrPush(stack, &tb);
+    arrPush(stack, &tc);
+
+
+    // checkping flip:
+
+    // all A vertices are the same
+    conjecture(t->v[A] == ta->v[A], "");
+    conjecture(ta->v[A] == tb->v[A], "");
+    conjecture(tb->v[A] == tc->v[A], "");
+
+    // connectivity among themselves
+    conjecture(t->n[tV] == tb, "");
+    conjecture(tb->n[tbW] == tc, "");
+    conjecture(tc->n[B] == ta, "");
+    conjecture(ta->n[B] == t, "");
+
+    conjecture(t->n[tW] == ta, "");
+    conjecture(ta->n[C] == tc, "");
+    conjecture(tc->n[C] == tb, "");
+    conjecture(tb->n[tbZ] == t, "");
+
+    // connectivity with neighbors
+    TetNeighbour n = A;
+    for (n = A; n<=D; n++) {
+        if (t->n[n]) conjecture(t->n[n]->n[tetReadMap(t->m, n)] == t, "");
+        if (ta->n[n]) conjecture(ta->n[n]->n[tetReadMap(ta->m, n)] == ta, "");
+        if (tb->n[n]) conjecture(tb->n[n]->n[tetReadMap(tb->m, n)] == tb, "");
+        if (tc->n[n]) conjecture(tc->n[n]->n[tetReadMap(tc->m, n)] == tc, "");
+    }
+
+
+    // check that the tetrahedra have the right orientation
+    check(orient3d(*t->v[A], *t->v[B], *t->v[C], *t->v[D]) > 0);
+    check(orient3d(*ta->v[A], *ta->v[B], *ta->v[C], *ta->v[D]) > 0);
+    check(orient3d(*tb->v[A], *tb->v[B], *tb->v[C], *tb->v[D]) > 0);
+    check(orient3d(*tc->v[A], *tc->v[B], *tc->v[C], *tc->v[D]) > 0);
+
+
+    check(orient3d(*t->v[D], *t->v[B], *t->v[C], *t->v[A]) < 0);
+    check(orient3d(*ta->v[D], *ta->v[B], *ta->v[C], *ta->v[A]) < 0);
+    check(orient3d(*tb->v[D], *tb->v[B], *tb->v[C], *tb->v[A]) < 0);
+    check(orient3d(*tc->v[D], *tc->v[B], *tc->v[C], *tc->v[A]) < 0);
+
+
     stub;
     return stack;
 }
@@ -290,7 +450,7 @@ void flip(Delaunay del, Array stack)
                     conjecture(0, "Cannot perform flip32 in case #2 because pdab does not exist.");
                 }
 
-            } else if (o < 0) {
+            } else if (o > 0) {
                 o = orient3d(p, b, c, d);
                 if (o < 0) {
                     // d should lie strictly below pca
@@ -303,7 +463,7 @@ void flip(Delaunay del, Array stack)
                         conjecture(0, "Cannot perform flip32 in case #2 because pdbc does not exist.");
                     }
 
-                } else if (o < 0) {
+                } else if (o > 0) {
                     o = orient3d(p, c, a, d);
 
                     if (o < 0) {
@@ -312,37 +472,18 @@ void flip(Delaunay del, Array stack)
                         } else {
                             conjecture(0, "Cannot perform flip32 in case #2 because pdca does not exist.");
                         }
-                    } else if (o < 0) {
+                    } else if (o > 0) {
                         stack = flip23(del, stack);
                     } else {// o = 0  =>  d is on plane pca
-                        Tet tb = t->n[oC];
-                        Tet tc = tb->n[oA];
-                        if (tc && tb && tc == ta->n[tetVertexLabel(ta, t->v[C])]) {
-                            stack = flip44(del, stack);
-                        } else {
-                         //   conjecture(0, "Cannot perform flip44 in case #2 because tb and tc do not exist.");
-                        }
+                        stack = flip44(del, t, C, stack);
                     }
 
                 } else {// o = 0  =>  d is on plane pbc
-                    Tet tb = t->n[oB];
-                    Tet tc = tb->n[oA];
-                    if (tc == ta->n[tetVertexLabel(ta, t->v[B])]) {
-                        stack = flip44(del, stack);
-                    } else {
-                       // conjecture(0, "Cannot perform flip44 in case #2 because tb and tc do not exist.");
-                    }
+                    stack = flip44(del, t, B, stack);
 
                 }
             } else {// o = 0  => d  is on plane pab
-                Tet tb = t->n[oD];
-                Tet tc = tb->n[oA];
-                if (tc == ta->n[tetVertexLabel(ta, t->v[D])]) {
-                    stack = flip44(del, stack);
-                } else {
-                  //  conjecture(0, "Cannot perform flip44 in case #2 because tb and tc do not exist.");
-                }
-
+                stack = flip44(del, t, D, stack);
             }
         }
     }
@@ -386,11 +527,30 @@ Delaunay delCopy(Delaunay restrict d)
     return c;
 }
 
+struct sph_check {
+    Vertex* v;
+    bool b;
+};
+
+inline
+static void check_on_sphere(uint64_t i, Obj j, Obj k) {
+    Tet t = oCast(Tet, j);
+    struct sph_check* c = oCast(struct sph_check*, k);
+    Vertex* v = c->v;
+    real o = insphere(*t->v[A], *t->v[B], *t->v[C], *t->v[D], *v);
+    if (o == 0) c->b = 1;
+}
 
 void delInsert(Delaunay d, Vertex* p)
 {
     Tet t = arrFront(d->t);
     Tet ot = t;
+    struct sph_check sc = {.v = p, .b = false };
+    arrForEach(d->t, check_on_sphere, &sc);
+    if (sc.b) {
+        fprintf(stderr, "[!] Did not insert point.\n");fflush(stderr);
+        return;
+    }
 
     // find the tetrahedron containing p
 
@@ -540,7 +700,8 @@ void delInsert(Delaunay d, Vertex* p)
                         return;
                     } else {
                         // P is inside the tetrahedron
-                        flip(d, ins3(d, t, p));
+                        Array stack = ins3(d, t, p);
+                        flip(d, stack);
                         return;
                     }
                 }
@@ -550,6 +711,21 @@ void delInsert(Delaunay d, Vertex* p)
 
     fprintf(stderr, "p is outside of the tetrahedrization.\n");
 
+}
+
+bool delCheck(Delaunay d)
+{
+    uint64_t ntet = arrSize(d->t);
+    uint64_t nvert = arrSize(d->v);
+    uint64_t i, j;
+    for (i=0; i<ntet; i++) {
+        for (j=4; j<nvert; j++) {
+            Tet t = oCast(Tet, arrGet(d->t, i));
+            Vertex* v = oCast(Vertex*, arrGet(d->v, j));
+            if (insphere(*t->v[A], *t->v[B], *t->v[C], *t->v[D], *v) > 0) return false;
+        }
+    }
+    return true;
 }
 
 void delDisplay(Delaunay restrict d)

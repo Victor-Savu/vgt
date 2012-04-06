@@ -206,7 +206,7 @@ Obj arrSet(Array restrict arr, Obj restrict o, uint64_t pos)
     return dest;
 }
 
-Obj arrPushSafe(Array restrict arr, Obj restrict o, size_t objsize, const char* filename, const char* funcname, int lineno)
+Obj arrPushSafe(Array restrict arr, const Obj restrict o, size_t objsize, const char* filename, const char* funcname, int lineno)
 {
     if (objsize != arr->element_size) {
         fprintf(stderr, "[x] %s:%s:%d: Trying to push element of different size onto the array.", filename, funcname, lineno);

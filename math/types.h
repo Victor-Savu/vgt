@@ -36,7 +36,7 @@
 
 #ifdef SAFE_MODE
 # define safe(x)     do {x} while (0)
-# define check(x)    conjecture((x), "Check failed.")
+# define check(x)    conjecture(x, "Check failed.")
 # define stub        do { fprintf(stderr, "[!] %s:%s:%d: Not yet implemented.\n", __FILE__, __func__, __LINE__); fflush(stderr); } while (0)
 # ifdef SAFE_MODE_VERBOSE
 #  define call       do { fprintf(stderr, "[i] %s:%s:%d: Calling function [%s].\n", __FILE__, __func__, __LINE__, __func__); fflush(stderr); } while (0)

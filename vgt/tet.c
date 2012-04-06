@@ -36,6 +36,7 @@ TetVertex tetVertexLabel(Tet t, Vertex * v)
     if (v == t->v[1]) return B;
     if (v == t->v[2]) return C;
     if (v == t->v[3]) return D;
+    conjecture(0, "Requested label of a vertex which is not part of t.");
     return INVALID_FACET;
 }
 

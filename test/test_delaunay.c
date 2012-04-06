@@ -35,22 +35,24 @@ void test1()
     Delaunay d = delCreate(&tetra);
 
 
-    Renderer r = rCreate("Hello world!");
+    //Renderer r = rCreate("Hello world!");
 
-    rDisplayDelaunay(r, delCopy(d));
+  //  rDisplayDelaunay(r, delCopy(d));
 
     uint8_t i = 0;
-    char enter = 13;
+    //char enter = 13;
     for (i=0; i<4; i++) {
-        rWaitKey(r, &enter);
+      //  rWaitKey(r, &enter);
         delInsert(d, &v[i]);
-        rDisplayDelaunay(r, delCopy(d));
+        printf("%s Delaunay tetrahedrization after inserting vertex #%d.\n", (delCheck(d))?("Correct"):("Incorrect"), i);
+        fflush(stdout);
+     //   rDisplayDelaunay(r, delCopy(d));
         //fgetc(stdin);
     }
 
-    rWait(r);
+   // rWait(r);
 
-    rDestroy(r);
+   // rDestroy(r);
 
     delDestroy(d);
 

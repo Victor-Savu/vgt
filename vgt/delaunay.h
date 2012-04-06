@@ -7,6 +7,8 @@ Delaunay delCreate(Vertex (*hull)[4]);
 
 void delDestroy(Delaunay restrict d);
 
+bool delCheck(Delaunay d);
+
 void delDisplay(Delaunay restrict d);
 
 Delaunay delCopy(Delaunay restrict d);

@@ -74,6 +74,7 @@ void rDestroy(Renderer restrict r)
     if (!(instance.props & RUNNING)) return;
 
     instance.props |= REQ_SHUTDOWN;
+
     rWait(r);
 
     if (instance.m) mDestroy(instance.m);
@@ -100,6 +101,8 @@ void rWait(Renderer restrict r)
 
 void rDisplayMesh(Renderer restrict r, Mesh restrict m)
 {
+    if (instance.props & REQ_SHUTDOWN) rDestroy(&instance);
+
     pthread_mutex_lock(&instance.mutex);
     Mesh restrict old = instance.new_m;
     instance.new_m = m;
@@ -109,6 +112,8 @@ void rDisplayMesh(Renderer restrict r, Mesh restrict m)
 
 void rDisplayDelaunay(Renderer restrict r, Delaunay restrict d)
 {
+    if (instance.props & REQ_SHUTDOWN) rDestroy(&instance);
+
     pthread_mutex_lock(&instance.mutex);
     Delaunay restrict old = instance.new_d;
     instance.new_d = d;
@@ -118,6 +123,8 @@ void rDisplayDelaunay(Renderer restrict r, Delaunay restrict d)
 
 void rDisplayVictor(Renderer restrict r, Victor restrict v)
 {
+    if (instance.props & REQ_SHUTDOWN) rDestroy(&instance);
+
     pthread_mutex_lock(&instance.mutex);
     Victor restrict old = instance.new_v;
     instance.new_v = v;
@@ -126,6 +133,8 @@ void rDisplayVictor(Renderer restrict r, Victor restrict v)
 }
 
 void rWaitKey(Renderer r, char* c) {
+    if (instance.props & REQ_SHUTDOWN) rDestroy(&instance);
+
     r->key = c;
     pthread_cond_wait(&r->key_pressed, &r->wait_key);
     r->key = 0;
@@ -193,6 +202,9 @@ void cb_keyboard(unsigned char key, int x, int y)
     switch (key) {
     case 27:
         instance.props |= REQ_SHUTDOWN;
+        pthread_mutex_unlock(&instance.mutex);
+        pthread_mutex_unlock(&instance.wait_key);
+        pthread_cond_signal(&instance.key_pressed);
         pthread_exit(0);
     case '-': // zoom out
         camZoom(&instance.camera, 1.05);
