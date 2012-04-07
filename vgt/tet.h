@@ -27,4 +27,8 @@ void tetRot(Tet restrict t, TetVertex v);
 
 void tetPrint(Obj tet, FILE* f);
 
+void tetRenderSolid();
+void tetRenderWireframe();
+void tetRenderCircumsphere();
+
 #endif//VGT_TET_H

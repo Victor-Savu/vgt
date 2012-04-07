@@ -14,13 +14,13 @@
 #endif//M_PI
 #define M_2PI   (6.28318530717958647692)
 
-#define VEC_X   { 1.0, 0.0, 0.0 }
-#define VEC_Y   { 0.0, 1.0, 0.0 }
-#define VEC_Z   { 0.0, 0.0, 1.0 }
-#define VEC_0   { 0.0, 0.0, 0.0 }
+#define VERT_X   { 1.0, 0.0, 0.0 }
+#define VERT_Y   { 0.0, 1.0, 0.0 }
+#define VERT_Z   { 0.0, 0.0, 1.0 }
+#define VERT_0   { 0.0, 0.0, 0.0 }
 
-#define MAT_I   { VEC_X, VEC_Y, VEC_Z }
-#define MAT_0   { VEC_0, VEC_0, VEC_0 }
+#define MAT_I   { VERT_X, VERT_Y, VERT_Z }
+#define MAT_0   { VERT_0, VERT_0, VERT_0 }
 
 #define unused(x) (void)(x)
 #define ignore    (void)

@@ -30,6 +30,8 @@ struct Renderer
     pthread_mutex_t wait_key;
     pthread_cond_t  key_pressed;
     char* key;
+
+    int widget;
 };
 
 #endif//VIEW_RENDERER_CLS_H

@@ -3,19 +3,11 @@
 
 #include <stdio.h>
 
-#include <math/obj.h>
-#include <math/vertex.h>
 #include <math/predicates.h>
-
-#include <ads/array.h>
-
-#include <vgt/tet_cls.h>
-#include <vgt/tet.h>
-
 
 #include <GL/glut.h>
 
-
+static
 Array ins3(Delaunay del, Tet t, Vertex* p)
 {
     p = arrPush(del->v, p);
@@ -73,7 +65,7 @@ Array ins3(Delaunay del, Tet t, Vertex* p)
     return stack;
 }
 
-
+static
 Array ins2(Delaunay del, Tet t, Vertex* p, enum TetFacet f)
 {
     p = arrPush(del->v, p);
@@ -121,8 +113,6 @@ Array ins2(Delaunay del, Tet t, Vertex* p, enum TetFacet f)
     arrPush(stack, &y);
 
     if (o) {
-
-
         if (g == oA) { // if it's degenerate, swap it to normal
             Obj swap = 0;
             // swap vertices
@@ -210,7 +200,7 @@ Array ins2(Delaunay del, Tet t, Vertex* p, enum TetFacet f)
 }
 
 
-//static
+/*static
 void orient(Delaunay del, Tet t,  Vertex* p, enum TetEdge e)
 {
     // see Fig #1
@@ -251,7 +241,6 @@ void orient(Delaunay del, Tet t,  Vertex* p, enum TetEdge e)
 
 
 
-    /*
     p = arrPush(del->v, p);
     Array stack = arrCreate(sizeof(Tet), 2);
 
@@ -259,39 +248,54 @@ void orient(Delaunay del, Tet t,  Vertex* p, enum TetEdge e)
     stub;
 
     return stack;
-    */
 }
+*/
 
+static
 Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
 {
     stub;
     return ins3(del, t, p);
 }
 
-
+static
 Array flip23(Delaunay del, Array stack)
 {
     stub;
     return stack;
 }
 
+static
 Array flip32(Delaunay del, Array stack)
 {
     stub;
     return stack;
 }
 
+static
 Array flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
 {
     Tet restrict tb = t->n[tV];
-    if (!tb) return stack;
+    if (!tb) {
+        fprintf(stderr, "[!] No tb.\n"); fflush(stderr);
+        arrPush(stack, &t);
+        return stack;
+    }
 
     Tet restrict tc = tb->n[oA];
-    if (!tb) return stack;
+    if (!tc) {
+        fprintf(stderr, "[!] No tc.\n"); fflush(stderr);
+        arrPush(stack, &t);
+        return stack;
+    }
 
     Tet restrict ta = t->n[oA];
 
-    if (tc != ta->n[tetVertexLabel(ta, t->v[tV])]) return stack;
+    if (tc != ta->n[tetVertexLabel(ta, t->v[tV])]) {
+     //   fprintf(stderr, "[!] tc and ta are not neighbors.\n"); fflush(stderr);
+        arrPush(stack, &t);
+        return stack;
+    }
 
     // we know that tU = A
     const TetVertex tW = (tV + 1 + (tV == D))&3;
@@ -319,8 +323,17 @@ Array flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
     Vertex* const Y = ta->v[taY];
     Vertex* const Z = tb->v[tbZ];
 
-    if (orient3d(*U, *V, *Y, *Z) > 0) return stack;
-    if (orient3d(*U, *W, *V, *Z) > 0) return stack;
+    if (orient3d(*U, *V, *Y, *Z) > 0) {
+        fprintf(stderr, "[!] Concave.\n"); fflush(stderr);
+        arrPush(stack, &t);
+        return stack;
+    }
+
+    if (orient3d(*U, *W, *V, *Z) > 0) {
+        fprintf(stderr, "[!] Concave.\n"); fflush(stderr);
+        arrPush(stack, &t);
+        return stack;
+    }
 
     Tet const taoW = ta->n[taW]; const TetFace taoWm = tetReadMap(ta->m, taW);
     Tet const tcoW = tc->n[tcW]; const TetFace tcoWm = tetReadMap(tc->m, tcW);
@@ -410,11 +423,18 @@ void flip21()
 }
 */
 
+static
 void flip(Delaunay del, Array stack)
 {
     while (!arrIsEmpty(stack)) {
+        arrRandomSwap(stack, 0);
         Tet t = *oCast(Tet*, arrBack(stack));
         arrPop(stack);
+
+        Tet ta = t->n[oA];
+
+        if (!ta) continue;
+
         conjecture((t->n[oB])?(t->n[oB]->v[0] == t->v[0]):(1), "there is a tet incident in p with vertex A not in p.");
         conjecture((t->n[oC])?(t->n[oC]->v[0] == t->v[0]):(1), "there is a tet incident in p with vertex A not in p.");
         conjecture((t->n[oD])?(t->n[oD]->v[0] == t->v[0]):(1), "there is a tet incident in p with vertex A not in p.");
@@ -424,13 +444,11 @@ void flip(Delaunay del, Array stack)
         real* const b = *t->v[C];
         real* const c = *t->v[D];
         // assume no degenerate triangles
-     //   conjecture(orient3d(p, a, b, c) > 0, "Found a degenerate tetrahedron.");
+        //   conjecture(orient3d(p, a, b, c) > 0, "Found a degenerate tetrahedron.");
 
-        Tet ta = t->n[oA];
-
-        if (!ta) continue;
 
         // ta = <A, B, C, D> = <X, Y, Z, d> where <X, Y, Z> is a circular permutation of <a, b, c>
+
         real* const d = *ta->v[tetReadMap(t->m, oA)];
 
         // if the opposing vertex of ta is in the circumsphere of t, apply one of the 3 flip operations
@@ -493,47 +511,13 @@ void flip(Delaunay del, Array stack)
 }
 
 
-Delaunay delCreate(Vertex (*hull)[4])
-{
-
-    Delaunay d = oCreate(sizeof (struct Delaunay));
-    d->v = arrCreate(sizeof (Vertex), 2);
-    d->t = arrCreate(sizeof (struct Tet), 2);
-
-    struct Tet t = {
-        {   arrPush(d->v, &(*hull)[0]),
-            arrPush(d->v, &(*hull)[1]),
-            arrPush(d->v, &(*hull)[2]),
-            arrPush(d->v, &(*hull)[3]) },
-        {0, 0, 0, 0}, 0 };
-    arrPush(d->t, &t);
-
-    return d;
-}
-
-void delDestroy(Delaunay restrict d)
-{
-    arrDestroy(d->v);
-    arrDestroy(d->t);
-    oDestroy(d);
-}
-
-Delaunay delCopy(Delaunay restrict d)
-{
-    check(d);
-    Delaunay c = oCreate(sizeof (struct Delaunay));
-    c->v = arrCopy(d->v);
-    c->t = arrCopy(d->t);
-    return c;
-}
-
 struct sph_check {
     Vertex* v;
     bool b;
 };
 
-inline
-static void check_on_sphere(uint64_t i, Obj j, Obj k) {
+inline static
+void check_on_sphere(uint64_t i, Obj j, Obj k) {
     Tet t = oCast(Tet, j);
     struct sph_check* c = oCast(struct sph_check*, k);
     Vertex* v = c->v;
@@ -547,10 +531,10 @@ void delInsert(Delaunay d, Vertex* p)
     Tet ot = t;
     struct sph_check sc = {.v = p, .b = false };
     arrForEach(d->t, check_on_sphere, &sc);
-    if (sc.b) {
+   /* if (sc.b) {
         fprintf(stderr, "[!] Did not insert point.\n");fflush(stderr);
         return;
-    }
+        } */
 
     // find the tetrahedron containing p
 
@@ -715,53 +699,93 @@ void delInsert(Delaunay d, Vertex* p)
 
 bool delCheck(Delaunay d)
 {
+    pthread_mutex_lock(&d->mutex);
     uint64_t ntet = arrSize(d->t);
     uint64_t nvert = arrSize(d->v);
     uint64_t i, j;
+    bool result = true;
     for (i=0; i<ntet; i++) {
         for (j=4; j<nvert; j++) {
             Tet t = oCast(Tet, arrGet(d->t, i));
             Vertex* v = oCast(Vertex*, arrGet(d->v, j));
-            if (insphere(*t->v[A], *t->v[B], *t->v[C], *t->v[D], *v) > 0) return false;
+            if (!delIsOnBoundary(d, v) && insphere(*t->v[A], *t->v[B], *t->v[C], *t->v[D], *v) > 0) result = false;
         }
     }
-    return true;
+    pthread_mutex_unlock(&d->mutex);
+    return result;
 }
 
-void delDisplay(Delaunay restrict d)
+void delDisplay(Delaunay restrict d, int tet)
 {
+    tet = tet % arrSize(d->t);
     //static bool once = 0;
     unsigned int i = 0;
     unsigned int end = 0;
     glDisable(GL_LIGHTING);
 
     glLineWidth(1.0);
-    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+ //   glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
     glColor4f(0.0, 0.0, 1.0, 1.0);
+
+    pthread_mutex_lock(&d->mutex);
     end = arrSize(d->t);
     for (i=0; i<end; i++) {
-        Tet t = arrGet(d->t, i);
-        glBegin(GL_LINE_STRIP);
-        glVertex3v(*(t->v[A]));   glVertex3v(*(t->v[B]));
-        glVertex3v(*(t->v[D]));   glVertex3v(*(t->v[C]));
-        glVertex3v(*(t->v[A]));   glVertex3v(*(t->v[D]));
-        glEnd();
+        if (i == tet) continue;
+        Tet t = oCast(Tet, arrGet(d->t, i));
+        if (delIsBounding(d, t)) {
+            glColor4f(0.0, 1.0, 0.0, 1.0);
 
-        glBegin(GL_LINES);
-        glVertex3v(*(t->v[B]));   glVertex3v(*(t->v[C]));
-        glEnd();
+            glBegin(GL_LINE_STRIP);
+            glVertex3v(*(t->v[A]));   glVertex3v(*(t->v[B]));
+            glVertex3v(*(t->v[D]));   glVertex3v(*(t->v[C]));
+            glVertex3v(*(t->v[A]));   glVertex3v(*(t->v[D]));
+            glEnd();
+
+            glBegin(GL_LINES);
+            glVertex3v(*(t->v[B]));   glVertex3v(*(t->v[C]));
+            glEnd();
+
+            glColor4f(1.0, 0.0, 0.0, 1.0);
+        } else {
+            glBegin(GL_LINE_STRIP);
+            glVertex3v(*(t->v[A]));   glVertex3v(*(t->v[B]));
+            glVertex3v(*(t->v[D]));   glVertex3v(*(t->v[C]));
+            glVertex3v(*(t->v[A]));   glVertex3v(*(t->v[D]));
+            glEnd();
+
+            glBegin(GL_LINES);
+            glVertex3v(*(t->v[B]));   glVertex3v(*(t->v[C]));
+            glEnd();
+        }
     }
 
     glPointSize(5.0);
     glBegin(GL_POINTS);
+
     glColor4f(1.0, 0.0, 0.0, 1.0);
     end = arrSize(d->v);
     for (i=0; i<end; i++) {
         Vertex* v = oCast(Vertex*, arrGet(d->v, i));
-        glVertex3v(*v);
+        if (delIsOnBoundary(d, v)) {
+            glColor4f(0.0, 1.0, 0.0, 1.0);
+            glVertex3v(*v);
+            glColor4f(1.0, 0.0, 0.0, 1.0);
+        } else {
+            glVertex3v(*v);
+        }
     }
     glEnd();
 
+    Tet t = oCast(Tet, arrGet(d->t, tet));
+    glColor4f(1.0, 0.0, 1.0, 1.0);
+    tetRenderCircumsphere(t);
+    glColor4f(1.0, 0.0, 0.0, 1.0);
+
     glEnable(GL_LIGHTING);
+    tetRenderSolid(t);
+
+
+    pthread_mutex_unlock(&d->mutex);
+
 }

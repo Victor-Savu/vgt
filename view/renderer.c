@@ -53,7 +53,8 @@ struct Renderer instance = {
         .y = 0
     },
     .wait_key = PTHREAD_MUTEX_INITIALIZER,
-    .key_pressed = PTHREAD_COND_INITIALIZER
+    .key_pressed = PTHREAD_COND_INITIALIZER,
+    .widget = 0
 };
 
 Renderer rCreate(const char* winname)
@@ -81,8 +82,8 @@ void rDestroy(Renderer restrict r)
     if (instance.new_m) mDestroy(instance.new_m);
     if (instance.v) vicDestroy(instance.v);
     if (instance.new_v) vicDestroy(instance.new_v);
-    if (instance.d) delDestroy(instance.d);
-    if (instance.new_d) delDestroy(instance.new_d);
+    // if (instance.d) delDestroy(instance.d);
+    // if (instance.new_d) delDestroy(instance.new_d);
 
     instance.m = 0;
     instance.new_m = 0;
@@ -113,23 +114,9 @@ void rDisplayMesh(Renderer restrict r, Mesh restrict m)
 void rDisplayDelaunay(Renderer restrict r, Delaunay restrict d)
 {
     if (instance.props & REQ_SHUTDOWN) rDestroy(&instance);
-
     pthread_mutex_lock(&instance.mutex);
-    Delaunay restrict old = instance.new_d;
     instance.new_d = d;
     pthread_mutex_unlock(&instance.mutex);
-    if (old) delDestroy(old);
-}
-
-void rDisplayVictor(Renderer restrict r, Victor restrict v)
-{
-    if (instance.props & REQ_SHUTDOWN) rDestroy(&instance);
-
-    pthread_mutex_lock(&instance.mutex);
-    Victor restrict old = instance.new_v;
-    instance.new_v = v;
-    pthread_mutex_unlock(&instance.mutex);
-    if (old) vicDestroy(old);
 }
 
 void rWaitKey(Renderer r, char* c) {
@@ -142,23 +129,12 @@ void rWaitKey(Renderer r, char* c) {
 
 void cb_display(void)
 {
-    //printf("Drawing..\n");
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
     camPosition(&instance.camera);
 
-    //glPushMatrix();
-    //glTranslatef(0.0, 0.0, -2.0);
-
-    //glutSolidTeapot(1.0);
-
-    //glPopMatrix();
-
-    //glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
     if (instance.m) mDisplay(instance.m);
-    if (instance.v) vicDisplay(instance.v);
-    if (instance.d) delDisplay(instance.d);
-    //glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+    if (instance.d) delDisplay(instance.d, instance.widget);
 
     //if (instance.props & DRAW_FOCUS_POINT) {
           gfxDraw(&instance.camera.focus_point);
@@ -170,26 +146,13 @@ void cb_reshape(int w, int h)
 {
     glViewport(0, 0, w, h);
 
-//    double scale = 4.0;
     double aspect = (double) w / (double) h;
 
     glMatrixMode(GL_PROJECTION);
-    //glMatrixMode(GL_MODELVIEW);
 
     glLoadIdentity();
-    gluPerspective(45, aspect, 1, 1000.0);
-    /*glFrustum(-1 * scale * aspect,
-                   scale * aspect,
-              -1 * scale,
-                   scale,
-                   scale / 1.0,
-                   scale * 1000.0);*/
-    /*glOrtho(-1 * scale * aspect,
-                   scale * aspect,
-              -1 * scale,
-                   scale,
-                   scale / 1.0,
-                   scale * 1000.0);*/
+    gluPerspective(30, aspect, 1, 1000.0);
+
     glMatrixMode(GL_MODELVIEW);
 
     glScalef(10, 10, 10);
@@ -211,6 +174,9 @@ void cb_keyboard(unsigned char key, int x, int y)
         break;
     case '+': // zoom in
         camZoom(&instance.camera,1/1.05);
+        break;
+    case '.': // next widget
+        instance.widget++;
         break;
     default:
         if (instance.key && key == *instance.key) {
@@ -298,7 +264,7 @@ void* init_rendering(void* arg)
     glEnable(GL_LIGHT0);
     glDepthFunc(GL_LEQUAL);
     glEnable(GL_DEPTH_TEST);
-    //glEnable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
     glEnable(GL_NORMALIZE);
     glEnable(GL_LINE_SMOOTH);
     glEnable(GL_POINT_SMOOTH);
@@ -318,9 +284,6 @@ void* init_rendering(void* arg)
     glMaterialfv(GL_FRONT, GL_SPECULAR, white);
     glMaterialfv(GL_FRONT, GL_SHININESS, &shininess);
     glMaterialfv(GL_FRONT, GL_EMISSION, grey);
-
-
-
 
     glutDisplayFunc(cb_display);
     glutReshapeFunc(cb_reshape);

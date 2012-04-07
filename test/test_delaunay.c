@@ -12,7 +12,7 @@ void test1();
 
 int main()
 {
-    test1();
+    test0();
     return 0;
 }
 
@@ -35,24 +35,22 @@ void test1()
     Delaunay d = delCreate(&tetra);
 
 
-    //Renderer r = rCreate("Hello world!");
+    Renderer r = rCreate("Hello world!");
 
-  //  rDisplayDelaunay(r, delCopy(d));
+    rDisplayDelaunay(r, d);
 
     uint8_t i = 0;
-    //char enter = 13;
+    char enter = 13;
     for (i=0; i<4; i++) {
-      //  rWaitKey(r, &enter);
+        rWaitKey(r, &enter);
         delInsert(d, &v[i]);
         printf("%s Delaunay tetrahedrization after inserting vertex #%d.\n", (delCheck(d))?("Correct"):("Incorrect"), i);
         fflush(stdout);
-     //   rDisplayDelaunay(r, delCopy(d));
-        //fgetc(stdin);
     }
 
-   // rWait(r);
+    rWait(r);
 
-   // rDestroy(r);
+    rDestroy(r);
 
     delDestroy(d);
 
@@ -67,11 +65,11 @@ void test0()
         {0.0, 0.0, 20.0}
     };
 
-    Vertex v[14] = {
+    Vertex v[4] = {
       {5.0, 0.0, 0.0},
       {0.0, 5.0, 0.0},
       {0.0, 0.0, 5.0},
-      {5.0, 5.0, 0.0},
+      {5.0, 5.0, 0.0}/*,
       {0.0, 5.0, 5.0},
       {5.0, 0.0, 5.0},
       {2.0, 2.0, 0.0},
@@ -81,7 +79,7 @@ void test0()
       {0.0, 0.0, 0.0},
       {10.0, 0.0, 0.0},
       {0.0, 10.0, 0.0},
-      {0.0, 0.0, 10.0}
+      {0.0, 0.0, 10.0}*/
     };
 
     Delaunay d = delCreate(&tetra);
@@ -89,15 +87,15 @@ void test0()
 
     Renderer r = rCreate("Hello world!");
 
-    rDisplayDelaunay(r, delCopy(d));
+    rDisplayDelaunay(r, d);
 
     uint8_t i = 0;
     char enter = 13;
-    for (i=0; i<14; i++) {
+    for (i=0; i<4; i++) {
         rWaitKey(r, &enter);
         delInsert(d, &v[i]);
-        rDisplayDelaunay(r, delCopy(d));
-        //fgetc(stdin);
+        printf("%s Delaunay tetrahedrization after inserting vertex #%d.\n", (delCheck(d))?("Correct"):("Incorrect"), i);
+        fflush(stdout);
     }
 
     rWait(r);
@@ -105,5 +103,6 @@ void test0()
     rDestroy(r);
 
     delDestroy(d);
+
 
 }

@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <math/vertex.h>
 
+#include <GL/glut.h>
+
 inline
 void tetConnect(Tet x, TetFace fx, Tet y, TetFace fy)
 {
@@ -68,4 +70,63 @@ void tetPrint(Obj tet, FILE* f)
     vPrint(t->v[1], f); fprintf(f, ", ");
     vPrint(t->v[2], f); fprintf(f, ", ");
     vPrint(t->v[3], f); fprintf(f, "]\n");
+}
+
+void tetRenderSolid(Tet t)
+{
+    glBegin(GL_TRIANGLE_STRIP);
+    glVertex3v(*(t->v[A]));   glVertex3v(*(t->v[B]));
+    glVertex3v(*(t->v[C]));   glVertex3v(*(t->v[D]));
+    glVertex3v(*(t->v[A]));   glVertex3v(*(t->v[B]));
+    glEnd();
+}
+
+void tetRenderWireframe(Tet t)
+{
+    glBegin(GL_LINE_STRIP);
+    glVertex3v(*(t->v[A]));   glVertex3v(*(t->v[B]));
+    glVertex3v(*(t->v[D]));   glVertex3v(*(t->v[C]));
+    glVertex3v(*(t->v[A]));   glVertex3v(*(t->v[D]));
+    glEnd();
+
+    glBegin(GL_LINES);
+    glVertex3v(*(t->v[B]));   glVertex3v(*(t->v[C]));
+    glEnd();
+}
+
+void tetRenderCircumsphere(Tet t)
+{
+    // relative positions of vertices B, C, and D with respect to A
+    Vertex rB, rC, rD;
+
+    vSub(t->v[B], t->v[A], &rB);
+    vSub(t->v[C], t->v[A], &rC);
+    vSub(t->v[D], t->v[A], &rD);
+
+    Vertex cCD;
+    ignore vCross(&rC, &rD, &cCD);
+    Vertex cDB;
+    ignore vCross(&rD, &rB, &cDB);
+    Vertex cBC;
+    ignore vCross(&rB, &rC, &cBC);
+
+
+    // the inverse radius pointing from A to the sphere's centre
+    Vertex r;
+    // the sphere's centre
+    Vertex c;
+
+    vScale(&cBC, vNormSquared(&rD), &r);
+    vAddI(&r, vScale(&cDB, vNormSquared(&rC), &c)); // using c as an auliliary variable for now
+    vAddI(&r, vScale(&cCD, vNormSquared(&rB), &c)); // using c as an auliliary variable for now
+
+    vScaleI(&r, 2 * vDot(&rB, &cCD));
+    // now setting c
+    vAdd(t->v[A], &r, &c);
+
+    glPushMatrix();
+    glLoadIdentity();
+    glTranslated(c[0], c[1], c[2]);
+    glutWireSphere(vNorm(&r), 10, 10);
+    glPopMatrix();
 }
