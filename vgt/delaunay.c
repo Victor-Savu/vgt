@@ -47,19 +47,18 @@ Array ins3(Delaunay del, Tet t, Vertex* p)
     check(d->v[A] == p);
 
     // check neighbors
-    TetNeighbour n = A;
-    for (n = A; n<=D; n++) {
-        if (t->n[n]) conjecture(t->n[n]->n[tetReadMap(t->m, n)] == t, "");
-        if (b->n[n]) conjecture(b->n[n]->n[tetReadMap(b->m, n)] == b, "");
-        if (c->n[n]) conjecture(c->n[n]->n[tetReadMap(c->m, n)] == c, "");
-        if (d->n[n]) conjecture(d->n[n]->n[tetReadMap(d->m, n)] == d, "");
-    }
+    check(tetIsLegit(t));
+    check(tetIsLegit(b));
+    check(tetIsLegit(c));
+    check(tetIsLegit(d));
 
-    // check that the tetrahedra have the right orientation
-    check(orient3d(*t->v[A], *t->v[B], *t->v[C], *t->v[D]) > 0);
-    check(orient3d(*b->v[A], *b->v[B], *b->v[C], *b->v[D]) > 0);
-    check(orient3d(*c->v[A], *c->v[B], *c->v[C], *c->v[D]) > 0);
-    check(orient3d(*d->v[A], *d->v[B], *d->v[C], *d->v[D]) > 0);
+    TetVertex n = B;
+    for (n = B; n<=D; n++) {
+        if (t->n[n]) check(t->n[n]->v[A] == p);
+        if (b->n[n]) check(b->n[n]->v[A] == p);
+        if (c->n[n]) check(c->n[n]->v[A] == p);
+        if (d->n[n]) check(d->n[n]->v[A] == p);
+    }
 
     //stub;
     return stack;
@@ -71,24 +70,19 @@ Array ins2(Delaunay del, Tet t, Vertex* p, enum TetFacet f)
     p = arrPush(del->v, p);
 
     if (f == oA) { // rotate around D
-        Obj swap = 0;
-        // swap vertices
-        swap = t->v[A]; t->v[A] = t->v[D]; t->v[D] = swap;
-        swap = t->v[C]; t->v[C] = t->v[B]; t->v[B] = swap;
-        // swap neighbors
-        swap = t->n[A]; t->n[A] = t->n[D]; t->n[D] = swap;
-        swap = t->n[C]; t->n[C] = t->n[B]; t->n[B] = swap;
-        // notify neighbors
-        byte m = t->m;
-        tetConnect(t, oA, t->n[oA], tetReadMap(m, oD));
-        tetConnect(t, oB, t->n[oB], tetReadMap(m, oC));
-        tetConnect(t, oC, t->n[oC], tetReadMap(m, oB));
-        tetConnect(t, oD, t->n[oD], tetReadMap(m, oA));
-        f = oD;
+        tetRot(t, D);
+        f = oC;
     }
 
     Tet o = t->n[f];
     TetFace g = tetReadMap(t->m, f);
+
+    if (o) {
+        if (g == oA) { // if it's degenerate, swap it to normal
+            tetRot(o, D);
+            g = oC;
+        }
+    }
 
 
     Tet x, y;
@@ -114,21 +108,6 @@ Array ins2(Delaunay del, Tet t, Vertex* p, enum TetFacet f)
     arrPush(stack, &y);
 
     if (o) {
-        if (g == oA) { // if it's degenerate, swap it to normal
-            Obj swap = 0;
-            // swap vertices
-            swap = o->v[A]; o->v[A] = o->v[D]; o->v[D] = swap;
-            swap = o->v[C]; o->v[C] = o->v[B]; o->v[B] = swap;
-            // swap neighbors
-            swap = o->n[A]; o->n[A] = o->n[D]; o->n[D] = swap;
-            swap = o->n[C]; o->n[C] = o->n[B]; o->n[B] = swap;
-            // notify neighbors
-            byte m = o->m;
-            tetConnect(o, oA, o->n[oA], tetReadMap(m, oD));
-            tetConnect(o, oB, o->n[oB], tetReadMap(m, oC));
-            tetConnect(o, oC, o->n[oC], tetReadMap(m, oB));
-            g = oD;
-        }
 
         Tet xx, yy;
         {
@@ -174,7 +153,7 @@ Array ins2(Delaunay del, Tet t, Vertex* p, enum TetFacet f)
         // check neighbors
         TetNeighbour n = A;
         for (n = A; n<=D; n++) {
-            if (o->n[n]) conjecture(o->n[n]->n[tetReadMap(o->m, n)] == o, "");
+            if (t->n[n]) conjecture(t->n[n]->n[tetReadMap(t->m, n)] == t, "");
             if (x->n[n]) conjecture(x->n[n]->n[tetReadMap(x->m, n)] == x, "");
             if (y->n[n]) conjecture(y->n[n]->n[tetReadMap(y->m, n)] == y, "");
         }
@@ -184,17 +163,31 @@ Array ins2(Delaunay del, Tet t, Vertex* p, enum TetFacet f)
         check(xx->v[A] == p);
         check(yy->v[A] == p);
 
+        check(tetIsLegit(o));
+        check(tetIsLegit(xx));
+        check(tetIsLegit(yy));
+
         // check neighbors
         n = A;
-        for (n = A; n<=D; n++) {
-            if (o->n[n]) conjecture(o->n[n]->n[tetReadMap(o->m, n)] == o, "");
-            if (xx->n[n]) conjecture(xx->n[n]->n[tetReadMap(xx->m, n)] == xx, "");
-            if (yy->n[n]) conjecture(yy->n[n]->n[tetReadMap(yy->m, n)] == yy, "");
+        for (n = B; n<=D; n++) {
+            if (o->n[n]) check(o->n[n]->v[A] == p);
+            if (xx->n[n]) check(xx->n[n]->v[A] == p);
+            if (yy->n[n]) check(yy->n[n]->v[A] == p);
         }
 
     }
 
-    //arrPrint(del->t, stdout, tetPrint);
+
+    TetVertex n = B;
+    for (n = B; n<=D; n++) {
+        if (t->n[n]) check(t->n[n]->v[A] == p);
+        if (x->n[n]) check(x->n[n]->v[A] == p);
+        if (y->n[n]) check(y->n[n]->v[A] == p);
+    }
+
+    check(tetIsLegit(t));
+    check(tetIsLegit(x));
+    check(tetIsLegit(y));
 
     stub;
     return stack;
@@ -262,6 +255,43 @@ Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
 static
 Array flip23(Delaunay del, Tet t, Array stack)
 {
+    //
+    check(t->n[oA]);
+    Tet o = t->n[oA];
+    if (tetReadMap(t->m, oA) == oA) tetRot(o, D);
+    while (tetVertexLabel(o, t->v[B]) != A) tetRot(t, A); // this should do at most 2 rotations
+    while (tetVertexLabel(o, t->v[C]) != B) tetRot(o, A); // this should do at most 2 rotations
+
+    Tet s = 0;
+
+    struct Tet tmp = {
+        {t->v[A], t->v[D], t->v[B], o->v[D]},
+        {0, 0, 0, 0}, 0};
+    s = arrPush(del->t, &tmp);
+
+    // fix external neighbors
+    tetConnect(s, A, o->n[B], tetReadMap(o->m, B));
+    tetConnect(s, D, t->n[C], tetReadMap(t->m, C));
+    tetConnect(t, A, o->n[C], tetReadMap(o->m, C));
+    tetConnect(o, D, t->n[B], tetReadMap(t->m, B));
+
+    // set vertices
+    t->v[D] = s->v[D];
+    o->v[A] = t->v[A];
+
+    // fix internal neighbors
+    tetConnect(t, B, o, C);
+    tetConnect(t, C, s, B);
+    tetConnect(s, C, o, B);
+
+    arrPush(stack, &t);
+    arrPush(stack, &o);
+    arrPush(stack, &s);
+
+    check(tetIsLegit(t));
+    check(tetIsLegit(o));
+    check(tetIsLegit(s));
+
     stub;
     return stack;
 }
@@ -269,6 +299,19 @@ Array flip23(Delaunay del, Tet t, Array stack)
 static
 Array flip32(Delaunay del, Array stack)
 {
+    // d should lie strictly below other two faces
+    conjecture(orient3d(p, b, c, d) > 0, "d does not lie below pbc.");
+    conjecture(orient3d(p, c, a, d) > 0, "d does not lie below pca.");
+
+    if (t->n[oD] && t->n[oD] == ta->n[tetVertexLabel(ta, t->v[D])]) {
+        conjecture(t->n[oD]->v[0] == t->v[0], "there is a tet incident on p with vertex A not in p.");
+        // perform a flip32 on t, ta and their common neighbor t->n[oD]
+        stack = flip32(del, stack);
+    } else {
+        conjecture(0, "Cannot perform flip32 in case #2 because pdab does not exist.");
+    }
+
+
     stub;
     return stack;
 }
@@ -352,7 +395,7 @@ Array flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
     tetConnect(tb, oA, tc->n[tcY], tetReadMap(tc->m, tcY));
 
     tetConnect(ta, oD, t->n[tW], tetReadMap(t->m, tW));
-    tetConnect(tc, oD, tc->n[tW], tetReadMap(tc->m, tcW));
+    tetConnect(tc, oD, tb->n[tbW], tetReadMap(tb->m, tbW));
 
     tetConnect(t, tW, ta, B);
     tetConnect(tb, tbW, tc, C);
@@ -386,28 +429,10 @@ Array flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
     conjecture(tc->n[C] == tb, "");
     conjecture(tb->n[tbZ] == t, "");
 
-    // connectivity with neighbors
-    TetNeighbour n = A;
-    for (n = A; n<=D; n++) {
-        if (t->n[n]) conjecture(t->n[n]->n[tetReadMap(t->m, n)] == t, "");
-        if (ta->n[n]) conjecture(ta->n[n]->n[tetReadMap(ta->m, n)] == ta, "");
-        if (tb->n[n]) conjecture(tb->n[n]->n[tetReadMap(tb->m, n)] == tb, "");
-        if (tc->n[n]) conjecture(tc->n[n]->n[tetReadMap(tc->m, n)] == tc, "");
-    }
-
-
-    // check that the tetrahedra have the right orientation
-    check(orient3d(*t->v[A], *t->v[B], *t->v[C], *t->v[D]) > 0);
-    check(orient3d(*ta->v[A], *ta->v[B], *ta->v[C], *ta->v[D]) > 0);
-    check(orient3d(*tb->v[A], *tb->v[B], *tb->v[C], *tb->v[D]) > 0);
-    check(orient3d(*tc->v[A], *tc->v[B], *tc->v[C], *tc->v[D]) > 0);
-
-
-    check(orient3d(*t->v[D], *t->v[B], *t->v[C], *t->v[A]) < 0);
-    check(orient3d(*ta->v[D], *ta->v[B], *ta->v[C], *ta->v[A]) < 0);
-    check(orient3d(*tb->v[D], *tb->v[B], *tb->v[C], *tb->v[A]) < 0);
-    check(orient3d(*tc->v[D], *tc->v[B], *tc->v[C], *tc->v[A]) < 0);
-
+    check(tetIsLegit(t));
+    check(tetIsLegit(ta));
+    check(tetIsLegit(tb));
+    check(tetIsLegit(tc));
 
     stub;
     return stack;
@@ -428,17 +453,16 @@ static
 void flip(Delaunay del, Array stack)
 {
     while (!arrIsEmpty(stack)) {
-        arrRandomSwap(stack, 0);
+       // arrRandomSwap(stack, 0);
         Tet t = *oCast(Tet*, arrBack(stack));
         arrPop(stack);
 
         Tet ta = t->n[oA];
-
         if (!ta) continue;
 
-        conjecture((t->n[oB])?(t->n[oB]->v[0] == t->v[0]):(1), "there is a tet incident in p with vertex A not in p.");
-        conjecture((t->n[oC])?(t->n[oC]->v[0] == t->v[0]):(1), "there is a tet incident in p with vertex A not in p.");
-        conjecture((t->n[oD])?(t->n[oD]->v[0] == t->v[0]):(1), "there is a tet incident in p with vertex A not in p.");
+        conjecture((t->n[oB])?(t->n[oB]->v[A] == t->v[A]):(1), "there is a tet incident in p with vertex A not in p.");
+        conjecture((t->n[oC])?(t->n[oC]->v[A] == t->v[A]):(1), "there is a tet incident in p with vertex A not in p.");
+        conjecture((t->n[oD])?(t->n[oD]->v[A] == t->v[A]):(1), "there is a tet incident in p with vertex A not in p.");
         // t = <A, B, C, D> = <p, a, b, c>
         real* const p = *t->v[A];
         real* const a = *t->v[B];
@@ -447,9 +471,7 @@ void flip(Delaunay del, Array stack)
         // assume no degenerate triangles
         //   conjecture(orient3d(p, a, b, c) > 0, "Found a degenerate tetrahedron.");
 
-
         // ta = <A, B, C, D> = <X, Y, Z, d> where <X, Y, Z> is a circular permutation of <a, b, c>
-
         real* const d = *ta->v[tetReadMap(t->m, oA)];
 
         // if the opposing vertex of ta is in the circumsphere of t, apply one of the 3 flip operations
@@ -511,7 +533,7 @@ void flip(Delaunay del, Array stack)
     stub;
 }
 
-
+/*
 struct sph_check {
     Vertex* v;
     bool b;
@@ -525,14 +547,14 @@ void check_on_sphere(uint64_t i, Obj j, Obj k) {
     real o = insphere(*t->v[A], *t->v[B], *t->v[C], *t->v[D], *v);
     if (o == 0) c->b = 1;
 }
-
+*/
 void delInsert(Delaunay d, Vertex* p)
 {
     Tet t = arrFront(d->t);
-    Tet ot = t;
+    Tet ot = t; /*
     struct sph_check sc = {.v = p, .b = false };
     arrForEach(d->t, check_on_sphere, &sc);
-   /* if (sc.b) {
+    if (sc.b) {
         fprintf(stderr, "[!] Did not insert point.\n");fflush(stderr);
         return;
         } */
@@ -716,7 +738,7 @@ bool delCheck(Delaunay d)
     return result;
 }
 
-void delDisplay(Delaunay restrict d, int tet)
+void delDisplay(Delaunay d, int tet)
 {
     tet = tet % arrSize(d->t);
     Tet t_sel = oCast(Tet, arrGet(d->t, tet));
@@ -728,28 +750,16 @@ void delDisplay(Delaunay restrict d, int tet)
 
     glLineWidth(1.0);
 
-    glColor4f(0.0, 0.0, 1.0, 1.0);
+    glColor4f(0.0, 1.0, 0.0, 1.0);
 
     pthread_mutex_lock(&d->mutex);
+  //  printf("Parsel "); fflush(stdout);
     end = arrSize(d->t);
     for (i=0; i<end; i++) {
         if (i == tet) continue;
         Tet t = oCast(Tet, arrGet(d->t, i));
         if (delIsBounding(d, t)) {
-            glColor4f(0.0, 1.0, 0.0, 1.0);
 
-            glBegin(GL_LINE_STRIP);
-            glVertex3v(*(t->v[A]));   glVertex3v(*(t->v[B]));
-            glVertex3v(*(t->v[D]));   glVertex3v(*(t->v[C]));
-            glVertex3v(*(t->v[A]));   glVertex3v(*(t->v[D]));
-            glEnd();
-
-            glBegin(GL_LINES);
-            glVertex3v(*(t->v[B]));   glVertex3v(*(t->v[C]));
-            glEnd();
-
-            glColor4f(1.0, 0.0, 0.0, 1.0);
-        } else {
             glBegin(GL_LINE_STRIP);
             glVertex3v(*(t->v[A]));   glVertex3v(*(t->v[B]));
             glVertex3v(*(t->v[D]));   glVertex3v(*(t->v[C]));
@@ -761,24 +771,24 @@ void delDisplay(Delaunay restrict d, int tet)
             glEnd();
         }
     }
-/*
-    glPointSize(5.0);
-    glBegin(GL_POINTS);
 
-    glColor4f(1.0, 0.0, 0.0, 1.0);
-    end = arrSize(d->v);
+    glColor4f(0.0, 0.0, 1.0, 1.0);
     for (i=0; i<end; i++) {
-        Vertex* v = oCast(Vertex*, arrGet(d->v, i));
-        if (delIsOnBoundary(d, v)) {
-            glColor4f(0.0, 1.0, 0.0, 1.0);
-            glVertex3v(*v);
-            glColor4f(1.0, 0.0, 0.0, 1.0);
-        } else {
-            glVertex3v(*v);
+        if (i == tet) continue;
+        Tet t = oCast(Tet, arrGet(d->t, i));
+        if (!delIsBounding(d, t)) {
+            glBegin(GL_LINE_STRIP);
+            glVertex3v(*(t->v[A]));   glVertex3v(*(t->v[B]));
+            glVertex3v(*(t->v[D]));   glVertex3v(*(t->v[C]));
+            glVertex3v(*(t->v[A]));   glVertex3v(*(t->v[D]));
+            glEnd();
+
+            glBegin(GL_LINES);
+            glVertex3v(*(t->v[B]));   glVertex3v(*(t->v[C]));
+            glEnd();
         }
     }
-    glEnd();
-*/
+
 
     glPointSize(10.0);
     glBegin(GL_POINTS);
@@ -806,7 +816,7 @@ void delDisplay(Delaunay restrict d, int tet)
     glEnable(GL_LIGHTING);
     tetRenderSolid(t_sel);
 
-
+  //  printf("tongue\n"); fflush(stdout);
     pthread_mutex_unlock(&d->mutex);
 
 }

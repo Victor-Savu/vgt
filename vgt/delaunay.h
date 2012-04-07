@@ -9,7 +9,7 @@ void delDestroy(Delaunay restrict d);
 
 bool delCheck(Delaunay d);
 
-void delDisplay(Delaunay restrict d, int tet);
+void delDisplay(Delaunay d, int tet);
 
 void delInsert(Delaunay restrict d, Vertex* restrict p);
 

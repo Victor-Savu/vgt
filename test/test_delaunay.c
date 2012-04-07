@@ -43,7 +43,9 @@ void test1()
     char enter = 13;
     for (i=0; i<4; i++) {
         rWaitKey(r, &enter);
+        pthread_mutex_lock(&d->mutex);
         delInsert(d, &v[i]);
+        pthread_mutex_unlock(&d->mutex);
         printf("%s Delaunay tetrahedrization after inserting vertex #%d.\n", (delCheck(d))?("Correct"):("Incorrect"), i);
         fflush(stdout);
     }
@@ -93,7 +95,11 @@ void test0()
     char enter = 13;
     for (i=0; i<4; i++) {
         rWaitKey(r, &enter);
+        pthread_mutex_lock(&d->mutex);
+        //printf("Parsel "); fflush(stdout);
         delInsert(d, &v[i]);
+       // printf("tongue."); fflush(stdout);
+        pthread_mutex_unlock(&d->mutex);
         printf("%s Delaunay tetrahedrization after inserting vertex #%d.\n", (delCheck(d))?("Correct"):("Incorrect"), i);
         fflush(stdout);
     }

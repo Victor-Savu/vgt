@@ -27,8 +27,10 @@ void tetRot(Tet restrict t, TetVertex v);
 
 void tetPrint(Obj tet, FILE* f);
 
-void tetRenderSolid();
-void tetRenderWireframe();
-void tetRenderCircumsphere();
+void tetRenderSolid(Tet t);
+void tetRenderWireframe(Tet t);
+void tetRenderCircumsphere(Tet t);
+
+bool tetIsLegit(Tet t);
 
 #endif//VGT_TET_H
