@@ -120,13 +120,12 @@ void tetRenderCircumsphere(Tet t)
     vAddI(&r, vScale(&cDB, vNormSquared(&rC), &c)); // using c as an auliliary variable for now
     vAddI(&r, vScale(&cCD, vNormSquared(&rB), &c)); // using c as an auliliary variable for now
 
-    vScaleI(&r, 2 * vDot(&rB, &cCD));
+    vScaleI(&r, 0.5/vDot(&rB, &cCD));
     // now setting c
     vAdd(t->v[A], &r, &c);
 
     glPushMatrix();
-    glLoadIdentity();
     glTranslated(c[0], c[1], c[2]);
-    glutWireSphere(vNorm(&r), 10, 10);
+    glutWireSphere(vNorm(&r), 100, 100);
     glPopMatrix();
 }

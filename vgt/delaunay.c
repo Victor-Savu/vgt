@@ -61,7 +61,7 @@ Array ins3(Delaunay del, Tet t, Vertex* p)
     check(orient3d(*c->v[A], *c->v[B], *c->v[C], *c->v[D]) > 0);
     check(orient3d(*d->v[A], *d->v[B], *d->v[C], *d->v[D]) > 0);
 
-    stub;
+    //stub;
     return stack;
 }
 
@@ -70,10 +70,7 @@ Array ins2(Delaunay del, Tet t, Vertex* p, enum TetFacet f)
 {
     p = arrPush(del->v, p);
 
-    Tet o = t->n[f];
-    TetFace g = tetReadMap(t->m, f);
-
-    if (f == oA) { // if it's degenerate, swap it to normal
+    if (f == oA) { // rotate around D
         Obj swap = 0;
         // swap vertices
         swap = t->v[A]; t->v[A] = t->v[D]; t->v[D] = swap;
@@ -89,6 +86,10 @@ Array ins2(Delaunay del, Tet t, Vertex* p, enum TetFacet f)
         tetConnect(t, oD, t->n[oD], tetReadMap(m, oA));
         f = oD;
     }
+
+    Tet o = t->n[f];
+    TetFace g = tetReadMap(t->m, f);
+
 
     Tet x, y;
     {
@@ -259,7 +260,7 @@ Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
 }
 
 static
-Array flip23(Delaunay del, Array stack)
+Array flip23(Delaunay del, Tet t, Array stack)
 {
     stub;
     return stack;
@@ -491,7 +492,7 @@ void flip(Delaunay del, Array stack)
                             conjecture(0, "Cannot perform flip32 in case #2 because pdca does not exist.");
                         }
                     } else if (o > 0) {
-                        stack = flip23(del, stack);
+                        stack = flip23(del, t, stack);
                     } else {// o = 0  =>  d is on plane pca
                         stack = flip44(del, t, C, stack);
                     }
@@ -708,7 +709,7 @@ bool delCheck(Delaunay d)
         for (j=4; j<nvert; j++) {
             Tet t = oCast(Tet, arrGet(d->t, i));
             Vertex* v = oCast(Vertex*, arrGet(d->v, j));
-            if (!delIsOnBoundary(d, v) && insphere(*t->v[A], *t->v[B], *t->v[C], *t->v[D], *v) > 0) result = false;
+            if (insphere(*t->v[A], *t->v[B], *t->v[C], *t->v[D], *v) > 0) result = false;
         }
     }
     pthread_mutex_unlock(&d->mutex);
@@ -718,13 +719,14 @@ bool delCheck(Delaunay d)
 void delDisplay(Delaunay restrict d, int tet)
 {
     tet = tet % arrSize(d->t);
+    Tet t_sel = oCast(Tet, arrGet(d->t, tet));
+
     //static bool once = 0;
     unsigned int i = 0;
     unsigned int end = 0;
     glDisable(GL_LIGHTING);
 
     glLineWidth(1.0);
- //   glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
     glColor4f(0.0, 0.0, 1.0, 1.0);
 
@@ -759,7 +761,7 @@ void delDisplay(Delaunay restrict d, int tet)
             glEnd();
         }
     }
-
+/*
     glPointSize(5.0);
     glBegin(GL_POINTS);
 
@@ -776,14 +778,33 @@ void delDisplay(Delaunay restrict d, int tet)
         }
     }
     glEnd();
+*/
 
-    Tet t = oCast(Tet, arrGet(d->t, tet));
-    glColor4f(1.0, 0.0, 1.0, 1.0);
-    tetRenderCircumsphere(t);
+    glPointSize(10.0);
+    glBegin(GL_POINTS);
+
+    glColor4f(1.0, 0.0, 0.0, 1.0);
+    end = arrSize(d->v);
+    for (i=0; i<end; i++) {
+        Vertex* v = oCast(Vertex*, arrGet(d->v, i));
+        real o = insphere(*t_sel->v[0], *t_sel->v[1], *t_sel->v[2], *t_sel->v[3], *v);
+        if (o > 0) {
+            glVertex3v(*v);
+        } else if (o == 0) {
+            glColor4f(0.0, 0.0, 1.0, 1.0);
+            glVertex3v(*v);
+            glColor4f(1.0, 0.0, 0.0, 1.0);
+        }
+    }
+    glEnd();
+
+    //if (;
+    glColor4f(0.0, 1.0, 1.0, 1.0);
+    tetRenderCircumsphere(t_sel);
     glColor4f(1.0, 0.0, 0.0, 1.0);
 
     glEnable(GL_LIGHTING);
-    tetRenderSolid(t);
+    tetRenderSolid(t_sel);
 
 
     pthread_mutex_unlock(&d->mutex);
