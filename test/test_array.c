@@ -16,6 +16,7 @@ uint32_t choose(uint32_t pool) {
 
 void speed_test(uint64_t test);
 void sanity_check(uint64_t test);
+void random_check(uint64_t test);
 
 int main(int argc, char* argv[])
 {
@@ -32,6 +33,7 @@ int main(int argc, char* argv[])
 
     speed_test(test);
     //sanity_check(test);
+    random_check(test);
 
     return 0;
 }
@@ -134,77 +136,25 @@ void sanity_check(uint64_t test)
     arrDestroy(arr);
 
 }
-/*
-void sanity_check(uint64_t test)
+
+
+void random_check(uint64_t n)
 {
     call;
-
-    // create an array of integers
-    Array arr = arrCreate(sizeof (int), 10);
-
-    struct timespec tick_g, tock_g;
-    struct timespec tick, tock;
-    struct timespec diff = {0, 0};
+    uint64_t i;
 
 
-    clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick_g);
+    Array arr = arrCreate(sizeof(uint64_t), 4);
 
-    int x;
-    int ch = 0;
-    int seed = 0;
-    while (test--) {
-        switch(ch) {
-        case 0: // insert
-      //      printf("Inserting "); fflush(stdout);
-            x = test;
-            arrPush(arr, &x);
-     //       printf("%d: ", x);
-     //       arrPrint(arr, stdout, oIntPrint);
-     //       printf("\n"); fflush(stdout);
-            break;
-        case 1:
-            if (!arrSize(arr)) {
-      //          printf("Arr empty. Not getting anything.\n");
-                break;
-            }
-        //    printf("Get"); fflush(stdout);
-            x = arrSize(arr) >> 1;
-       //     printf("[%d]=%d: ", x, *oCast(int*, arrGet(arr, x))); fflush(stdout);
-       //     arrPrint(arr, stdout, oIntPrint);
-       //     printf("\n"); fflush(stdout);
-            break;
-        case 2:
-            if (!arrSize(arr)) {
-                printf("Arr empty. Not popping anything.\n");
-                break;
-            }
-      //      printf("Popping "); fflush(stdout);
-      //      printf("%d: ", *oCast(int*, arrBack(arr))); fflush(stdout);
-            arrPop(arr);
-       //     arrPrint(arr, stdout, oIntPrint);
-       //     printf("\n"); fflush(stdout);
-            break;
-        default:
-            check(0);
-            break;
-        }
+    for (i=0; i<n; i++) arrPush(arr, &i);
 
-        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
-        seed += 666013;
-        seed %= 13;
-        //ch %= 3;
-        ch = (seed&1) << 1;
-        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tock);
-        diff.tv_sec += tock.tv_sec - tick.tv_sec;
-        diff.tv_nsec += tock.tv_nsec - tick.tv_nsec;
-        //fprintf(stderr, "%d\n", ch);
+    for (i=0; i<n; i++) {
+        arrRandomSwap(arr, 0);
+        printf("%lu ", *oCast(uint64_t*, arrBack(arr)));
+        arrPop(arr);
     }
 
-    clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tock_g);
-
-    fprintf(stderr, "%lf\n", (((double)tock_g.tv_sec - tick_g.tv_sec - diff.tv_sec) + ((double)tock_g.tv_nsec - tick_g.tv_nsec - diff.tv_nsec)/1e9) );
+    printf("\n");
 
     arrDestroy(arr);
-
 }
-*/

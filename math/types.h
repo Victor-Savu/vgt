@@ -78,6 +78,7 @@ typedef Vertex             Mat[3];
 typedef void*           Obj;
 
 typedef void (*ObjPrint)(Obj, FILE*);
+typedef void (*ObjRelocator)(Obj);
 
 typedef struct Spherical*   Spherical;
 typedef struct Frame*       Frame;

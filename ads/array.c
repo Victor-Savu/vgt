@@ -1,32 +1,14 @@
 #include <ads/array.h>
+#include <ads/array_cls.h>
 
 #include <math/obj.h>
-
-#include <math/obj.h>
+#include <math/algorithms.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-struct Array {
-    Obj* begin;
-    Obj* end;
-    uint32_t size;
-    uint32_t s;
-    uint32_t d;
-    uint64_t n;
-    size_t segment_size;
-    uint32_t od;  // occupancy of the last non-empty data block
-    uint32_t nd; // #segments in the last non-empty data block
-    uint32_t os;  // occupancy of the last superblock
-    uint32_t ns; // #data_blocks in the last superblock
-    bool     empty_db; // is there an empty data block?
-
-    size_t element_size;
-    uint64_t fact; // base 2 logarithm of the number of elements per segment
-    uint32_t oseg; // occupancy of the last segment
-    uint32_t nseg; // #elements per segment = 1<<fact
-};
+static bool rand_init = false;
 
 void arr_grow(Array restrict arr)
 {
@@ -136,6 +118,8 @@ void arr_shrink(Array restrict arr)
 
 Array arrCreate(uint8_t elem_size, uint8_t fact)
 {
+    if (!rand_init) { srand(time(0)); rand_init = true; }
+
     // TODO: limit the segment size and check that it is at least 8 bytes
 
     Array arr = oCreate(sizeof (struct Array));
@@ -189,12 +173,6 @@ Array arrCopy(Array restrict arr)
     return c;
 }
 
-inline
-size_t arrElementSize(Array restrict arr)
-{
-    return arr->element_size;
-}
-
 Obj arrSet(Array restrict arr, Obj restrict o, uint64_t pos)
 {
     if (!arr || (pos>>arr->fact) >= arr->n) {
@@ -244,17 +222,6 @@ void arrPop(Array arr)
 
 
 
-#include <signal.h>
-static inline uint64_t log2_uint64(uint64_t x)
-{
-    if (!x) raise(SIGFPE);
-    uint64_t y;
-    __asm__ ( "\tbsr %1, %0\n"
-            : "=r"(y)
-            : "r" (x)
-        );
-    return y;
-}
 
 Obj arrGet(Array restrict arr, uint64_t p)
 {
@@ -271,7 +238,7 @@ Obj arrGet(Array restrict arr, uint64_t p)
 
     //ignore printf("Accessing element #%lu ", pos); fflush(stdout);
     pos+= 1;
-    const uint64_t k = log2_uint64(pos); // the number of the superblock
+    const uint64_t k = algoLog2(pos); // the number of the superblock
     //ignore printf("from superblock #%u ", k); fflush(stdout);
 
     const uint64_t kdiv2 = k>>1;
@@ -292,32 +259,6 @@ Obj arrGet(Array restrict arr, uint64_t p)
     return d;
 }
 
-Obj arrFront(Array restrict arr)
-{
-    if (!arrSize(arr)) {
-        fprintf(stderr, "[x] %s: Illegal memory access.\n", __func__);
-        exit(EXIT_FAILURE);
-    }
-    return arr->begin[0];
-}
-
-inline
-bool arrIsEmpty(Array restrict arr)
-{
-    return (!arrSize(arr));
-}
-
-
-Obj arrBack(Array restrict arr)
-{
-    if (arrIsEmpty(arr)) {
-        fprintf(stderr, "[x] %s: Illegal memory access.\n", __func__);
-        exit(EXIT_FAILURE);
-    }
-    //return oCast(char*, arr->begin[arr->d-1 - arr->empty_db]) + arr->segment_size * (arr->od-1) + arr->element_size * (arr->oseg-1);
-    check( (arr->begin[arr->d-1] != arr->end[arr->d-1]) );
-    return oCast(char*, arr->end[arr->d-1]) - arr->element_size;
-}
 
 void arrForEach(Array restrict arr, ArrOperation op, Obj data)
 {
@@ -335,39 +276,7 @@ void arrForEach(Array restrict arr, ArrOperation op, Obj data)
 }
 
 
-uint64_t arrSize(Array restrict arr)
-{
-    return (arr->n)?(((arr->n-1) << arr->fact)+arr->oseg):(0);
-}
 
-void printStatus(Array restrict arr)
-{
-    //printf("Array of %lu elements, %lu segments, %u superblocks per segment, %u data blocks per superblock, and %shaving an extra data block. index size: %u. segment size: %lu. element size: %lu.\n", ((arr->n-1) << arr->fact) + arr->oseg, arr->n, arr->ns, arr->nd, (arr->empty_db)?(""):("not "), arr->index_size, arr->segment_size, arr->element_size); fflush(stdout);
-    printf("Array of %lu elements.\n\t%u superblocks[%u:%u]\n\t%u data blocks[%u:%u] %s\n\t%lu segments[%u:%u]\n\tindex size: %u. segment size: %lu. element size: %lu.\n",
-            ((arr->n)?(((arr->n-1) << arr->fact) + arr->oseg):(0)),
-            arr->s, arr->os, arr->ns,
-            arr->d, arr->od, arr->nd, (arr->empty_db)?("(+1)"):(""),
-            arr->n, arr->oseg, arr->nseg,
-            arr->size, arr->segment_size, arr->element_size); fflush(stdout);
-}
-/*
-void arrPrint(Array restrict arr, FILE* f, ObjPrint print)
-{
-    uint64_t i=0;
-
-    void op(uint64_t i, Obj o) {
-        ignore(i);
-        fprint
-    }
-
-    for (i=0; i+1 < arrSize(arr); i++) {
-        Obj* const o = arrGet(arr, i);
-        print(o, f); fprintf(f, ", ");
-    }
-    if (arrSize(arr)) print(arrBack(arr), f);
-    safe(fflush(f););
-}
-*/
 struct printing_kit { FILE* f; ObjPrint print; uint64_t nelem; };
 
 static inline void op(uint64_t i, Obj o, Obj k) {
@@ -384,4 +293,24 @@ void arrPrint(Array restrict arr, FILE* f, ObjPrint print)
     arrForEach(arr, op, &kit);
 
     safe(fflush(f););
+}
+
+inline
+void arrRandomSwap(Array arr, ObjRelocator relocate)
+{
+    check(arr);
+
+    const uint64_t size = arrSize(arr);
+    if (size <= 1) return;
+    const uint64_t rn = algoChooseU64(size - 1);
+    Obj a = arrGet(arr, rn);
+    Obj b = arrBack(arr);
+    char tmp[arr->element_size];
+
+    memcpy(tmp, a, arr->element_size);
+    if (relocate) relocate(tmp);
+    memcpy(a, b, arr->element_size);
+    if (relocate) relocate(a);
+    memcpy(b, tmp, arr->element_size);
+    if (relocate) relocate(b);
 }

@@ -46,6 +46,7 @@ set(math_headers
         math/frame.h
         math/frame_cls.h
         math/predicates.h
+        math/algorithms.h
     )
 
 add_library(math ${libtype} ${math_sources})
@@ -66,6 +67,7 @@ set(ads_headers
         ads/list.h
         ads/red_black_node.h
         ads/array.h
+        ads/array_cls.h
         ads/vector.h
    )
 
@@ -138,6 +140,7 @@ add_executable(test_mesh test/test_mesh.c)
 add_executable(test_array test/test_array.c)
 add_executable(test_vector test/test_vector.c)
 add_executable(test_delaunay test/test_delaunay.c)
+add_executable(test_random test/test_random.c)
 
 #target_link_libraries(test_volumetric_data m vgt math)
 #target_link_libraries(test_div m vgt math)
@@ -150,6 +153,7 @@ target_link_libraries(test_mesh vgt)
 target_link_libraries(test_array m vgt math rt)
 target_link_libraries(test_vector ads rt)
 target_link_libraries(test_delaunay vgt view)
+target_link_libraries(test_random math rt)
 
 
 

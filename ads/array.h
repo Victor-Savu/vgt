@@ -65,9 +65,12 @@ void arrPop(Array restrict arr);
 
 size_t arrElementSize(Array restrict arr);
 
-
 uint64_t arrSize(Array restrict arr);
+
 void printStatus(Array restrict arr);
+
 void arrPrint(Array restrict a, FILE* f, ObjPrint print);
+
+void arrRandomSwap(Array a, ObjRelocator relocate);
 
 #endif//ADS_ARRAY_H
