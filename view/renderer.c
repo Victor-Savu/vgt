@@ -12,6 +12,8 @@
 #include <view/camera.h>
 #include <view/graphics.h>
 
+#include <vgt/delaunay_cls.h>
+
 
 #include <GL/glut.h>
 
@@ -178,6 +180,8 @@ void cb_keyboard(unsigned char key, int x, int y)
     case '.': // next widget
         instance.widget++;
         break;
+    case 'c':
+        instance.d->render_circ ^= 1;
     default:
         if (instance.key && key == *instance.key) {
             pthread_cond_signal(&instance.key_pressed);

@@ -21,6 +21,7 @@ struct Delaunay {
     Vertex* D;
 
     pthread_mutex_t mutex;
+    bool render_circ;
 };
 
 inline
@@ -41,6 +42,7 @@ Delaunay delCreate(Vertex (*hull)[4])
     d->B = t.v[B];
     d->C = t.v[C];
     d->D = t.v[D];
+    d->render_circ = false;
 
     arrPush(d->t, &t);
 

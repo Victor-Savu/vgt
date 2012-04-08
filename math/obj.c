@@ -80,3 +80,11 @@ Obj oCopy(Obj restrict o, size_t size)// __attribute__((alloc_size(2)))
 
     return c;
 }
+
+Obj oCopyTo(Obj restrict dst, Obj restrict src, size_t size)
+{
+    check(dst);
+    check(src);
+    check(size);
+    return memcpy(dst, src, size);
+}

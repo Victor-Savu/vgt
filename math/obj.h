@@ -37,6 +37,8 @@ void oDestroy(Obj restrict o);
 */
 Obj oCopy(Obj restrict o, size_t size) __attribute__((alloc_size(2)));
 
+Obj oCopyTo(Obj restrict dst, Obj restrict src, size_t size);
+
 #define oCast(type, o)  ((type)(o))
 
 #endif//VGT_OBJ_H

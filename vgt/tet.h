@@ -13,15 +13,15 @@ typedef enum TetFacet TetVertex;
 // Hi! I'm your new neighbor. For me, you live across fx.
 // Tet y replies:
 // Nice to meet you, x! For me, you live across fy. 
-void tetConnect(Tet x, TetFace fx, Tet y, TetFace fy);
+static void tetConnect(Tet x, TetFace fx, Tet y, TetFace fy);
 
 // After visiting a neighbor, a Tet wants to know which face of
 // the neighbor leads to "home", so it consults the map
-TetFace tetReadMap(byte m, TetNeighbour n);
+static TetFace tetReadMap(byte m, TetNeighbour n);
 
 // Checks the vertices of a tetrahedron against a given vertex and returns
 // the vertex label (A, B, C, D) uppon a match and INVALID_FACET on no match
-TetVertex tetVertexLabel(Tet t, Vertex * v);
+static TetVertex tetVertexLabel(Tet t, Vertex * v);
 
 void tetRot(Tet restrict t, TetVertex v);
 
@@ -31,6 +31,8 @@ void tetRenderSolid(Tet t);
 void tetRenderWireframe(Tet t);
 void tetRenderCircumsphere(Tet t);
 
-bool tetIsLegit(Tet t);
+static Tet tetCopy(Tet restrict dest, Tet restrict src);
+
+bool tetIsLegit(const Tet t);
 
 #endif//VGT_TET_H

@@ -5,43 +5,9 @@
 #include <math/vertex.h>
 #include <math/predicates.h>
 
+
 #include <GL/glut.h>
 
-inline
-void tetConnect(Tet x, TetFace fx, Tet y, TetFace fy)
-{
-    if (x) {
-        x->n[fx] = y;
-        // erase the old note in the map for neighbor in fx
-        x->m &= 0xff ^ (3 << (fx << 1));
-        // and set the new value
-        x->m |= fy << (fx << 1);
-    }
-    if (y) {
-        y->n[fy] = x;
-        // erase the old note in the map for neighbor in fx
-        y->m &= 0xff ^ (3 << (fy << 1));
-        // and set the new value
-        y->m |= fx << (fy << 1);
-    }
-}
-
-inline
-TetFace tetReadMap(byte m, TetNeighbour n)
-{
-    return (m >> (n<<1)) & 3;
-}
-
-inline
-TetVertex tetVertexLabel(Tet t, Vertex * v)
-{
-    if (v == t->v[0]) return A;
-    if (v == t->v[1]) return B;
-    if (v == t->v[2]) return C;
-    if (v == t->v[3]) return D;
- //   conjecture(0, "Requested label of a vertex which is not part of t.");
-    return INVALID_FACET;
-}
 
 inline
 void tetRot(Tet restrict t, TetVertex v)
@@ -72,7 +38,7 @@ void tetPrint(Obj tet, FILE* f)
     vPrint(t->v[0], f); fprintf(f, ", ");
     vPrint(t->v[1], f); fprintf(f, ", ");
     vPrint(t->v[2], f); fprintf(f, ", ");
-    vPrint(t->v[3], f); fprintf(f, "]\n");
+    vPrint(t->v[3], f); fprintf(f, "]");
 }
 
 void tetRenderSolid(Tet t)
@@ -133,30 +99,39 @@ void tetRenderCircumsphere(Tet t)
     glPopMatrix();
 }
 
-bool tetIsLegit(Tet t)
+bool tetIsLegit(const Tet t)
 {
-    TetNeighbour n = A, q;
+   // if (!t) return true;
+    TetNeighbour n = A, q= A;
     for (n = A; n<=D; n++) {
         if (t->n[n]) {
-            if (t->n[n] && (t->n[n]->n[tetReadMap(t->m, n)] != t)) {
-                printf("Neighbors got confused.");
+            if (t->n[n] == t) {
+                fprintf(stderr, "Tet is its own neighbor.\n"); fflush(stderr);
+                return false;
+            }
+            if (t->n[n]->n[tetReadMap(t->m, n)] != t) {
+                fprintf(stderr, "My map is wrong.\n"); fflush(stderr);
+                printf("t [%ld]= ", (size_t)t); tetPrint(t, stdout); printf("\n");
+                printf("n [%ld]= ", (size_t)t->n[n]); tetPrint(t->n[n], stdout); printf("\n");
+                printf("t*[%ld]= ", (size_t)t->n[n]->n[tetReadMap(t->m, n)]); tetPrint(t->n[n]->n[tetReadMap(t->m, n)], stdout); printf("\n");
+                fflush(stdout);
                 return false;
             }
             for (q=A; q<=D; q++)
                 if (q != n) {
                     if (tetVertexLabel(t->n[n], t->v[q]) == INVALID_FACET) {
-                        printf("Not sharing vertices.");
+                        fprintf(stderr, "Not sharing vertices.\n"); fflush(stderr);
                         return false;
                     }
                     if (tetVertexLabel(t->n[n], t->v[q]) == tetReadMap(t->m, n)) {
-                        printf("This vertex should not be here.");
+                        fprintf(stderr, "This vertex should not be here [%d:%d:%d].\n",q, n, tetVertexLabel(t->n[n], t->v[q])); fflush(stderr);
                         return false;
                     }
                 }
         }
     }
     if (!(orient3d(*t->v[A], *t->v[B], *t->v[C], *t->v[D]) > 0)) {
-        printf("Orientation is wrong.");
+        fprintf(stderr, "Orientation is wrong.\n"); fflush(stderr);
         return false;
     }
     if (!(orient3d(*t->v[D], *t->v[B], *t->v[C], *t->v[A]) < 0)) {
@@ -165,3 +140,4 @@ bool tetIsLegit(Tet t)
     }
     return true;
 }
+
