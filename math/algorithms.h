@@ -2,6 +2,8 @@
 #define MATH_ALGORITHMS_H
 
 #include <math/types.h>
+#include <math/obj.h>
+
 #include <stdint.h>
 #include <time.h>
 #include <stdlib.h>
@@ -55,6 +57,23 @@ static inline
 uint16_t algoRandomU16(void)
 {
     return (rand() & 32767);
+}
+
+static inline
+double algoRandom(void)
+{
+    static const uint16_t s = 0x1ff0; // 1023 * 2^4
+    uint64_t r = algoRandomU64();
+    uint16_t *b = oCast(uint16_t*, &r);
+    b[0] |= s;
+    return (*oCast(double*, b)) - oCast(double, 1.0);
+}
+
+static inline
+double algoRandomDouble(double low, double high)
+{
+    if (low==high) return low;
+    return low + (high-low) * algoRandom();
 }
 
 static inline

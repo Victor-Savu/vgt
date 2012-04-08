@@ -223,9 +223,10 @@ Array ins2(Delaunay del, Tet t, Vertex* p, enum TetFacet f)
 }
 
 
-/*static
-void orient(Delaunay del, Tet t,  Vertex* p, enum TetEdge e)
+static
+Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
 {
+/*
     // see Fig #1
     // find x, y, z and t, where xy = e
     //Vertex *x, *y, *z, *t;
@@ -238,18 +239,17 @@ void orient(Delaunay del, Tet t,  Vertex* p, enum TetEdge e)
         tetRot(t, (e << (e&1))|(e&4)); // lambda BD => C | DC => B | CB => D
         e = (e^1)&3; // lambda BD => AD | DC => AC | CB => AB
     default:
+        check(0);
         break;
     }
 
-    // lambda AD => <C, B> | AC => <B, D> | AB => <D, C>
-    TetVertex base[2] = { ((e^1)<<1)|(e!=0), ((e>>1)^1)|(e<<(e&1)) };
-
     struct Tet tmp = {
-        {p, A, t->v[base[0]], t->v[base[1]]},
+    // lambda AD => <C, B> | AC => <B, D> | AB => <D, C>
+        {p, A, ((e^1)<<1)|(e!=0), ((e>>1)^1)|(e<<(e&1))},
         {0, 0, 0, 0},
         0};
 
-    Tet o = arrPush(del->t, &tmp);
+//    Tet o = arrPush(del->t, &tmp);
 //    ignore arrPush(stack, o);
 
     // lambda AD => oD | AC => oC | AB => oB
@@ -258,27 +258,17 @@ void orient(Delaunay del, Tet t,  Vertex* p, enum TetEdge e)
 
     //split(t->
 
-
     //ignore(x && y && z && t);
     // split t, create o = { }
 
-
-
     p = arrPush(del->v, p);
     Array stack = arrCreate(sizeof(Tet), 2);
-
-
-    stub;
-
-    return stack;
-}
 */
+    fprintf(stderr, "[x] ins1 is not yet implemented\n"); fflush(stderr); exit(EXIT_FAILURE);
+    return 0;
 
-static
-Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
-{
-    stub;
-    return ins3(del, t, p);
+ //   stub;
+ //   return stack;
 }
 
 static
