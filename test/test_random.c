@@ -23,6 +23,7 @@ uint32_t choose(uint32_t n) {
 void test_distribution(uint64_t n, uint32_t (*rand_algo)(uint32_t));
 void test_speed(uint64_t n);
 
+
 int main(int argc, char* argv[])
 {
 

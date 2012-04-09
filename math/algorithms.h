@@ -44,7 +44,7 @@ uint32_t algoChooseU32(uint32_t n)
 static inline
 uint64_t algoRandomU64(void)
 {
-    return (((uint64_t)algoRandomU32() << 32) | algoRandomU32());
+    return (((uint64_t)algoRandomU32() << 32) | (uint64_t) algoRandomU32());
 }
 
 static inline
@@ -62,10 +62,14 @@ uint16_t algoRandomU16(void)
 static inline
 double algoRandom(void)
 {
-    static const uint16_t s = 0x1ff0; // 1023 * 2^4
+    static const uint16_t s = 0x3ff0; // 1023 * 2^4
+//  printf("s = %u\n", s);
     uint64_t r = algoRandomU64();
+//  printf("r = %ld\n", r);
     uint16_t *b = oCast(uint16_t*, &r);
-    b[0] |= s;
+//  printf("b = <%u, %u, %u, %u>\n", b[0], b[1],b[2], b[3]);
+    b[3] = (b[3] & 0xf) | s;
+//  printf("b*= <%u, %u, %u, %u>\n", b[0], b[1],b[2], b[3]);
     return (*oCast(double*, b)) - oCast(double, 1.0);
 }
 

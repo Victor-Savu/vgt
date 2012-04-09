@@ -327,7 +327,6 @@ inline static
 void update_stack(uint64_t i, Obj o, Obj d) {
     struct flip_pair* p = d;
     if (*oCast(Tet*, o) == p->what) {
-        printf("Swapped!\n"); fflush(stdout);
         *oCast(Tet*, o) = p->with;
         check(tetIsLegit(*oCast(Tet*, o)));
     }
@@ -526,10 +525,6 @@ Array flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
     tetConnect(tc, A, tcoW, tcoWm);
 
     pthread_mutex_unlock(&del->mutex);
-
-
-
-
 
 
     arrPush(stack, &t);
@@ -857,15 +852,17 @@ bool delCheck(Delaunay d)
 {
     pthread_mutex_lock(&d->mutex);
     uint64_t ntet = arrSize(d->t);
-    uint64_t nvert = arrSize(d->v);
-    uint64_t i, j;
+    uint64_t i;
     bool result = true;
     for (i=0; i<ntet; i++) {
-        for (j=4; j<nvert; j++) {
-            Tet t = oCast(Tet, arrGet(d->t, i));
-            result &= tetIsLegit(t);
-            Vertex* v = oCast(Vertex*, arrGet(d->v, j));
-            if (insphere(*t->v[A], *t->v[B], *t->v[C], *t->v[D], *v) > 0) result = false;
+        Tet t = oCast(Tet, arrGet(d->t, i));
+        result &= tetIsLegit(t);
+        TetNeighbour n = oA;
+        for (n=A; n<=D; n++) {
+            if (t->n[n]) {
+                Vertex* v = t->n[n]->v[tetReadMap(t->m, n)];
+                if (insphere(*t->v[A], *t->v[B], *t->v[C], *t->v[D], *v) > 0) result = false;
+            }
         }
     }
     pthread_mutex_unlock(&d->mutex);

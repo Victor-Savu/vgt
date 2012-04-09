@@ -44,20 +44,36 @@ void test_speed(uint64_t n)
     clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
 
     for (i=0; i<n; i++) {
+      /*
         v[i][0] = algoRandomDouble(2.0, 4.0);
         v[i][1] = algoRandomDouble(2.0, 4.0);
         v[i][2] = algoRandomDouble(2.0, 4.0);
+      */
+        v[i][0] = algoRandom(); check(v[i][0] >=0 && v[i][0] < 1);
+        v[i][1] = algoRandom(); check(v[i][1] >=0 && v[i][1] < 1);
+        v[i][2] = algoRandom(); check(v[i][2] >=0 && v[i][2] < 1);
+  //      printf("%ld: ", i); vPrint(&v[i], stdout); printf("\n");
     }
     clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
     printf("Generating: %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
 
     clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
-    for (i=0; i<n; i++) delInsert(del, &v[i]);
+    for (i=0; i<n; i++) { delInsert(del, &v[i]); }
     clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
     printf("Inserting : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
 
+
+    bool check = true;
+    clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
+    check = delCheck(del);
+    clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
+    if (!check) { printf("Wrong delaunay.\n"); fflush(stdout);}
+    printf("Checking  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+
+
     delDestroy(del);
     oDestroy(v);
+
 }
 
 
