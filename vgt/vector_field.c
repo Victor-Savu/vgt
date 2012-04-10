@@ -9,6 +9,7 @@
 
 #include <math/obj.h>
 #include <vgt/scalar_field.h>
+#include <vgt/scalar_field_cls.h>
 
 VectorField vfCreate(   uint64_t x, uint64_t y, uint64_t z,
                         real dx, real dy, real dz)

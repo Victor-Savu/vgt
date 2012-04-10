@@ -73,4 +73,6 @@ void arrPrint(Array restrict a, FILE* f, ObjPrint print);
 
 void arrRandomSwap(Array a, ObjRelocator relocate);
 
+Obj arrToC(Array restrict arr);
+
 #endif//ADS_ARRAY_H

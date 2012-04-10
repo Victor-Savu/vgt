@@ -37,6 +37,47 @@ Mesh mClear(Mesh restrict m)
     }
     return m;
 }
+/*
+inline static
+int left_cmp(const void* a_, const void* b_) {
+    const Edge a = oCast(const Edge, a_);
+    const Edge b = oCast(const Edge, b_);
+
+    if (a->v < b->v) return -1;
+    if (a->v > b->v) return  1;
+
+    if (m->edges[a->n].v < m->edges[b->n].v) return -1;
+    if (m->edges[a->n].v > m->edges[b->n].v) return  1;
+
+    return 0;
+}
+
+inline static
+int right_cmp(const void* a_, const void* b_) {
+    const Edge a = oCast(const Edge, a_);
+    const Edge b = oCast(const Edge, b_);
+
+    if (m->edges[a->n].v < m->edges[b->n].v) return -1;
+    if (m->edges[a->n].v > m->edges[b->n].v) return  1;
+
+    if (a->v < b->v) return -1;
+    if (a->v > b->v) return  1;
+
+    return 0;
+}
+
+inline static
+int cross_cmp(const Edge a, const Edge b) {
+
+    if (a->v < m->edges[b->n].v) return -1;
+    if (a->v > m->edges[b->n].v) return  1;
+
+    if (m->edges[a->n].v < b->v) return -1;
+    if (m->edges[a->n].v > b->v) return  1;
+
+    return 0;
+}
+*/
 
 Mesh mReadOff(Mesh restrict m, const char* restrict filename)
 {
@@ -204,7 +245,7 @@ Mesh mReadOff(Mesh restrict m, const char* restrict filename)
 
     oDestroy(left);
     oDestroy(right);
-    
+
     fclose(f);
 
     return m;

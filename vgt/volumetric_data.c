@@ -179,8 +179,8 @@ vdDestroy(VolumetricData v)
     free(v);
 }
 
-
-static char* strip(char* line)
+inline static
+char* strip(char* line)
 {
     if (!line) return 0;
     char* c = line;

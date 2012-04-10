@@ -32,17 +32,6 @@ ScalarField sfCopy(ScalarField s);
 void sfDestroy(ScalarField s);
 
 /*
-   Accesses an element of the scalar field.
-*/
-real* sfAt(ScalarField s, uint64_t x, uint64_t y, uint64_t z);
-
-/*
-   Access an element of the scalar field relative to another element.
-*/
-real* sfRel(ScalarField s_field, real* e, int x, int y, int z);
-
-
-/*
    Compute the gradient of a scalar field
 */
 VectorField sfGradient(ScalarField field);
@@ -52,5 +41,9 @@ VectorField sfGradient(ScalarField field);
 */
 ScalarField sfLaplacian(ScalarField field);
 
+/*
+   Computes the interpolated value of a point in the scalar field
+*/
+real sfValue(ScalarField field, real x, real y, real z);
 
 #endif//VGT_SCALAR_FIELD_H

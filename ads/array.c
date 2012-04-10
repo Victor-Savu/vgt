@@ -314,3 +314,21 @@ void arrRandomSwap(Array arr, ObjRelocator relocate)
     memcpy(b, tmp, arr->element_size);
     if (relocate) relocate(b);
 }
+
+struct dest_c_array { char* a; size_t elem_size; };
+
+inline static
+void copy_elem(uint64_t i, Obj o, Obj d) {
+    const struct dest_c_array* dest = oCast(struct dest_c_array*, d);
+    oCopyTo( dest->a + i * dest->elem_size, o,dest->elem_size);
+}
+
+Obj arrToC(Array restrict arr)
+{
+    struct dest_c_array c = {
+        .a = oCreate(arr->element_size * arrSize(arr)),
+        .elem_size = arr->element_size
+    };
+    arrForEach(arr, copy_elem, &c);
+    return c.a;
+}

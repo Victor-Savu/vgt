@@ -121,30 +121,9 @@ void sfDestroy(ScalarField s)
     free(s);
 }
 
-
-real* sfAt(ScalarField s, uint64_t x, uint64_t y, uint64_t z)
-{
-    if (x > s->nx || y > s->ny || z > s->nz) {
-        fprintf(stderr, "[x] Scalar field access out of bounds.\n");
-        exit(EXIT_FAILURE);
-    }
-    return s->data + z * s->step_z + y * s->step_y + x * s->step_x;
-}
-
-real* sfRel(ScalarField s_field, real* e, int x, int y, int z)
-{
-    // TODO: Check preconditions & access range
-
-    //
-
-    return e + (int)s_field->step_x * x + (int)s_field->step_y * y + (int)s_field->step_z * z;
-}
-
 VectorField sfGradient(ScalarField field)
 {
-    // TODO: Check preconditions
-
-    //
+    check(field);
 
     VectorField grad = vfCreate(field->nx, field->ny, field->nz, field->dx, field->dy, field->dz);
 
@@ -246,4 +225,37 @@ ScalarField sfLaplacian(ScalarField field)
     }
 
     return lapl;
+}
+
+
+real sfValue(ScalarField field, real x, real y, real z)
+{
+    check(field);
+    check(x > 0 && x < field->nx * field->dx);
+    check(y > 0 && y < field->ny * field->dy);
+    check(z > 0 && z < field->nz * field->dz);
+
+    x /= field->dx; y /= field->dy; z /= field->dz;
+
+    real* cell = sfAt(field, oCast(uint64_t, x), oCast(uint64_t, y), oCast(uint64_t, z));
+    x -= (uint64_t)x;  y -= (uint64_t)y;  z -= (uint64_t)z;
+
+    const real s000 = *cell; cell = sfRel(field, cell, 1, 0, 0);
+    const real s100 = *cell; cell = sfRel(field, cell, 0, 1, 0);
+    const real s110 = *cell; cell = sfRel(field, cell,-1, 0, 0);
+    const real s010 = *cell; cell = sfRel(field, cell, 0, 0, 1);
+    const real s011 = *cell; cell = sfRel(field, cell, 1, 0, 0);
+    const real s111 = *cell; cell = sfRel(field, cell, 0,-1, 0);
+    const real s101 = *cell; cell = sfRel(field, cell,-1, 0, 0);
+    const real s001 = *cell;
+
+    const real z00 = s001 * z + s000 * (1-z);
+    const real z10 = s101 * z + s100 * (1-z);
+    const real z01 = s011 * z + s010 * (1-z);
+    const real z11 = s111 * z + s110 * (1-z);
+
+    const real y0 = z01 * y + z00 * (1-y);
+    const real y1 = z11 * y + z10 * (1-y);
+
+    return (y1 * x + y0 * (1-x));
 }

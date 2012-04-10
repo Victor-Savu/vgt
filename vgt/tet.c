@@ -65,6 +65,8 @@ void tetRenderWireframe(Tet t)
 
 void tetRenderCircumsphere(Tet t)
 {
+    // Reference: http://cgafaq.info/wiki/Tetrahedron_Circumsphere
+
     // relative positions of vertices B, C, and D with respect to A
     Vertex rB, rC, rD;
 
