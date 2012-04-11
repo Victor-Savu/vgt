@@ -49,7 +49,7 @@ ScalarField sfLaplacian(ScalarField field);
 /*
    Computes the interpolated value of a point in the scalar field
 */
-real sfValue(ScalarField field, real x, real y, real z);
+real sfValue(const ScalarField const restrict field, real x, real y, real z);
 
 /*
    Accesses an element of the scalar field.
@@ -64,17 +64,17 @@ real* sfRelX(const ScalarField const restrict s_field, real* restrict e, int x);
 /*
    Access an element of the scalar field relative to another element in the Y direction.
 */
-real* sfRelY(const ScalarField restrict s_field, real* restrict e, int y);
+real* sfRelY(const ScalarField const restrict s_field, real* restrict e, int y);
 
 /*
    Access an element of the scalar field relative to another element in the Z direction.
 */
-real* sfRelZ(const ScalarField restrict s_field, real* restrict e, int z);
+real* sfRelZ(const ScalarField const restrict s_field, real* restrict e, int z);
 
 /*
    Access an element of the scalar field relative to another element.
 */
-real* sfRel(const ScalarField restrict s_field, real* restrict e, int x, int y, int z);
+real* sfRel(const ScalarField const restrict s_field, real* restrict e, int x, int y, int z);
 
 /*
    Find the global minimum value and its position.
