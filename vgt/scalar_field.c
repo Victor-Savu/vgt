@@ -70,7 +70,7 @@ bool sfReadRaw(ScalarField s, const char* fname)
 
     uint64_t nelem = s->nx * s->ny * s->nz;
 
-    char* buffer = malloc(nelem * sizeof (char));
+    uint8_t* buffer = malloc(nelem * sizeof (uint8_t));
     if (!buffer) {
         fprintf(stderr, "[x] Out of memory!\n");
         fclose(fin);
@@ -84,13 +84,61 @@ bool sfReadRaw(ScalarField s, const char* fname)
         return false;
     }
 
-    char *c = 0;
+    uint8_t *c = 0;
     real *d = 0;
-    for (c = buffer, d = s->data; c < buffer + nelem; c++, d++) *d = (real) *c / 255.0;
+    for (c = buffer, d = s->data; c < buffer + nelem; c++, d++) *d = oCast(real, *c) / 255.0;
 
     free(buffer);
 
     fclose(fin);
+
+    return true;
+}
+
+bool sfWriteRaw(ScalarField s, const char* fname)
+{
+    if (!s) {
+        fprintf(stderr, "[x] Tried to write RAW data to file [%s] from a null scalar field.\n", fname);
+        return false;
+    }
+
+    FILE* fout = fopen(fname, "wb");
+    if (!fout) {
+       fprintf(stderr, "[x] File [%s]: %s\n", fname, strerror(errno));
+       return false;
+    }
+
+    uint64_t nelem = s->nx * s->ny * s->nz;
+
+    uint8_t* buffer = malloc(nelem * sizeof (char));
+    if (!buffer) {
+        fprintf(stderr, "[x] Out of memory!\n");
+        fclose(fout);
+        return false;
+    }
+
+    uint8_t *c = 0;
+    real *d = 0;
+
+    real min = *sfMin(s);
+    real ampl = *sfMax(s) - min;
+    if (ampl == 0) ampl = 1.0;
+
+    for (c = buffer, d = s->data; c < buffer + nelem; c++, d++) {
+        *c = (int)(((*d - min) * 255.0)/ampl);
+    }
+
+
+    uint64_t bytes_written = 0;
+    if ((bytes_written = fwrite(buffer, sizeof(char), nelem, fout) ) != nelem) {
+        fprintf(stderr, "Wrote only [%lu] out of [%lu] bytes to file [%s].\n", bytes_written, nelem, fname);
+        fclose(fout);
+        return false;
+    }
+
+    free(buffer);
+
+    fclose(fout);
 
     return true;
 }
@@ -199,27 +247,27 @@ ScalarField sfLaplacian(ScalarField field)
 
     ScalarField lapl = sfCreate(field->nx, field->ny, field->nz, field->dx, field->dy, field->dz);
 
-    real* s = sfAt(lapl, 0, 0, 0);
-    real* l = sfAt(field, 0, 0, 0);
+    real* s = sfAt(field, 0, 0, 0);
+    real* l = sfAt(lapl, 0, 0, 0);
 
     uint64_t x, y, z;
     for (z = 0; z < field->nz; z++) {
         for (y = 0; y < field->ny; y++) {
             for (x = 0; x < field->nx; x++)
             {
-                *l = -6.0 * (*s);
+                if (x != 0) *l += (*sfRelX(field, s, -1)) - (*s);
+                if (x != field->nx -1) *l += (*sfRelX(field, s, 1)) - (*s);
 
-                if (x != 0) *l += (*sfRel(field, s, -1, 0, 0));
-                if (x != field->nx -1) *l += (*sfRel(field, s, 1, 0, 0));
+                if (y != 0) *l += (*sfRelY(field, s, -1)) - (*s);
+                if (y != field->ny -1) *l += (*sfRelY(field, s, 1)) - (*s);
 
-                if (y != 0) *l += (*sfRel(field, s,  0,-1, 0));
-                if (y != field->ny -1) *l += (*sfRel(field, s, 0, 1, 0));
+                if (z != 0) *l += (*sfRelZ(field, s, -1)) - (*s);
+                if (z != field->nz -1) *l += (*sfRelZ(field, s, 1)) - (*s);
 
-                if (z != 0) *l += (*sfRel(field, s,  0, 0,-1));
-                if (z != field->nz -1) *l += (*sfRel(field, s, 0, 0, 1));
 
-                l = sfRel(field, l, 1, 0, 0);
-                s = sfRel(lapl, s, 1, 0, 0);
+
+                s = sfRelX(field, s, 1);
+                l = sfRelX(lapl, l, 1);
             }
         }
     }
@@ -228,12 +276,12 @@ ScalarField sfLaplacian(ScalarField field)
 }
 
 
-real sfValue(ScalarField field, real x, real y, real z)
+real sfValue(ScalarField restrict field, real x, real y, real z)
 {
     check(field);
-    check(x > 0 && x < field->nx * field->dx);
-    check(y > 0 && y < field->ny * field->dy);
-    check(z > 0 && z < field->nz * field->dz);
+    check(x >= 0 && oCast(uint64_t, x * field->dx) < (field->nx-1) );
+    check(y >= 0 && oCast(uint64_t, y * field->dy) < (field->ny-1) );
+    check(z >= 0 && oCast(uint64_t, z * field->dz) < (field->nz-1) );
 
     x /= field->dx; y /= field->dy; z /= field->dz;
 
@@ -259,3 +307,71 @@ real sfValue(ScalarField field, real x, real y, real z)
 
     return (y1 * x + y0 * (1-x));
 }
+
+
+inline
+real* sfAt(const ScalarField restrict s, uint64_t x, uint64_t y, uint64_t z)
+{
+    return sfRel(s, s->data, x, y, z);
+}
+
+inline
+real* sfRelX(const ScalarField restrict field, real* restrict e, int x)
+{
+    check(field);
+    e += field->step_x * x;
+    check(e >= field->data && e <= field->data + field->nz * field->step_z);
+    return e;
+}
+
+inline
+real* sfRelY(const ScalarField restrict field, real* restrict e, int y)
+{
+    check(field);
+    e += (int)field->step_y * y;
+    check(e >= field->data && e <= field->data + field->nz * field->step_z);
+    return e;
+}
+
+inline
+real* sfRelZ(const ScalarField restrict field, real* restrict e, int z)
+{
+    check(field);
+    e += (int)field->step_z * z;
+    check(e >= field->data && e <= field->data + field->nz * field->step_z);
+    return e;
+}
+
+inline
+real* sfRel(const ScalarField restrict field, real* restrict e, int x, int y, int z)
+{
+    return sfRelX(field, sfRelY(field, sfRelZ(field, e, z), y), x);
+}
+
+
+inline
+real* sfMin(const ScalarField const restrict s_field)
+{
+    real* m = s_field->data;
+    real* i = s_field->data;
+    uint64_t nelem = s_field->nx * s_field->ny * s_field->nz;
+    while (nelem--) {
+        if (*i < *m) m = i;
+        i = sfRelX(s_field, i, 1);
+    }
+    return m;
+}
+
+inline
+real* sfMax(const ScalarField const restrict s_field)
+{
+    real* m = s_field->data;
+    real* i = s_field->data;
+    uint64_t nelem = s_field->nx * s_field->ny * s_field->nz;
+    while (nelem--) {
+        if (*i > *m) m = i;
+        i = sfRelX(s_field, i, 1);
+    }
+    return m;
+}
+

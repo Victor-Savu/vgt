@@ -22,8 +22,7 @@ VolumetricData
 vdCreate(const char* filename)
 {
     VolumetricData v = oCreate(sizeof (struct VolumetricData));
-    bool b = vdRead(v, filename);
-    check(b);
+    if (!vdRead(v, filename)) {oDestroy(v); return 0;}
     return v;
 }
 

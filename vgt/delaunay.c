@@ -431,21 +431,21 @@ Array flip32(Delaunay del, Tet t, TetFace f, Array stack)
 static
 Array flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
 {
-    Tet restrict tb = t->n[tV];
+    Tet tb = t->n[tV];
     if (!tb) {
         fprintf(stderr, "[!] No tb.\n"); fflush(stderr);
         arrPush(stack, &t);
         return stack;
     }
 
-    Tet restrict tc = tb->n[oA];
+    Tet tc = tb->n[oA];
     if (!tc) {
         fprintf(stderr, "[!] No tc.\n"); fflush(stderr);
         arrPush(stack, &t);
         return stack;
     }
 
-    Tet restrict ta = t->n[oA];
+    Tet ta = t->n[oA];
 
     if (tc != ta->n[tetVertexLabel(ta, t->v[tV])]) {
      //   fprintf(stderr, "[!] tc and ta are not neighbors.\n"); fflush(stderr);
@@ -474,7 +474,7 @@ Array flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
 
     Vertex* const U = t->v[A];
     Vertex* const V = t->v[tV];
-    Vertex* const W = t->v[tW];
+    Vertex* const W = t->v[tW]; ignore W;
     Vertex* const X = ta->v[taX];
     Vertex* const Y = ta->v[taY];
     Vertex* const Z = tb->v[tbZ];
@@ -954,4 +954,54 @@ void delDisplay(Delaunay d, int tet)
 
     pthread_mutex_unlock(&d->mutex);
 
+}
+
+inline
+Delaunay delCreate(Vertex (*hull)[4])
+{
+    Delaunay d = oCreate(sizeof (struct Delaunay));
+    d->v = arrCreate(sizeof (Vertex), 2);
+    d->t = arrCreate(sizeof (struct Tet), 2);
+
+    struct Tet t = {
+        {   arrPush(d->v, &(*hull)[0]),
+            arrPush(d->v, &(*hull)[1]),
+            arrPush(d->v, &(*hull)[2]),
+            arrPush(d->v, &(*hull)[3]) },
+        {0, 0, 0, 0}, 0 };
+
+    d->A = t.v[A];
+    d->B = t.v[B];
+    d->C = t.v[C];
+    d->D = t.v[D];
+    d->render_circ = false;
+
+    arrPush(d->t, &t);
+
+    pthread_mutex_init(&d->mutex, 0);
+
+    return d;
+}
+
+inline
+void delDestroy(Delaunay restrict d)
+{
+    arrDestroy(d->v);
+    arrDestroy(d->t);
+    pthread_mutex_destroy(&d->mutex);
+    oDestroy(d);
+}
+
+
+inline
+bool delIsBounding(Delaunay restrict del, Tet restrict t) {
+    return delIsOnBoundary(del, t->v[0])
+        || delIsOnBoundary(del, t->v[1])
+        || delIsOnBoundary(del, t->v[2])
+        || delIsOnBoundary(del, t->v[3]);
+}
+
+inline
+bool delIsOnBoundary(Delaunay restrict del, Vertex* v) {
+    return (v == del->A) || (v == del->B) || (v == del->C) || (v == del->D);
 }

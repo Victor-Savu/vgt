@@ -37,7 +37,7 @@ void arrDestroy(Array restrict arr);
 /*
   Create a deep copy of an array.
 */
-Array arrCopy(Array restrict arr);
+Array arrCopy(const Array restrict arr);
 
 /*
    Retrieves an element from the array.
@@ -52,27 +52,28 @@ Obj arrGet(Array restrict arr, uint64_t pos);
 Obj arrFront(Array restrict arr);
 Obj arrBack(Array restrict arr);
 
-void arrForEach(Array restrict arr, ArrOperation op, Obj data);
+void arrForEach(Array restrict arr, const ArrOperation op, Obj data);
 
-bool arrIsEmpty(Array restrict arr);
+bool arrIsEmpty(const Array restrict arr);
 
 
-Obj arrSet(Array restrict arr, Obj restrict o, uint64_t pos);
+Obj arrSet(Array restrict arr, const Obj restrict o, uint64_t pos);
 
 #define arrPush(array, object)   arrPushSafe((array), (object), sizeof (*(object)), __FILE__, __func__, __LINE__)
-Obj arrPushSafe(Array restrict arr, Obj restrict o, size_t objsize, const char* filename, const char* funcname, int lineno);
+Obj arrPushSafe(Array restrict arr, const Obj restrict o, size_t objsize, const char* restrict filename, const char* restrict funcname, int lineno);
+
 void arrPop(Array restrict arr);
 
-size_t arrElementSize(Array restrict arr);
+size_t arrElementSize(const Array restrict arr);
 
-uint64_t arrSize(Array restrict arr);
+uint64_t arrSize(const Array restrict arr);
 
-void printStatus(Array restrict arr);
+void printStatus(const Array restrict arr);
 
-void arrPrint(Array restrict a, FILE* f, ObjPrint print);
+void arrPrint(const Array restrict a, FILE* restrict f, const ObjPrint print);
 
-void arrRandomSwap(Array a, ObjRelocator relocate);
+void arrRandomSwap(Array restrict a, const ObjRelocator relocate);
 
-Obj arrToC(Array restrict arr);
+Obj arrToC(const Array restrict arr);
 
 #endif//ADS_ARRAY_H

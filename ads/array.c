@@ -260,7 +260,7 @@ Obj arrGet(Array restrict arr, uint64_t p)
 }
 
 
-void arrForEach(Array restrict arr, ArrOperation op, Obj data)
+void arrForEach(Array restrict arr, const ArrOperation op, Obj data)
 {
     uint64_t i = 0;
     Obj* restrict datablock_begin = arr->begin;
@@ -285,7 +285,7 @@ static inline void op(uint64_t i, Obj o, Obj k) {
     kit->print(o, kit->f);
     if (i+1 != kit->nelem) fprintf(kit->f, ", ");
 }
-void arrPrint(Array restrict arr, FILE* f, ObjPrint print)
+void arrPrint(const Array restrict arr, FILE* restrict f, const ObjPrint print)
 {
     check(arr && f && print);
 
@@ -296,7 +296,7 @@ void arrPrint(Array restrict arr, FILE* f, ObjPrint print)
 }
 
 inline
-void arrRandomSwap(Array arr, ObjRelocator relocate)
+void arrRandomSwap(Array restrict arr, const ObjRelocator relocate)
 {
     check(arr);
 
@@ -323,7 +323,7 @@ void copy_elem(uint64_t i, Obj o, Obj d) {
     oCopyTo( dest->a + i * dest->elem_size, o,dest->elem_size);
 }
 
-Obj arrToC(Array restrict arr)
+Obj arrToC(const Array restrict arr)
 {
     struct dest_c_array c = {
         .a = oCreate(arr->element_size * arrSize(arr)),
@@ -332,3 +332,56 @@ Obj arrToC(Array restrict arr)
     arrForEach(arr, copy_elem, &c);
     return c.a;
 }
+
+inline
+size_t arrElementSize(const Array restrict arr)
+{
+    return arr->element_size;
+}
+
+
+inline
+Obj arrFront(Array restrict arr)
+{
+    if (!arrSize(arr)) {
+        fprintf(stderr, "[x] %s: Illegal memory access.\n", __func__);
+        exit(EXIT_FAILURE);
+    }
+    return arr->begin[0];
+}
+
+inline
+bool arrIsEmpty(const Array restrict arr)
+{
+    return (!arrSize(arr));
+}
+
+inline
+Obj arrBack(Array restrict arr)
+{
+    if (arrIsEmpty(arr)) {
+        fprintf(stderr, "[x] %s: Illegal memory access.\n", __func__);
+        exit(EXIT_FAILURE);
+    }
+    //return oCast(char*, arr->begin[arr->d-1 - arr->empty_db]) + arr->segment_size * (arr->od-1) + arr->element_size * (arr->oseg-1);
+    check( (arr->begin[arr->d-1] != arr->end[arr->d-1]) );
+    return oCast(char*, arr->end[arr->d-1]) - arr->element_size;
+}
+
+inline
+uint64_t arrSize(const Array restrict arr)
+{
+    return (arr->n)?(((arr->n-1) << arr->fact)+arr->oseg):(0);
+}
+
+inline
+void printStatus(const Array restrict arr)
+{
+    printf("Array of %lu elements.\n\t%u superblocks[%u:%u]\n\t%u data blocks[%u:%u] %s\n\t%lu segments[%u:%u]\n\tindex size: %u. segment size: %lu. element size: %lu.\n",
+            ((arr->n)?(((arr->n-1) << arr->fact) + arr->oseg):(0)),
+            arr->s, arr->os, arr->ns,
+            arr->d, arr->od, arr->nd, (arr->empty_db)?("(+1)"):(""),
+            arr->n, arr->oseg, arr->nseg,
+            arr->size, arr->segment_size, arr->element_size); fflush(stdout);
+}
+

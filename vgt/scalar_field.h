@@ -16,6 +16,11 @@ ScalarField sfCreate(uint64_t x, uint64_t y, uint64_t z, real dx, real dy, real 
 bool sfReadRaw(ScalarField s, const char* fname);
 
 /*
+   Writes the data to a raw file
+*/
+bool sfWriteRaw(ScalarField s, const char* fname);
+
+/*
    Clears the contents of the scalar field structure.
 
    If the data is owned by the structure, it is deallocated, and all
@@ -45,5 +50,40 @@ ScalarField sfLaplacian(ScalarField field);
    Computes the interpolated value of a point in the scalar field
 */
 real sfValue(ScalarField field, real x, real y, real z);
+
+/*
+   Accesses an element of the scalar field.
+*/
+real* sfAt(ScalarField s, uint64_t x, uint64_t y, uint64_t z);
+
+/*
+   Access an element of the scalar field relative to another element in the X direction.
+*/
+real* sfRelX(const ScalarField const restrict s_field, real* restrict e, int x);
+
+/*
+   Access an element of the scalar field relative to another element in the Y direction.
+*/
+real* sfRelY(const ScalarField restrict s_field, real* restrict e, int y);
+
+/*
+   Access an element of the scalar field relative to another element in the Z direction.
+*/
+real* sfRelZ(const ScalarField restrict s_field, real* restrict e, int z);
+
+/*
+   Access an element of the scalar field relative to another element.
+*/
+real* sfRel(const ScalarField restrict s_field, real* restrict e, int x, int y, int z);
+
+/*
+   Find the global minimum value and its position.
+*/
+real* sfMin(const ScalarField restrict s_field);
+
+/*
+   Find the global maximum value and its position.
+*/
+real* sfMax(const ScalarField restrict s_field);
 
 #endif//VGT_SCALAR_FIELD_H
