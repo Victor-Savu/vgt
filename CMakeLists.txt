@@ -82,6 +82,7 @@ set(vgt_sources
         vgt/delaunay.c
         vgt/tet.c
         vgt/victor.c
+        vgt/marching_tets.c
    )
 
 set(vgt_headers
@@ -131,29 +132,28 @@ install(TARGETS vgt math view ads DESTINATION ${INSTALL_LIB_DIR})
 
 #add_executable(test_volumetric_data test/test_volumetric_data.c)
 #add_executable(test_div test/test_div.c)
-add_executable(test_scalar_field test/test_scalar_field.c)
+#add_executable(test_scalar_field test/test_scalar_field.c)
 #add_executable(test_vector_field test/test_vector_field.c)
 #add_executable(test_lapl test/test_lapl.c)
 #add_executable(test_list test/test_list.c)
-add_executable(test_view test/test_view.c)
-add_executable(test_mesh test/test_mesh.c)
-add_executable(test_array test/test_array.c)
-add_executable(test_vector test/test_vector.c)
-add_executable(test_delaunay test/test_delaunay.c)
-add_executable(test_random test/test_random.c)
+#add_executable(test_view test/test_view.c)
+#add_executable(test_mesh test/test_mesh.c)
+#add_executable(test_array test/test_array.c)
+#add_executable(test_vector test/test_vector.c)
+#add_executable(test_delaunay test/test_delaunay.c)
+#add_executable(test_random test/test_random.c)
+add_executable(test_mtets test/test_marching_tets.c)
 
 #target_link_libraries(test_volumetric_data m vgt math)
 #target_link_libraries(test_div m vgt math)
-target_link_libraries(test_scalar_field m vgt)
+#target_link_libraries(test_scalar_field m vgt)
 #target_link_libraries(test_vector_field m vgt math)
 #target_link_libraries(test_lapl m vgt math)
 #target_link_libraries(test_list m vgt math)
-target_link_libraries(test_view view)
-target_link_libraries(test_mesh vgt)
-target_link_libraries(test_array m vgt math rt)
-target_link_libraries(test_vector ads rt)
-target_link_libraries(test_delaunay vgt view)
-target_link_libraries(test_random math rt)
-
-
-
+#target_link_libraries(test_view view)
+#target_link_libraries(test_mesh vgt)
+#target_link_libraries(test_array m vgt math rt)
+#target_link_libraries(test_vector ads rt)
+#target_link_libraries(test_delaunay vgt view)
+#target_link_libraries(test_random math rt)
+target_link_libraries(test_mtets vgt view)
