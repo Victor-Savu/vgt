@@ -7,7 +7,7 @@
 
 #define false   (0)
 #define true    (1)
-#define eps     (1e-9)
+#define eps     (1e-15)
 
 #ifndef M_PI
 #define M_PI    (3.14159265358979323846)

@@ -70,7 +70,7 @@ Mesh isoMarchingTets(   const ScalarField const restrict data,
 
     Delaunay del = delCreate(&bound);
 
-    tetPrint(arrFront(del->t), stdout); printf("\n");
+   // tetPrint(arrFront(del->t), stdout); printf("\n");
 
     Renderer r = rCreate("Marching Tets");
 
@@ -78,12 +78,14 @@ Mesh isoMarchingTets(   const ScalarField const restrict data,
 
     rDisplayDelaunay(r, del);
 
+
    // qPushArray(q, delInsert(del, &vert[0]));
     uint8_t i = 0;
     char key=13;
     for (i=0; i<8; i++) {
         rWaitKey(r, &key);
         qPushArray(q, delInsert(del, &vert[i]));
+        printf("%s Delaunay tetrahedrization after inserting vertex #%d.\n", (delCheck(del))?("Correct"):("Incorrect"), i);
     }
     rWaitKey(r, &key);
 //  qPushArray(q, delInsert(del, &vert[2]));
@@ -95,8 +97,8 @@ Mesh isoMarchingTets(   const ScalarField const restrict data,
 
     while (!qIsEmpty(q))
     {
-        Tet* t = qFront(q);
-        tetPrint(*t, stdout); printf("\n");
+      //  Tet* t = qFront(q);
+      //  tetPrint(*t, stdout); printf("\n");
         qPop(q);
     }
 

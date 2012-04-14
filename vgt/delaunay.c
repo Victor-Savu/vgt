@@ -8,6 +8,7 @@
 #include <GL/glut.h>
 #include <unistd.h>
 #include <string.h>
+#include <math.h>
 
 static
 Array ins3(Delaunay del, Tet t, Vertex* p)
@@ -81,16 +82,16 @@ Array ins2(Delaunay del, Tet t, Vertex* p, enum TetFacet f)
     pthread_mutex_lock(&del->mutex);
     p = arrPush(del->v, p);
 
-    printf("f = %d\n", f);
-    printf("t = "); tetPrint(t, stdout); printf("\n"); fflush(stdout);
+  //  printf("f = %d\n", f);
+  //  printf("t = "); tetPrint(t, stdout); printf("\n"); fflush(stdout);
 
     if (f == oA) { // rotate around D
         tetRot(t, D);
         f = oB;
     }
 
-    printf("f = %d\n", f);
-    printf("t = "); tetPrint(t, stdout); printf("\n"); fflush(stdout);
+ //   printf("f = %d\n", f);
+ //   printf("t = "); tetPrint(t, stdout); printf("\n"); fflush(stdout);
 
     check(tetIsLegit(t));
 
@@ -147,9 +148,9 @@ Array ins2(Delaunay del, Tet t, Vertex* p, enum TetFacet f)
         tetConnect(xx, oD, yy, oB);
 
 
-        printf("g = %d\n", g);
-        printf("o = "); tetPrint(o, stdout); printf("\n"); fflush(stdout);
-        printf("p = "); vPrint(p, stdout); printf("\n"); fflush(stdout);
+ //       printf("g = %d\n", g);
+ //       printf("o = "); tetPrint(o, stdout); printf("\n"); fflush(stdout);
+ //       printf("p = "); vPrint(p, stdout); printf("\n"); fflush(stdout);
         o->v[A] = p;
 
         if (t->v[(f+3-(f==oB))&3] == o->v[(g+1+(g==oD))&3]) {
@@ -236,17 +237,14 @@ Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
         case CB:
             tetRot(t, ((e&1)<<1)|((e&4)>>2)); // lambda BD => C | DC => B | CB => D
             e = (((e&1)^1)<<1) | (e==5); // lambda BD => AB | DC => AD | CB => AC
-        case AC:
-            tetRot(t, A);
-            e = AD;
-        case AD:
+        default:
+            if (e == AB) break;
+            if (e == AD) { tetRot(t, A); e = AC; }
+            check (e == AC);
+
             tetRot(t, A);
             e = AB;
-            break;
-        case AB:
-            break;
-        default:
-            check(0);
+
             break;
         }
 
@@ -260,10 +258,10 @@ Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
         Vertex* b = t->v[B];
 
         t = t->n[D];
-        TetVertex A = tetVertexLabel(t, a);
-        TetVertex B = tetVertexLabel(t, b);
+        TetVertex lblA = tetVertexLabel(t, a);
+        TetVertex lblB = tetVertexLabel(t, b);
 
-        switch (A+B)
+        switch (lblA+lblB)
         {
         case 1:
             e = AB;
@@ -272,7 +270,7 @@ Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
             e = AC;
             break;
         case 3:
-            e = AD + 2 * (A && B);
+            e = AD + 2 * (lblA && lblB);
             break;
         case 4:
             e = BD;
@@ -286,49 +284,32 @@ Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
 
     } while (flag != t);
 
-    Vertex AP;  vSub(p, t->v[A], &AP);
-    Vertex BP;  vSub(p, t->v[B], &BP);
-    check(vDot(&AP, &BP) == 0);
+    Vertex AP;  vNormalizeI(vSub(p, t->v[A], &AP));
+    Vertex BP;  vNormalizeI(vSub(p, t->v[B], &BP));
+    check(fabs(vDot(&AP, &BP)) == 1);
 
-    Vertex* a = t->v[A];
-    Vertex* b = t->v[B];
+    Array stack = arrCreate(sizeof (Tet), 1);
 
     do {
-        check(t->v[A] == a);
-        check(t->v[B] == b);
+        struct Tet tmp = {{p, t->v[A], t->v[D], t->v[C]}, {0, 0, 0, 0}, 0};
+        Tet o = arrPush(del->t, &tmp);
+        tetConnect(o, A, t->n[B], tetReadMap(t->m, B));
+        tetConnect(o, B, t, B);
+        t->v[A] = p;
+
+        arrPush(stack, &o);
+        arrPush(stack, &t);
+
         t = t->n[D];
     } while (flag != t);
 
-    conjecture(0, "All is ok!\n");
+    do {
+        tetConnect(t->n[B], C, t->n[D]->n[B], D);
+        t = t->n[D];
+    } while (flag != t);
 
-
-/*
-    struct Tet tmp = {
-    // lambda AD => <C, B> | AC => <B, D> | AB => <D, C>
-        {p, A, ((e^1)<<1)|(e!=0), ((e>>1)^1)|(e<<(e&1))},
-        {0, 0, 0, 0},
-        0};
-
-//    Tet o = arrPush(del->t, &tmp);
-//    ignore arrPush(stack, o);
-
-    // lambda AD => oD | AC => oC | AB => oB
-    tetConnect(o, oA, t->n[e^3], tetReadMap(t->m, e^3));
-    tetConnect(o, e^3, t, e^3);
-
-    //split(t->
-
-    //ignore(x && y && z && t);
-    // split t, create o = { }
-
-    p = arrPush(del->v, p);
-    Array stack = arrCreate(sizeof(Tet), 2);
-
-    fprintf(stderr, "[x] ins1 is not yet implemented\n"); fflush(stderr); exit(EXIT_FAILURE);
-    return 0;
-*/
     stub;
-    return 0;
+    return stack;
 }
 
 static
@@ -933,19 +914,9 @@ void delDisplay(Delaunay d, int tet)
     glPointSize(10.0);
     glBegin(GL_POINTS);
 
-    glColor4f(1.0, 0.0, 0.0, 1.0);
-    end = arrSize(d->v);
-    for (i=0; i<end; i++) {
-        Vertex* v = oCast(Vertex*, arrGet(d->v, i));
-        real o = insphere(*t_sel->v[0], *t_sel->v[1], *t_sel->v[2], *t_sel->v[3], *v);
-        if (o >= 0) {
-            glColor4f(0.0, 0.0, 1.0, 1.0);
-            glVertex3v(*v);
-            glColor4f(1.0, 0.0, 0.0, 1.0);
-        }
-    }
 
-    if (t_sel->n[oA] && insphere(*t_sel->v[0], *t_sel->v[1], *t_sel->v[2], *t_sel->v[3], *t_sel->n[oA]->v[tetReadMap(t_sel->m, A)]) >= 0) {
+    glColor4f(1.0, 0.0, 0.0, 1.0);
+    if (t_sel->n[oA] && insphere(*t_sel->v[0], *t_sel->v[1], *t_sel->v[2], *t_sel->v[3], *t_sel->n[oA]->v[tetReadMap(t_sel->m, A)]) > 0) {
         glVertex3v(*t_sel->n[oA]->v[tetReadMap(t_sel->m, A)]);
     }
 

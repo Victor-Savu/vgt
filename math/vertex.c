@@ -126,7 +126,7 @@ Vertex* vNormalizeI(Vertex* restrict a)
         fprintf(stderr, "Normalizing zero vector.\n"); fflush(stderr);
         exit(EXIT_FAILURE);
     }
-    return vScaleI(a, 1.0/eps);
+    return vScaleI(a, 1.0/n);
 }
 
 Vertex* vSet(Vertex* restrict a, real x, real y, real z)
