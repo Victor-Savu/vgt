@@ -226,23 +226,83 @@ Array ins2(Delaunay del, Tet t, Vertex* p, enum TetFacet f)
 static
 Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
 {
+    call;
+    const Tet flag = t;
+
+    do {
+        switch(e) {
+        case BD:
+        case DC:
+        case CB:
+            tetRot(t, ((e&1)<<1)|((e&4)>>2)); // lambda BD => C | DC => B | CB => D
+            e = (((e&1)^1)<<1) | (e==5); // lambda BD => AB | DC => AD | CB => AC
+        case AC:
+            tetRot(t, A);
+            e = AD;
+        case AD:
+            tetRot(t, A);
+            e = AB;
+            break;
+        case AB:
+            break;
+        default:
+            check(0);
+            break;
+        }
+
+        if (t->v[A] > t->v[B]) {
+            tetRot(t, D);
+            tetRot(t, B);
+            tetRot(t, B);
+        }
+
+        Vertex* a = t->v[A];
+        Vertex* b = t->v[B];
+
+        t = t->n[D];
+        TetVertex A = tetVertexLabel(t, a);
+        TetVertex B = tetVertexLabel(t, b);
+
+        switch (A+B)
+        {
+        case 1:
+            e = AB;
+            break;
+        case 2:
+            e = AC;
+            break;
+        case 3:
+            e = AD + 2 * (A && B);
+            break;
+        case 4:
+            e = BD;
+            break;
+        case 5:
+              e = DC;
+              break;
+        default:
+            check(0);
+        }
+
+    } while (flag != t);
+
+    Vertex AP;  vSub(p, t->v[A], &AP);
+    Vertex BP;  vSub(p, t->v[B], &BP);
+    check(vDot(&AP, &BP) == 0);
+
+    Vertex* a = t->v[A];
+    Vertex* b = t->v[B];
+
+    do {
+        check(t->v[A] == a);
+        check(t->v[B] == b);
+        t = t->n[D];
+    } while (flag != t);
+
+    conjecture(0, "All is ok!\n");
+
+
 /*
-    // see Fig #1
-    // find x, y, z and t, where xy = e
-    //Vertex *x, *y, *z, *t;
-   // Tet oX, oY, oZ, oT;
-
-    switch(e) {
-    case BD:
-    case DC:
-    case CB:
-        tetRot(t, (e << (e&1))|(e&4)); // lambda BD => C | DC => B | CB => D
-        e = (e^1)&3; // lambda BD => AD | DC => AC | CB => AB
-    default:
-        check(0);
-        break;
-    }
-
     struct Tet tmp = {
     // lambda AD => <C, B> | AC => <B, D> | AB => <D, C>
         {p, A, ((e^1)<<1)|(e!=0), ((e>>1)^1)|(e<<(e&1))},
@@ -263,16 +323,16 @@ Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
 
     p = arrPush(del->v, p);
     Array stack = arrCreate(sizeof(Tet), 2);
-*/
+
     fprintf(stderr, "[x] ins1 is not yet implemented\n"); fflush(stderr); exit(EXIT_FAILURE);
     return 0;
-
- //   stub;
- //   return stack;
+*/
+    stub;
+    return 0;
 }
 
 static
-Array flip23(Delaunay del, Tet t, Array stack)
+bool flip23(Delaunay del, Tet t, Array stack)
 {
     //
     check(t->n[oA]);
@@ -317,7 +377,7 @@ Array flip23(Delaunay del, Tet t, Array stack)
     check(tetIsLegit(s));
 
     stub;
-    return stack;
+    return true;
 }
 
 
@@ -333,7 +393,7 @@ void update_stack(uint64_t i, Obj o, Obj d) {
 }
 
 static
-Array flip32(Delaunay del, Tet t, TetFace f, Array stack)
+bool flip32(Delaunay del, Tet t, TetFace f, Array stack)
 {
     Tet o = t->n[oA];
     Tet s = t->n[f];
@@ -344,14 +404,13 @@ Array flip32(Delaunay del, Tet t, TetFace f, Array stack)
 
     if (!o) {
         arrPush(stack, &t);
-        return stack;
+        return false;
     }
 
     if (s->n[oA] != o) {
         arrPush(stack, &t);
-        return stack;
+        return false;
     }
-
 
     // get labels
     const TetVertex F = f;
@@ -362,27 +421,17 @@ Array flip32(Delaunay del, Tet t, TetFace f, Array stack)
     const TetVertex Y = (X + 1 + (X==D))&3;
     const TetVertex Z = ((X | 4) - 1 - (X==B))&3;
 
-    //const TetVertex P = tetReadMap(t->m, oA);
-    //const TetVertex M = ;
     const TetVertex N = tetVertexLabel(o, t->v[G]);
     const TetVertex O = tetVertexLabel(o, t->v[H]);
 
-
     if (orient3d(*t->v[A], *t->v[F], *t->v[G], *s->v[X]) < 0) {
         arrPush(stack, &t);
-        return stack;
+        return false;
     }
     if (orient3d(*t->v[A], *t->v[H], *t->v[F], *s->v[X]) < 0) {
         arrPush(stack, &t);
-        return stack;
+        return false;
     }
-
-    //conjecture(orient3d(*t->v[A], *t->v[F], *t->v[G], *s->v[X]) < 0, "concave");
-    //conjecture(orient3d(*t->v[A], *t->v[H], *t->v[F], *s->v[X]) < 0, "concave");
-
-
-
-
 
     pthread_mutex_lock(&del->mutex);
     // Moving vertices
@@ -422,27 +471,25 @@ Array flip32(Delaunay del, Tet t, TetFace f, Array stack)
     arrPush(stack, &t);
     arrPush(stack, &s);
 
-
-
     stub;
-    return stack;
+    return true;
 }
 
 static
-Array flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
+bool flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
 {
     Tet tb = t->n[tV];
     if (!tb) {
         fprintf(stderr, "[!] No tb.\n"); fflush(stderr);
         arrPush(stack, &t);
-        return stack;
+        return false;
     }
 
     Tet tc = tb->n[oA];
     if (!tc) {
         fprintf(stderr, "[!] No tc.\n"); fflush(stderr);
         arrPush(stack, &t);
-        return stack;
+        return false;
     }
 
     Tet ta = t->n[oA];
@@ -450,7 +497,7 @@ Array flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
     if (tc != ta->n[tetVertexLabel(ta, t->v[tV])]) {
      //   fprintf(stderr, "[!] tc and ta are not neighbors.\n"); fflush(stderr);
         arrPush(stack, &t);
-        return stack;
+        return false;
     }
 
     // we know that tU = A
@@ -482,22 +529,17 @@ Array flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
     if (orient3d(*U, *Y, *V, *X) < 0) {
       //  fprintf(stderr, "[!] Concave.\n"); fflush(stderr);
         arrPush(stack, &t);
-        sleep(10);
-        return stack;
+        return false;
     } else check(orient3d(*U, *V, *Y, *Z) != 0);
 
     if (orient3d(*U, *Z, *Y, *Z) < 0) {
        // fprintf(stderr, "[!] Concave.\n"); fflush(stderr);
         arrPush(stack, &t);
-        sleep(10);
-        return stack;
+        return false;
     } else check(orient3d(*U, *W, *V, *Z) != 0);
 
     Tet const taoW = ta->n[taW]; const TetFace taoWm = tetReadMap(ta->m, taW);
     Tet const tcoW = tc->n[tcW]; const TetFace tcoWm = tetReadMap(tc->m, tcW);
-
-
-
 
 
     pthread_mutex_lock(&del->mutex);
@@ -526,12 +568,10 @@ Array flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
 
     pthread_mutex_unlock(&del->mutex);
 
-
     arrPush(stack, &t);
     arrPush(stack, &ta);
     arrPush(stack, &tb);
     arrPush(stack, &tc);
-
 
     // checkping flip:
 
@@ -557,7 +597,7 @@ Array flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
     check(tetIsLegit(tc));
 
     stub;
-    return stack;
+    return true;
 }
 /*
 void flip12()
@@ -572,11 +612,14 @@ void flip21()
 */
 
 static
-void flip(Delaunay del, Array stack)
+Array flip(Delaunay del, Array stack)
 {
+    Array ret = arrCreate(sizeof(Tet), 1);
+
     while (!arrIsEmpty(stack)) {
         arrRandomSwap(stack, 0);
         Tet t = *oCast(Tet*, arrBack(stack));
+        arrPush(ret, &t);
         arrPop(stack);
 
         Tet ta = t->n[oA];
@@ -591,7 +634,6 @@ void flip(Delaunay del, Array stack)
         real* const b = *t->v[C];
         real* const c = *t->v[D];
         // assume no degenerate triangles
-        //   conjecture(orient3d(p, a, b, c) > 0, "Found a degenerate tetrahedron.");
 
         // ta = <A, B, C, D> = <X, Y, Z, d> where <X, Y, Z> is a circular permutation of <a, b, c>
         real* const d = *ta->v[tetReadMap(t->m, oA)];
@@ -605,87 +647,65 @@ void flip(Delaunay del, Array stack)
                 conjecture(orient3d(p, b, c, d) > 0, "d does not lie below pbc.");
                 conjecture(orient3d(p, c, a, d) > 0, "d does not lie below pca.");
 
-                stack = flip32(del, t, oD, stack);
-                /*
-                if (t->n[oD] && t->n[oD] == ta->n[tetVertexLabel(ta, t->v[D])]) {
-                    conjecture(t->n[oD]->v[0] == t->v[0], "there is a tet incident on p with vertex A not in p.");
-                    // perform a flip32 on t, ta and their common neighbor t->n[oD]
-                    stack = flip32(del, t, oD, stack);
-                } else {
-                    conjecture(0, "Cannot perform flip32 in case #2 because pdab does not exist.");
+                Tet tbremoved = t->n[oD]; 
+                if (flip32(del, t, oD, stack)) {
+                    Obj pos = arrFind(ret, &tbremoved, 0);
+                    if (pos) oCopyTo(pos, arrBack(ret), sizeof(Tet));
+                    arrPop(ret);
                 }
-                */
+
             } else if (o > 0) {
+
                 o = orient3d(p, b, c, d);
+
                 if (o < 0) {
+
                     // d should lie strictly below pca
                     conjecture(orient3d(p, c, a, d) > 0, "d does not lie below pca");
-                    stack = flip32(del, t, oB, stack);
-                    /*
-                    if (t->n[oB] && t->n[oB] == ta->n[tetVertexLabel(ta, t->v[B])]) {
-                        // perform a flip32 on t, ta and their common neighbor t->n[oB]
-                        stack = flip32(del, t, oB, stack);
-                    } else {
-                        conjecture(0, "Cannot perform flip32 in case #2 because pdbc does not exist.");
-                    }*/
+                    Tet tbremoved = t->n[oD]; 
+                    if (flip32(del, t, oB, stack)) {
+                        Obj pos = arrFind(ret, &tbremoved, 0);
+                        if (pos) oCopyTo(pos, arrBack(ret), sizeof(Tet));
+                        arrPop(ret);
+                    }
 
                 } else if (o > 0) {
                     o = orient3d(p, c, a, d);
 
                     if (o < 0) {
-                        stack = flip32(del, t, oC, stack);
-                        /*
-                        if (t->n[oC] && t->n[oC] == ta->n[tetVertexLabel(ta, t->v[C])]) {
-                            stack = flip32(del, t, oC, stack);
-                        } else {
-                            conjecture(0, "Cannot perform flip32 in case #2 because pdca does not exist.");
+
+                        Tet tbremoved = t->n[oD]; 
+                        if (flip32(del, t, oC, stack)) {
+                            Obj pos = arrFind(ret, &tbremoved, 0);
+                            if (pos) oCopyTo(pos, arrBack(ret), sizeof(Tet));
+                            arrPop(ret);
                         }
-                        */
+
                     } else if (o > 0) {
-                        stack = flip23(del, t, stack);
+                        ignore flip23(del, t, stack);
                     } else {// o = 0  =>  d is on plane pca
-                        stack = flip44(del, t, C, stack);
+                        ignore flip44(del, t, C, stack);
                     }
 
                 } else {// o = 0  =>  d is on plane pbc
-                    stack = flip44(del, t, B, stack);
-
+                    ignore flip44(del, t, B, stack);
                 }
             } else {// o = 0  => d  is on plane pab
-                stack = flip44(del, t, D, stack);
+                ignore flip44(del, t, D, stack);
             }
         }
     }
 
     arrDestroy(stack);
     stub;
+
+    return ret;
 }
 
-/*
-struct sph_check {
-    Vertex* v;
-    bool b;
-};
-
-inline static
-void check_on_sphere(uint64_t i, Obj j, Obj k) {
-    Tet t = oCast(Tet, j);
-    struct sph_check* c = oCast(struct sph_check*, k);
-    Vertex* v = c->v;
-    real o = insphere(*t->v[A], *t->v[B], *t->v[C], *t->v[D], *v);
-    if (o == 0) c->b = 1;
-}
-*/
-void delInsert(Delaunay d, Vertex* p)
+Array delInsert(Delaunay d, Vertex* p)
 {
     Tet t = arrFront(d->t);
-    Tet ot = t; /*
-    struct sph_check sc = {.v = p, .b = false };
-    arrForEach(d->t, check_on_sphere, &sc);
-    if (sc.b) {
-        fprintf(stderr, "[!] Did not insert point.\n");fflush(stderr);
-        return;
-        } */
+    Tet ot = t;
 
     // find the tetrahedron containing p
 
@@ -708,7 +728,7 @@ void delInsert(Delaunay d, Vertex* p)
                 if (o < 0) { ot = t; t = t->n[oC]; continue; }
                 if (o == 0) {
                     // p coincides with A
-                    return;
+                    return 0;
                 } else {
                     // p is on half-line (AC
 
@@ -717,11 +737,10 @@ void delInsert(Delaunay d, Vertex* p)
                     if (o < 0) { ot = t; t = t->n[oA]; continue; }
                     if (o == 0) {
                         // p coincides with C
-                        return;
+                        return 0;
                     } else {
                         // P is on segment (AC)
-                        flip(d, ins1(d, t, p, AC));
-                        return;
+                        return flip(d, ins1(d, t, p, AC));
                     }
                 }
             } else {
@@ -738,11 +757,10 @@ void delInsert(Delaunay d, Vertex* p)
                     if (o < 0) { ot = t; t = t->n[oA]; continue; }
                     if (o == 0) {
                         // p coincides with B
-                        return;
+                        return 0;
                     } else {
                         // P is on segment (AB)
-                        flip(d, ins1(d, t, p, AB));
-                        return;
+                        return flip(d, ins1(d, t, p, AB));
                     }
                 } else {
                     // p is inside the angle BAC
@@ -752,12 +770,10 @@ void delInsert(Delaunay d, Vertex* p)
                     if (o < 0) { ot = t; t = t->n[oA]; continue; }
                     if (o == 0) {
                         // p is on segment (CB)
-                        flip(d, ins1(d, t, p, CB));
-                        return;
+                        return flip(d, ins1(d, t, p, CB));
                     } else {
                         // P is inside the face (ABC)
-                        flip(d, ins2(d, t, p, ABC));
-                        return;
+                        return flip(d, ins2(d, t, p, ABC));
                     }
                 }
 
@@ -781,11 +797,10 @@ void delInsert(Delaunay d, Vertex* p)
                     if (o < 0) { ot = t; t = t->n[oA]; continue; }
                     if (o == 0) {
                         // p coincides with D
-                        return;
+                        return 0;
                     } else {
                         // P is on segment (AD)
-                        flip(d, ins1(d, t, p, AD));
-                        return;
+                        return flip(d, ins1(d, t, p, AD));
                     }
                 } else {
                     // p is inside the angle CAD
@@ -795,12 +810,10 @@ void delInsert(Delaunay d, Vertex* p)
                     if (o < 0) { ot = t; t = t->n[oA]; continue; }
                     if (o == 0) {
                         // p is on segment (DC)
-                        flip(d, ins1(d, t, p, DC));
-                        return;
+                        return flip(d, ins1(d, t, p, DC));
                     } else {
                         // P is on face (ACD)
-                        flip(d, ins2(d, t, p, ACD));
-                        return;
+                        return flip(d, ins2(d, t, p, ACD));
                     }
                 }
             } else {
@@ -816,12 +829,10 @@ void delInsert(Delaunay d, Vertex* p)
                     if (o < 0) { ot = t; t = t->n[oA]; continue; }
                     if (o == 0) {
                         // p is on segment (BD)
-                        flip(d, ins1(d, t, p, BD));
-                        return;
+                        return flip(d, ins1(d, t, p, BD));
                     } else {
                         // P is inside of face (ADB)
-                        flip(d, ins2(d, t, p, ADB));
-                        return;
+                        return flip(d, ins2(d, t, p, ADB));
                     }
                 } else {
                     // p is inside the angle BAC
@@ -831,13 +842,10 @@ void delInsert(Delaunay d, Vertex* p)
                     if (o < 0) { ot = t; t = t->n[oA]; continue; }
                     if (o == 0) {
                         // p is inside face (BDC)
-                        flip(d, ins2(d, t, p, BDC));
-                        return;
+                        return flip(d, ins2(d, t, p, BDC));
                     } else {
                         // P is inside the tetrahedron
-                        Array stack = ins3(d, t, p);
-                        flip(d, stack);
-                        return;
+                        return flip(d, ins3(d, t, p));
                     }
                 }
             }
@@ -845,6 +853,7 @@ void delInsert(Delaunay d, Vertex* p)
     }
 
     fprintf(stderr, "p is outside of the tetrahedrization.\n");
+    return 0;
 
 }
 
@@ -930,8 +939,6 @@ void delDisplay(Delaunay d, int tet)
         Vertex* v = oCast(Vertex*, arrGet(d->v, i));
         real o = insphere(*t_sel->v[0], *t_sel->v[1], *t_sel->v[2], *t_sel->v[3], *v);
         if (o >= 0) {
-  //          glVertex3v(*v);
-  //      } else if (o == 0) {
             glColor4f(0.0, 0.0, 1.0, 1.0);
             glVertex3v(*v);
             glColor4f(1.0, 0.0, 0.0, 1.0);

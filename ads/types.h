@@ -15,6 +15,8 @@ typedef uint16_t    ind;   // 64k elements
 
 //to be tested
 typedef struct Array* Array;
+typedef Array Stack; // TODO: Separate the concepts. The array is more than just a queue
+typedef struct Queue* Queue;
 typedef struct Vector* Vector;
 
 // under developement

@@ -33,6 +33,8 @@
 
 #define conjecture(x, fail_message)  do { if (!(x)) { fprintf(stderr, "[x] %s:%s:%d: %s\n", __FILE__, __func__, __LINE__, (fail_message)); fflush(stderr); exit(EXIT_FAILURE); } } while (0)
 
+# define usage(x)    conjecture(x, "Invalid usage.")
+
 
 #ifdef SAFE_MODE
 # define safe(x)     do {x} while (0)

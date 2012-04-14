@@ -59,6 +59,7 @@ set(ads_sources
         ads/list_element.c
         ads/list.c
         ads/vector.c
+        ads/queue.c
     )
 
 set(ads_headers
@@ -69,6 +70,8 @@ set(ads_headers
         ads/array.h
         ads/array_cls.h
         ads/vector.h
+        ads/queue_cls.h
+        ads/queue.h
    )
 
 add_library(ads ${libtype} ${ads_sources})
@@ -140,7 +143,7 @@ install(TARGETS vgt math view ads DESTINATION ${INSTALL_LIB_DIR})
 #add_executable(test_mesh test/test_mesh.c)
 #add_executable(test_array test/test_array.c)
 #add_executable(test_vector test/test_vector.c)
-#add_executable(test_delaunay test/test_delaunay.c)
+add_executable(test_delaunay test/test_delaunay.c)
 #add_executable(test_random test/test_random.c)
 add_executable(test_mtets test/test_marching_tets.c)
 
@@ -154,6 +157,6 @@ add_executable(test_mtets test/test_marching_tets.c)
 #target_link_libraries(test_mesh vgt)
 #target_link_libraries(test_array m vgt math rt)
 #target_link_libraries(test_vector ads rt)
-#target_link_libraries(test_delaunay vgt view)
+target_link_libraries(test_delaunay vgt view)
 #target_link_libraries(test_random math rt)
 target_link_libraries(test_mtets vgt view)

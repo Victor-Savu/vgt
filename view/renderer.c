@@ -153,6 +153,9 @@ void cb_reshape(int w, int h)
     glMatrixMode(GL_PROJECTION);
 
     glLoadIdentity();
+
+  //glFrustum(-aspect, aspect, -1, 1, 1, 1000);
+
     gluPerspective(30, aspect, 1, 1000.0);
 
     glMatrixMode(GL_MODELVIEW);

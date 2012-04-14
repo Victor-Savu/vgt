@@ -52,6 +52,9 @@ Obj arrGet(Array restrict arr, uint64_t pos);
 Obj arrFront(Array restrict arr);
 Obj arrBack(Array restrict arr);
 
+#define arrFind(arr, what, ind) arrFindSafe(arr, what, sizeof(*what), ind, __FILE__, __func__, __LINE__)
+Obj arrFindSafe(const Array restrict arr, Obj what, size_t objsize, uint64_t *i, const char* restrict filename, const char* restrict funcname, int lineno);
+
 void arrForEach(Array restrict arr, const ArrOperation op, Obj data);
 
 bool arrIsEmpty(const Array restrict arr);
@@ -59,7 +62,7 @@ bool arrIsEmpty(const Array restrict arr);
 
 Obj arrSet(Array restrict arr, const Obj restrict o, uint64_t pos);
 
-#define arrPush(array, object)   arrPushSafe((array), (object), sizeof (*(object)), __FILE__, __func__, __LINE__)
+#define arrPush(array, object)   arrPushSafe((array), (object), sizeof (*object), __FILE__, __func__, __LINE__)
 Obj arrPushSafe(Array restrict arr, const Obj restrict o, size_t objsize, const char* restrict filename, const char* restrict funcname, int lineno);
 
 void arrPop(Array restrict arr);
@@ -75,5 +78,6 @@ void arrPrint(const Array restrict a, FILE* restrict f, const ObjPrint print);
 void arrRandomSwap(Array restrict a, const ObjRelocator relocate);
 
 Obj arrToC(const Array restrict arr);
+
 
 #endif//ADS_ARRAY_H

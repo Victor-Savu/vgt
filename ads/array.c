@@ -368,6 +368,29 @@ Obj arrBack(Array restrict arr)
     return oCast(char*, arr->end[arr->d-1]) - arr->element_size;
 }
 
+struct object_finder{ Obj what; uint64_t index; Obj where; size_t size; };
+
+inline static
+void compare_and_report(uint64_t i, Obj o, Obj x)
+{
+    if (memcmp(o, oCast(struct object_finder*, x)->what, oCast(struct object_finder*, x)->size) == 0) {
+        oCast(struct object_finder*, x)->where = o;
+        oCast(struct object_finder*, x)->index = i;
+    }
+}
+
+inline
+Obj arrFindSafe(    const Array restrict arr, 
+                    Obj what, size_t objsize, uint64_t *i,
+                    const char* restrict filename, const char* restrict funcname, int lineno)
+{
+    if (arr->element_size < objsize) objsize = arr->element_size;
+    struct object_finder fndr = { .what = what, .where = 0, .index = 0, .size = objsize };
+    arrForEach(arr, compare_and_report, &fndr);
+    if (i) *i = fndr.index;
+    return fndr.where;
+}
+
 inline
 uint64_t arrSize(const Array restrict arr)
 {

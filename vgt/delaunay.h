@@ -11,7 +11,7 @@ bool delCheck(Delaunay d);
 
 void delDisplay(Delaunay d, int tet);
 
-void delInsert(Delaunay restrict d, Vertex* restrict p);
+Array delInsert(Delaunay restrict d, Vertex* restrict p);
 
 bool delIsBounding(Delaunay restrict del, Tet restrict t);
 
