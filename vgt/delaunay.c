@@ -230,6 +230,7 @@ Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
     call;
     const Tet flag = t;
 
+    pthread_mutex_lock(&del->mutex);
     do {
         switch(e) {
         case BD:
@@ -307,6 +308,7 @@ Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
         tetConnect(t->n[B], C, t->n[D]->n[B], D);
         t = t->n[D];
     } while (flag != t);
+    pthread_mutex_unlock(&del->mutex);
 
     stub;
     return stack;
@@ -843,20 +845,27 @@ bool delCheck(Delaunay d)
     pthread_mutex_lock(&d->mutex);
     uint64_t ntet = arrSize(d->t);
     uint64_t i;
-    bool result = true;
+    bool correct = true;
     for (i=0; i<ntet; i++) {
         Tet t = oCast(Tet, arrGet(d->t, i));
-        result &= tetIsLegit(t);
+        conjecture(tetIsLegit(t), "Incorect tetrahedron int delaunay.");
         TetNeighbour n = oA;
         for (n=A; n<=D; n++) {
             if (t->n[n]) {
                 Vertex* v = t->n[n]->v[tetReadMap(t->m, n)];
-                if (insphere(*t->v[A], *t->v[B], *t->v[C], *t->v[D], *v) > 0) result = false;
+                if (delIsBounding(d, t) && delIsOnBoundary(d, v)) continue;
+                if (insphere(*t->v[A], *t->v[B], *t->v[C], *t->v[D], *v) > 0) {
+                    fprintf(stderr, "[x] Inside.\n");
+                    fprintf(stderr, "t = "); tetPrint(t, stderr); fprintf(stderr, "\n");
+                    fprintf(stderr, "v = "); vPrint(v, stderr); fprintf(stderr, "\n");
+                    fflush(stderr);
+                    correct = false;
+                }
             }
         }
     }
     pthread_mutex_unlock(&d->mutex);
-    return result;
+    return correct;
 }
 
 void delDisplay(Delaunay d, int tet)

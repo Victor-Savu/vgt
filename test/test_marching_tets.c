@@ -38,6 +38,8 @@ void testMarchingTets(  uint64_t x,
     ScalarField sf = sfCreate(x, y, z, dx, dy, dz);
     if (!sfReadRaw(sf, fname)) exit(EXIT_FAILURE);
 
+
+
     Mesh m = isoMarchingTets(sf, (void*)0, (void*)0, iso);
 
     mDestroy(m);
