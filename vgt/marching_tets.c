@@ -14,7 +14,7 @@
 
 #include <math.h>
 
-inline static
+    inline static
 void find_bounding(uint64_t i, Obj o, Obj d)
 {
     Vertex* v = o;
@@ -29,7 +29,7 @@ void find_bounding(uint64_t i, Obj o, Obj d)
     if ( (*v)[2] > (*bb)[1][2] ) (*bb)[1][2] = (*v)[2];
 }
 
-inline static
+    inline static
 void bounding_box(Array restrict border, Array restrict samples, Vertex* restrict pos, Vertex* restrict size)
 {
     Vertex* aux = arrFront(border);
@@ -47,14 +47,12 @@ void bounding_box(Array restrict border, Array restrict samples, Vertex* restric
 
 Mesh isoMarchingTets(   const ScalarField const restrict data, Array restrict border, Array restrict samples, real isoValue)
 {
-    bool sufficient = true;
-    if (( border && ((!samples && arrSize(border) < 4) || (arrSize(border) + arrSize(samples) < 4)) ) || (!samples || arrSize(samples)<4) ) {
+    if ( ( border && ((!samples && arrSize(border) < 4) || (samples && arrSize(border) + arrSize(samples) < 4)) ) || (samples && arrSize(samples)<4) ) {
 
         fprintf(stderr, "[x] Not enough sampling/border points.\n"); fflush(stderr);
         exit(EXIT_FAILURE);
 
     }
-
 
     // Manually create a delaunay tetrahedrization to encompass
     // the interesting dataset by using a regular tetrahedron
@@ -68,11 +66,11 @@ Mesh isoMarchingTets(   const ScalarField const restrict data, Array restrict bo
     real b = size[1];
     real c = size[2];
 
-/*
-    real a = data->nx * data->dx;
-    real b = data->ny * data->dy;
-    real c = data->nz * data->dz;
-*/
+    /*
+       real a = data->nx * data->dx;
+       real b = data->ny * data->dy;
+       real c = data->nz * data->dz;
+     */
     real min_cell_size_sqr = (data->dx<data->dy)?(data->dx):(data->dy);
     min_cell_size_sqr = (min_cell_size_sqr<data->dy)?(min_cell_size_sqr):(data->dy);
     min_cell_size_sqr *= min_cell_size_sqr;
@@ -108,28 +106,31 @@ Mesh isoMarchingTets(   const ScalarField const restrict data, Array restrict bo
     vSubI(&bound[2], &trans);
     vSubI(&bound[3], &trans);
 
-    vSubI(&bound[0], &pos);
-    vSubI(&bound[1], &pos);
-    vSubI(&bound[2], &pos);
-    vSubI(&bound[3], &pos);
+    vAddI(&bound[0], &pos);
+    vAddI(&bound[1], &pos);
+    vAddI(&bound[2], &pos);
+    vAddI(&bound[3], &pos);
 
     Delaunay del = delCreate(&bound);
 
     // tetPrint(arrFront(del->t), stdout); printf("\n");
 
-    Renderer r = rCreate("Marching Tets");
+//    Renderer r = rCreate("Marching Tets");
 
     //Queue q = qCreate(sizeof(Tet));
 
-    rDisplayDelaunay(r, del);
+//    rDisplayDelaunay(r, del);
 
 
     // qPushArray(q, delInsert(del, &vert[0]));
     uint64_t i = 0;
-    //   char key=13;
+ //   char key=13;
+    Vertex aux;
     for (i=0; i<8; i++) {
-        //    rWaitKey(r, &key);
-        arrDestroy(delInsert(del, &vert[i]));
+ //       rWaitKey(r, &key);
+        vAdd(&vert[i], &pos, &aux);
+
+        arrDestroy(delInsert(del, &aux));
         printf("%s Delaunay tetrahedrization after inserting vertex #%ld.\n", (delCheck(del))?("Correct"):("Incorrect"), i);
         fflush(stdout);
     }
@@ -143,49 +144,39 @@ Mesh isoMarchingTets(   const ScalarField const restrict data, Array restrict bo
             skipped++;
         } else {
             Vertex g;
-        /*    bool ins = 0;
+            if (    vNormSquared(vSub(t->v[B], t->v[A], &g)) > min_cell_size_sqr ||
+                    vNormSquared(vSub(t->v[C], t->v[A], &g)) > min_cell_size_sqr ||
+                    vNormSquared(vSub(t->v[D], t->v[A], &g)) > min_cell_size_sqr ||
+                    vNormSquared(vSub(t->v[C], t->v[B], &g)) > min_cell_size_sqr ||
+                    vNormSquared(vSub(t->v[D], t->v[B], &g)) > min_cell_size_sqr ||
+                    vNormSquared(vSub(t->v[D], t->v[C], &g)) > min_cell_size_sqr) {
+                // if (ins);
+                // skipped = 0;
 
-            ins |= vNormSquared(vSub(t->v[B], t->v[A], &g)) > min_cell_size_sqr;
-            ins |= vNormSquared(vSub(t->v[C], t->v[A], &g)) > min_cell_size_sqr;
-            ins |= vNormSquared(vSub(t->v[D], t->v[A], &g)) > min_cell_size_sqr;
-            ins |= vNormSquared(vSub(t->v[C], t->v[B], &g)) > min_cell_size_sqr;
-            ins |= vNormSquared(vSub(t->v[D], t->v[B], &g)) > min_cell_size_sqr;
-            ins |= vNormSquared(vSub(t->v[D], t->v[C], &g)) > min_cell_size_sqr;*/
-               if (    vNormSquared(vSub(t->v[B], t->v[A], &g)) > min_cell_size_sqr ||
-               vNormSquared(vSub(t->v[C], t->v[A], &g)) > min_cell_size_sqr ||
-               vNormSquared(vSub(t->v[D], t->v[A], &g)) > min_cell_size_sqr ||
-               vNormSquared(vSub(t->v[C], t->v[B], &g)) > min_cell_size_sqr ||
-               vNormSquared(vSub(t->v[D], t->v[B], &g)) > min_cell_size_sqr ||
-               vNormSquared(vSub(t->v[D], t->v[C], &g)) > min_cell_size_sqr) {
-           // if (ins) {
-               // skipped = 0;
                 vAdd(t->v[A], t->v[B], &g);
                 vAddI(&g, t->v[C]);
                 vAddI(&g, t->v[D]);
                 vScaleI(&g, 0.25);
 
                 arrDestroy(delInsert(del, &g));
-            //    printf("%s Delaunay tetrahedrization after inserting vertex #%ld.\n", (delCheck(del))?("Correct"):("Incorrect"), i);
-            //    fflush(stdout);
+             //   rWaitKey(r, &key);
             } else {
                 skipped++;
             }
 
-            //      rWaitKey(r, &key);
         }
         i++;
-        if (i>arrSize(del->t)) i=0;
+        if (i >= arrSize(del->t)) i=0;
     }
 
+    printf("%s Delaunay tetrahedrization.\n", (delCheck(del))?("Correct"):("Incorrect")); fflush(stdout);
     fprintf(stderr, "[i] Done!\n"); fflush(stderr);
 
-    rWait(r);
+//    rWait(r);
 
-    rDestroy(r);
+//    rDestroy(r);
 
     delDestroy(del);
-
-
 
     stub;
     return 0;

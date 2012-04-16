@@ -25,8 +25,8 @@
 #define unused(x) (void)(x)
 #define ignore    (void)
 
-#define restrict __restrict__
-//#define restrict
+//#define restrict __restrict__
+#define restrict
 
 #define SAFE_MODE           1
 #define SAFE_MODE_VERBOSE   1

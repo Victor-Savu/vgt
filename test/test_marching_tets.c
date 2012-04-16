@@ -2,7 +2,13 @@
 
 #include <vgt/scalar_field.h>
 #include <vgt/mesh.h>
+
+#include <ads/array.h>
+
+#include <math/vertex.h>
+
 #include <stdlib.h>
+
 
 void testMarchingTets(uint64_t x, uint64_t y, uint64_t z, real dx, real dy, real dz, const char* fname, real iso);
 
@@ -27,22 +33,38 @@ int main(int argc, char* argv[])
 }
 
 void testMarchingTets(  uint64_t x,
-                        uint64_t y,
-                        uint64_t z,
-                        real dx,
-                        real dy,
-                        real dz,
-                        const char* fname,
-                        real iso)
+        uint64_t y,
+        uint64_t z,
+        real dx,
+        real dy,
+        real dz,
+        const char* fname,
+        real iso)
 {
     ScalarField sf = sfCreate(x, y, z, dx, dy, dz);
     if (!sfReadRaw(sf, fname)) exit(EXIT_FAILURE);
+    
 
+    Vertex vertices[8] = {
+        {0, 0, 0},
+        {4, 0, 0},
+        {0, 1.8, 0},
+        {2.0, 2.5, 0},
+        {0, 0, 5.0},
+        {1.0, 0, 3.0},
+        {0, 3.0, 2.0},
+        {5.0, 5.0, 5.0}
+    };
+    Vertex pos = {10, 10, 10};
 
+    uint64_t i = 0;
+    for (i=0; i<8; i++) vAddI(&vertices[i], &pos);
 
-    Mesh m = isoMarchingTets(sf, (void*)0, (void*)0, iso);
+    Array bounding_box = arrCreate(sizeof(Vertex), 1);
+    for (i=0; i<8; i++) arrPush(bounding_box, &vertices[i]);
+
+    Mesh m = isoMarchingTets(sf, bounding_box, (void*)0, iso);
 
     mDestroy(m);
-
     sfDestroy(sf);
 }

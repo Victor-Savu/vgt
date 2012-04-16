@@ -143,7 +143,7 @@ Array arrCreate(uint8_t elem_size, uint8_t fact)
 
 void arrDestroy(Array restrict arr)
 {
-    check(arr) ;
+    if (!arr) return;
     Obj* const end = arr->begin + arr->d;
     Obj* i = arr->begin;
     for (i=arr->begin; i < end; i++) oDestroy(*i);
@@ -262,6 +262,7 @@ Obj arrGet(Array restrict arr, uint64_t p)
 
 void arrForEach(Array restrict arr, const ArrOperation op, Obj data)
 {
+    if (!(arr && op)) return;
     uint64_t i = 0;
     Obj* restrict datablock_begin = arr->begin;
     Obj* restrict datablock_end = arr->end;

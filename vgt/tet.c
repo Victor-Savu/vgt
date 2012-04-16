@@ -132,14 +132,40 @@ bool tetIsLegit(const Tet t)
                 }
         }
     }
-    if (!(orient3d(*t->v[A], *t->v[B], *t->v[C], *t->v[D]) > 0)) {
-        fprintf(stderr, "Orientation is wrong.\n"); fflush(stderr);
+    if (!(orient3d(*t->v[B], *t->v[C], *t->v[D], *t->v[A]) < 0)) {
+        fprintf(stderr, "Orientation is wrong : A is not above BCD.\n"); fflush(stderr);
         return false;
     }
-    if (!(orient3d(*t->v[D], *t->v[B], *t->v[C], *t->v[A]) < 0)) {
-        printf("Orientation is wrong.");
+    if (!(orient3d(*t->v[C], *t->v[A], *t->v[D], *t->v[B]) < 0)) {
+        fprintf(stderr, "Orientation is wrong : B is not above CAD.\n"); fflush(stderr);
+        return false;
+    }
+    if (!(orient3d(*t->v[D], *t->v[A], *t->v[B], *t->v[C]) < 0)) {
+        fprintf(stderr, "Orientation is wrong : C is not above DAB.\n"); fflush(stderr);
+        return false;
+    }
+    if (!(orient3d(*t->v[A], *t->v[C], *t->v[B], *t->v[D]) < 0)) {
+        fprintf(stderr, "Orientation is wrong : D is not above ACB.\n"); fflush(stderr);
+        return false;
+    }
+
+
+    return true;
+}
+
+bool tetIsAlmostDelaunay(const Tet t)
+{
+    if (t->n[oB] && insphere(*t->v[A], *t->v[B], *t->v[C], *t->v[D], *t->n[oB]->v[tetReadMap(t->m, oB)]) > 0) {
+        fprintf(stderr, "Contains neighbor oB.\n"); fflush(stderr);
+        return false;
+    }
+    if (t->n[oC] && insphere(*t->v[A], *t->v[B], *t->v[C], *t->v[D], *t->n[oC]->v[tetReadMap(t->m, oC)]) > 0) {
+        fprintf(stderr, "Contains neighbor oC.\n"); fflush(stderr);
+        return false;
+    }
+    if (t->n[oD] && insphere(*t->v[A], *t->v[B], *t->v[C], *t->v[D], *t->n[oD]->v[tetReadMap(t->m, oD)]) > 0) {
+        fprintf(stderr, "Contains neighbor oD.\n"); fflush(stderr);
         return false;
     }
     return true;
 }
-

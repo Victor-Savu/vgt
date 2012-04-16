@@ -34,5 +34,6 @@ void tetRenderCircumsphere(Tet t);
 static Tet tetCopy(Tet restrict dest, Tet restrict src);
 
 bool tetIsLegit(const Tet t);
+bool tetIsAlmostDelaunay(const Tet t);
 
 #endif//VGT_TET_H

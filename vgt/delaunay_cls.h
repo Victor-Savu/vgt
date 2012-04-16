@@ -11,6 +11,10 @@
 
 #include <pthread.h>
 
+#define DELAUNAY_RENDER_CIRCUMSPHERE    0x1
+#define DELAUNAY_RENDER_BOUNDING_TET    0x2
+
+
 struct Delaunay {
     Array v;
     Array t;
@@ -21,7 +25,7 @@ struct Delaunay {
     Vertex* D;
 
     pthread_mutex_t mutex;
-    bool render_circ;
+    bool rendering;
 };
 
 

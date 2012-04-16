@@ -184,7 +184,9 @@ void cb_keyboard(unsigned char key, int x, int y)
         instance.widget++;
         break;
     case 'c':
-        instance.d->render_circ ^= 1;
+        instance.d->rendering ^= DELAUNAY_RENDER_CIRCUMSPHERE;
+    case 'b':
+        instance.d->rendering ^= DELAUNAY_RENDER_BOUNDING_TET;
     default:
         if (instance.key && key == *instance.key) {
             pthread_cond_signal(&instance.key_pressed);
