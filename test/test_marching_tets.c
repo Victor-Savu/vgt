@@ -6,6 +6,7 @@
 #include <ads/array.h>
 
 #include <math/vertex.h>
+#include <math/predicates.h>
 
 #include <stdlib.h>
 
@@ -14,6 +15,7 @@ void testMarchingTets(uint64_t x, uint64_t y, uint64_t z, real dx, real dy, real
 
 int main(int argc, char* argv[])
 {
+    exactinit();
     if (argc == 9) {
         uint64_t x, y, z;
         double dx, dy, dz;

@@ -3,6 +3,8 @@
 
 #include <math/types.h>
 
+void exactinit();
+
 real orient2d(real* pa, real* pb, real* pc);
 
 real orient2dfast(real* pa, real* pb, real* pc);
@@ -31,9 +33,9 @@ real orient2dfast(real* pa, real* pb, real* pc);
 /*  nearly so.                                                               */
 /*                                                                           */
 /*****************************************************************************/
-real orient3d(real* pa, real* pb, real* pc, real* pd);
+real orient3d(const real* pa, const real* pb, const real* pc, const real* pd);
 
-real orient3dfast(real* pa, real* pb, real* pc, real* pd);
+real orient3dfast(const real* pa, const real* pb, const real* pc, const real* pd);
 
 real incircle(real* pa, real* pb, real* pc, real* pd);
 
@@ -61,8 +63,8 @@ real incirclefast(real* pa, real* pb, real* pc, real* pd);
 /*  nearly so.                                                               */
 /*                                                                           */
 /*****************************************************************************/
-real insphere(real* pa, real* pb, real* pc, real* pd, real* pe);
+real insphere(const real* pa, const real* pb, const real* pc, const real* pd, const real* pe);
 
-real inspherefast(real* pa, real* pb, real* pc, real* pd, real* pe);
+real inspherefast(const real* pa, const real* pb, const real* pc, const real* pd, const real* pe);
 
 #endif//QUAKE_ROBUST_PREDICATES_H

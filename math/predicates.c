@@ -113,6 +113,9 @@
 /*                                                                           */
 /*****************************************************************************/
 
+#define LINUX
+#include <fpu_control.h>
+
 #include <math/types.h>
 
 #include <stdio.h>
@@ -644,6 +647,16 @@ float uniformfloatrand()
 
 void exactinit()
 {
+    int cword;
+
+  #ifdef SINGLE
+    cword = 4210;                 /* set FPU control word for single precision */
+  #else /* not SINGLE */
+    cword = 4722;                 /* set FPU control word for double precision */
+  #endif /* not SINGLE */
+    _FPU_SETCW(cword);
+
+
   REAL half;
   REAL check, lastcheck;
   int every_other;
@@ -1684,10 +1697,10 @@ REAL *pc;
 /*****************************************************************************/
 
 REAL orient3dfast(pa, pb, pc, pd)
-REAL *pa;
-REAL *pb;
-REAL *pc;
-REAL *pd;
+const REAL *pa;
+const REAL *pb;
+const REAL *pc;
+const REAL *pd;
 {
   REAL adx, bdx, cdx;
   REAL ady, bdy, cdy;
@@ -1709,10 +1722,10 @@ REAL *pd;
 }
 
 REAL orient3dexact(pa, pb, pc, pd)
-REAL *pa;
-REAL *pb;
-REAL *pc;
-REAL *pd;
+const REAL *pa;
+const REAL *pb;
+const REAL *pc;
+const REAL *pd;
 {
   INEXACT REAL axby1, bxcy1, cxdy1, dxay1, axcy1, bxdy1;
   INEXACT REAL bxay1, cxby1, dxcy1, axdy1, cxay1, dxby1;
@@ -1790,10 +1803,10 @@ REAL *pd;
 }
 
 REAL orient3dslow(pa, pb, pc, pd)
-REAL *pa;
-REAL *pb;
-REAL *pc;
-REAL *pd;
+const REAL *pa;
+const REAL *pb;
+const REAL *pc;
+const REAL *pd;
 {
   INEXACT REAL adx, ady, adz, bdx, bdy, bdz, cdx, cdy, cdz;
   REAL adxtail, adytail, adztail;
@@ -1886,10 +1899,10 @@ REAL *pd;
 }
 
 REAL orient3dadapt(pa, pb, pc, pd, permanent)
-REAL *pa;
-REAL *pb;
-REAL *pc;
-REAL *pd;
+const REAL *pa;
+const REAL *pb;
+const REAL *pc;
+const REAL *pd;
 REAL permanent;
 {
   INEXACT REAL adx, bdx, cdx, ady, bdy, cdy, adz, bdz, cdz;
@@ -2291,10 +2304,10 @@ REAL permanent;
 }
 
 REAL orient3d(pa, pb, pc, pd)
-REAL *pa;
-REAL *pb;
-REAL *pc;
-REAL *pd;
+const REAL *pa;
+const REAL *pb;
+const REAL *pc;
+const REAL *pd;
 {
   REAL adx, bdx, cdx, ady, bdy, cdy, adz, bdz, cdz;
   REAL bdxcdy, cdxbdy, cdxady, adxcdy, adxbdy, bdxady;
@@ -3298,11 +3311,11 @@ REAL *pd;
 /*****************************************************************************/
 
 REAL inspherefast(pa, pb, pc, pd, pe)
-REAL *pa;
-REAL *pb;
-REAL *pc;
-REAL *pd;
-REAL *pe;
+const REAL *pa;
+const REAL *pb;
+const REAL *pc;
+const REAL *pd;
+const REAL *pe;
 {
   REAL aex, bex, cex, dex;
   REAL aey, bey, cey, dey;
@@ -3346,11 +3359,11 @@ REAL *pe;
 }
 
 REAL insphereexact(pa, pb, pc, pd, pe)
-REAL *pa;
-REAL *pb;
-REAL *pc;
-REAL *pd;
-REAL *pe;
+const REAL *pa;
+const REAL *pb;
+const REAL *pc;
+const REAL *pd;
+const REAL *pe;
 {
   INEXACT REAL axby1, bxcy1, cxdy1, dxey1, exay1;
   INEXACT REAL bxay1, cxby1, dxcy1, exdy1, axey1;
@@ -3603,11 +3616,11 @@ REAL *pe;
 }
 
 REAL insphereslow(pa, pb, pc, pd, pe)
-REAL *pa;
-REAL *pb;
-REAL *pc;
-REAL *pd;
-REAL *pe;
+const REAL *pa;
+const REAL *pb;
+const REAL *pc;
+const REAL *pd;
+const REAL *pe;
 {
   INEXACT REAL aex, bex, cex, dex, aey, bey, cey, dey, aez, bez, cez, dez;
   REAL aextail, bextail, cextail, dextail;
@@ -3937,11 +3950,11 @@ REAL *pe;
 }
 
 REAL insphereadapt(pa, pb, pc, pd, pe, permanent)
-REAL *pa;
-REAL *pb;
-REAL *pc;
-REAL *pd;
-REAL *pe;
+const REAL *pa;
+const REAL *pb;
+const REAL *pc;
+const REAL *pd;
+const REAL *pe;
 REAL permanent;
 {
   INEXACT REAL aex, bex, cex, dex, aey, bey, cey, dey, aez, bez, cez, dez;
@@ -4157,11 +4170,11 @@ REAL permanent;
 }
 
 REAL insphere(pa, pb, pc, pd, pe)
-REAL *pa;
-REAL *pb;
-REAL *pc;
-REAL *pd;
-REAL *pe;
+const REAL *pa;
+const REAL *pb;
+const REAL *pc;
+const REAL *pd;
+const REAL *pe;
 {
   REAL aex, bex, cex, dex;
   REAL aey, bey, cey, dey;
