@@ -45,7 +45,6 @@ void testMarchingTets(  uint64_t x,
 {
     ScalarField sf = sfCreate(x, y, z, dx, dy, dz);
     if (!sfReadRaw(sf, fname)) exit(EXIT_FAILURE);
-    
 
     Vertex vertices[8] = {
         {0, 0, 0},
@@ -55,9 +54,9 @@ void testMarchingTets(  uint64_t x,
         {0, 0, 5.0},
         {1.0, 0, 3.0},
         {0, 3.0, 2.0},
-        {5.0, 5.0, 5.0}
+        {10.0, 10.0, 10.0}
     };
-    Vertex pos = {10, 10, 10};
+    Vertex pos = {0, 0, 0};
 
     uint64_t i = 0;
     for (i=0; i<8; i++) vAddI(&vertices[i], &pos);

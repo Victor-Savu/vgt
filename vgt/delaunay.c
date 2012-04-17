@@ -361,11 +361,6 @@ bool flip23(Delaunay del, Tet t, Array stack)
     check(t->n[oA]);
     Tet o = t->n[oA];
 
-    Vertex* p = t->v[A];
-//  Vertex* a = t->v[B];
-//  Vertex* b = t->v[C];
-//  Vertex* c = t->v[D];
-    Vertex* d = o->v[tetReadMap(t->m, oA)];
 
 
     pthread_mutex_lock(&del->mutex);
@@ -374,30 +369,11 @@ bool flip23(Delaunay del, Tet t, Array stack)
     while (tetVertexLabel(o, t->v[B]) != A) tetRot(o, tetReadMap(t->m, oA)); // this should do at most 2 rotations
     while (tetVertexLabel(o, t->v[C]) != B) tetRot(o, A); // this should do at most 2 rotations
 
-    // check that swapping worked
-    check(tetIsLegit(t));
-    check(tetIsLegit(o));
-    check(o->n[D] == t);
-    check(t->n[A] == o);
-    check(t->v[B] == o->v[A]);
-    check(t->v[C] == o->v[B]);
-    check(t->v[D] == o->v[C]);
-    check(t->v[A] == p);
-    check(o->v[D] == d);
-
     // Checking the preconditions of flip23
     check(orient3d(*t->v[A], *t->v[B], *t->v[C], *o->v[D]) > 0);
     check(orient3d(*t->v[A], *t->v[C], *t->v[D], *o->v[D]) > 0);
     check(orient3d(*t->v[A], *t->v[D], *t->v[B], *o->v[D]) > 0);
     check(orient3d(*t->v[B], *t->v[D], *t->v[C], *o->v[D]) < 0);
-
-    if (  !((orient3d(*o->v[A], *o->v[B], *o->v[C], *t->v[A]) < 0) &&
-            (orient3d(*o->v[A], *o->v[C], *o->v[D], *t->v[A]) > 0) &&
-            (orient3d(*o->v[A], *o->v[D], *o->v[B], *t->v[A]) > 0) &&
-            (orient3d(*o->v[B], *o->v[D], *o->v[C], *t->v[A]) > 0))) {
-        fprintf(stderr, "t = "); tetPrint(t, stderr); fprintf(stderr, "\n");
-        fprintf(stderr, "o = "); tetPrint(o, stderr); fprintf(stderr, "\n");
-    }
 
     check(orient3d(*o->v[A], *o->v[B], *o->v[C], *t->v[A]) < 0);
     check(orient3d(*o->v[A], *o->v[C], *o->v[D], *t->v[A]) > 0);
@@ -432,20 +408,10 @@ bool flip23(Delaunay del, Tet t, Array stack)
     arrPush(stack, &o);
     arrPush(stack, &s);
 
-    if (!tetIsLegit(t) || !tetIsLegit(o) || !tetIsLegit(s)) {
-        fprintf(stderr, "t = "); tetPrint(t, stderr); fprintf(stderr, "\n");
-        fprintf(stderr, "o = "); tetPrint(o, stderr); fprintf(stderr, "\n");
-        fprintf(stderr, "s = "); tetPrint(s, stderr); fprintf(stderr, "\n");
-        fflush(stderr);
-    }
 
     check(tetIsLegit(t));
     check(tetIsLegit(o));
     check(tetIsLegit(s));
-
- //   check(tetIsAlmostDelaunay(t));
- //   check(tetIsAlmostDelaunay(o));
- //   check(tetIsAlmostDelaunay(s));
 
     stub;
     return true;
@@ -459,7 +425,6 @@ void update_stack(uint64_t i, Obj o, Obj d) {
     struct flip_pair* p = d;
     if (*oCast(Tet*, o) == p->what) {
         *oCast(Tet*, o) = p->with;
-        check(tetIsLegit(*oCast(Tet*, o)));
     }
 }
 
@@ -1097,4 +1062,25 @@ bool delIsBounding(Delaunay restrict del, Tet restrict t) {
 inline
 bool delIsOnBoundary(Delaunay restrict del, Vertex* v) {
     return (v == del->A) || (v == del->B) || (v == del->C) || (v == del->D);
+}
+
+void drop_tet(uint64_t i, Obj o, Obj d)
+{
+    Array tets = oCast(Delaunay, d)->t;
+    Tet t = oCast(Tet, o);
+    while (i < arrSize(tets) && delIsBounding(d, t)) {
+        tetConnect(t->n[oA], tetReadMap(t->m, oA), 0, 0);
+        tetConnect(t->n[oB], tetReadMap(t->m, oB), 0, 0);
+        tetConnect(t->n[oC], tetReadMap(t->m, oC), 0, 0);
+        tetConnect(t->n[oD], tetReadMap(t->m, oD), 0, 0);
+        oCopyTo(t, arrBack(tets), sizeof (struct Tet));
+        arrPop(tets);
+    }
+}
+
+void delDropBoundary(Delaunay restrict del)
+{
+    pthread_mutex_lock(&del->mutex);
+    arrForEach(del->t, drop_tet, del);
+    pthread_mutex_unlock(&del->mutex);
 }

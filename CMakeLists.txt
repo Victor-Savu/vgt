@@ -14,7 +14,7 @@ set(CMAKE_BUILD_TYPE Debug)
 
 #cmake_policy(SET CMP0003 NEW)
 
-set(libtype "SHARED")
+#set(libtype "SHARED")
 
 #set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -O3 -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing")
 set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing")

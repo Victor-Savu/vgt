@@ -17,5 +17,6 @@ bool delIsBounding(Delaunay restrict del, Tet restrict t);
 
 bool delIsOnBoundary(Delaunay restrict del, Vertex* v);
 
+void delDropBoundary(Delaunay restrict del);
 
 #endif//VGT_DELAUNAY_H

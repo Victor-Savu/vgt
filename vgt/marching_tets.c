@@ -29,6 +29,41 @@ void find_bounding(uint64_t i, Obj o, Obj d)
     if ( (*v)[2] > (*bb)[1][2] ) (*bb)[1][2] = (*v)[2];
 }
 
+struct MTData {
+    ScalarField sf;
+    Mesh m;
+    uint64_t ntriangles;
+    real isoValue;
+};
+
+inline static
+void count_triangles(uint64_t i, Obj o, Obj d)
+{
+    Tet t = oCast(Tet, o);
+    ScalarField sf = oCast(struct MTData*, d)->sf;
+    real iso = oCast(struct MTData*, d)->isoValue / 255.0;
+    uint64_t* tri = &(oCast(struct MTData*, d)->ntriangles);
+    uint8_t cnt = 0;
+    if (sfValue(sf, (*t->v[A])[0], (*t->v[A])[1], (*t->v[A])[2]) > iso) {
+        cnt++;
+    }
+    if (sfValue(sf, (*t->v[B])[0], (*t->v[B])[1], (*t->v[B])[2]) > iso) {
+        cnt++;
+    }
+    if (sfValue(sf, (*t->v[C])[0], (*t->v[C])[1], (*t->v[C])[2]) > iso) {
+        cnt++;
+    }
+    if (sfValue(sf, (*t->v[D])[0], (*t->v[D])[1], (*t->v[D])[2]) > iso) {
+        cnt++;
+    }
+
+    if (cnt & 1) {
+        (*tri)+=1;
+    } else if (cnt == 2) {
+        (*tri)+=2;
+    }
+}
+
     inline static
 void bounding_box(Array restrict border, Array restrict samples, Vertex* restrict pos, Vertex* restrict size)
 {
@@ -45,7 +80,7 @@ void bounding_box(Array restrict border, Array restrict samples, Vertex* restric
     vSub(&bb[1], &bb[0], size);
 }
 
-Mesh isoMarchingTets(   const ScalarField const restrict data, Array restrict border, Array restrict samples, real isoValue)
+Mesh isoMarchingTets(const ScalarField const restrict data, Array restrict border, Array restrict samples, real isoValue)
 {
     if ( ( border && ((!samples && arrSize(border) < 4) || (samples && arrSize(border) + arrSize(samples) < 4)) ) || (samples && arrSize(samples)<4) ) {
 
@@ -113,26 +148,16 @@ Mesh isoMarchingTets(   const ScalarField const restrict data, Array restrict bo
 
     Delaunay del = delCreate(&bound);
 
-    // tetPrint(arrFront(del->t), stdout); printf("\n");
 
-//    Renderer r = rCreate("Marching Tets");
-
-    //Queue q = qCreate(sizeof(Tet));
-
-//    rDisplayDelaunay(r, del);
-
-
-    // qPushArray(q, delInsert(del, &vert[0]));
     uint64_t i = 0;
- //   char key=13;
+//    char key=13;
     Vertex aux;
     for (i=0; i<8; i++) {
- //       rWaitKey(r, &key);
+//        rWaitKey(r, &key);
         vAdd(&vert[i], &pos, &aux);
 
         arrDestroy(delInsert(del, &aux));
-        printf("%s Delaunay tetrahedrization after inserting vertex #%ld.\n", (delCheck(del))?("Correct"):("Incorrect"), i);
-        fflush(stdout);
+//      printf("%s Delaunay tetrahedrization after inserting vertex #%ld.\n", (delCheck(del))?("Correct"):("Incorrect"), i); fflush(stdout);
     }
 
     uint64_t skipped = 0;
@@ -150,8 +175,8 @@ Mesh isoMarchingTets(   const ScalarField const restrict data, Array restrict bo
                     vNormSquared(vSub(t->v[C], t->v[B], &g)) > min_cell_size_sqr ||
                     vNormSquared(vSub(t->v[D], t->v[B], &g)) > min_cell_size_sqr ||
                     vNormSquared(vSub(t->v[D], t->v[C], &g)) > min_cell_size_sqr) {
-                // if (ins);
-                // skipped = 0;
+
+                skipped = 0;
 
                 vAdd(t->v[A], t->v[B], &g);
                 vAddI(&g, t->v[C]);
@@ -159,7 +184,7 @@ Mesh isoMarchingTets(   const ScalarField const restrict data, Array restrict bo
                 vScaleI(&g, 0.25);
 
                 arrDestroy(delInsert(del, &g));
-             //   rWaitKey(r, &key);
+//                rWaitKey(r, &key);
             } else {
                 skipped++;
             }
@@ -172,9 +197,21 @@ Mesh isoMarchingTets(   const ScalarField const restrict data, Array restrict bo
     printf("%s Delaunay tetrahedrization.\n", (delCheck(del))?("Correct"):("Incorrect")); fflush(stdout);
     fprintf(stderr, "[i] Done!\n"); fflush(stderr);
 
-//    rWait(r);
+//  Renderer r = rCreate("Marching Tets");
+//  rDisplayDelaunay(r, del);
+//  char key=13;
+//  rWaitKey(r, &key);
 
-//    rDestroy(r);
+    delDropBoundary(del);
+
+//  rWait(r);
+//  rDestroy(r);
+
+    struct MTData dat = {data, 0, 0, isoValue};
+
+    arrForEach(del->t, count_triangles, &dat);
+
+    fprintf(stdout, "Triangles: %lu\n", dat.ntriangles);
 
     delDestroy(del);
 
