@@ -36,7 +36,7 @@ struct MTData {
     real isoValue;
 };
 
-inline static
+    inline static
 void count_triangles(uint64_t i, Obj o, Obj d)
 {
     Tet t = oCast(Tet, o);
@@ -62,6 +62,11 @@ void count_triangles(uint64_t i, Obj o, Obj d)
     } else if (cnt == 2) {
         (*tri)+=2;
     }
+}
+
+    inline static
+void get_triangles(uint64_t i, Obj o, Obj d)
+{
 }
 
     inline static
