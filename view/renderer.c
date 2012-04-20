@@ -7,7 +7,6 @@
 
 #include <math/obj.h>
 #include <vgt/mesh.h>
-#include <vgt/victor.h>
 #include <vgt/delaunay.h>
 #include <view/camera.h>
 #include <view/graphics.h>
@@ -34,8 +33,6 @@ void* init_rendering(void*);
 struct Renderer instance = {
     .m = 0,
     .new_m = 0,
-    .v = 0,
-    .new_v = 0,
     .d = 0,
     .new_d = 0,
     .mutex = PTHREAD_MUTEX_INITIALIZER,
@@ -82,15 +79,9 @@ void rDestroy(Renderer restrict r)
 
     if (instance.m) mDestroy(instance.m);
     if (instance.new_m) mDestroy(instance.new_m);
-    if (instance.v) vicDestroy(instance.v);
-    if (instance.new_v) vicDestroy(instance.new_v);
-    // if (instance.d) delDestroy(instance.d);
-    // if (instance.new_d) delDestroy(instance.new_d);
 
     instance.m = 0;
     instance.new_m = 0;
-    instance.v = 0;
-    instance.new_v = 0;
     instance.d = 0;
     instance.new_d = 0;
     instance.props = 0;
@@ -139,7 +130,7 @@ void cb_display(void)
     if (instance.d) delDisplay(instance.d, instance.widget);
 
     //if (instance.props & DRAW_FOCUS_POINT) {
-          gfxDraw(&instance.camera.focus_point);
+    gfxDraw(&instance.camera.focus_point);
     //}
     glutSwapBuffers();
 }

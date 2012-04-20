@@ -13,9 +13,6 @@ struct Renderer
     Mesh m;
     Mesh new_m;
 
-    Victor v;
-    Victor new_v;
-
     Delaunay d;
     Delaunay new_d;
 
