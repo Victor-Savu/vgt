@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <vgt/vec.h>
 #include <vgt/volumetric_data.h>
 
 int main(int argc, char* argv[])

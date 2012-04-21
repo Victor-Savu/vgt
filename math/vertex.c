@@ -5,36 +5,43 @@
 #include <stdlib.h>
 #include <string.h>
 
+inline
 real vGetX(Vertex* restrict a)
 {
     return (*a)[0];
 }
 
+inline
 real vGetY(Vertex* restrict a)
 {
     return (*a)[1];
 }
 
+inline
 real vGetZ(Vertex* restrict a)
 {
     return (*a)[2];
 }
 
+inline
 real vDot(Vertex* restrict a, Vertex* restrict b)
 {
     return (*a)[0] * (*b)[0] + (*a)[1] * (*b)[1] + (*a)[2] * (*b)[2]; 
 }
 
+inline
 real vNormSquared(Vertex* restrict a)
 {
     return (*a)[0] * (*a)[0] + (*a)[1] * (*a)[1] + (*a)[2] * (*a)[2];
 }
 
+inline
 real vNorm(Vertex* restrict a)
 {
     return sqrt(vNormSquared(a));
 }
 
+inline
 Vertex* vCross(Vertex* restrict a, Vertex* restrict b, Vertex* restrict c)
 {
     (*c)[0] = (*a)[1] * (*b)[2] - (*a)[2] * (*b)[1];
@@ -43,6 +50,7 @@ Vertex* vCross(Vertex* restrict a, Vertex* restrict b, Vertex* restrict c)
     return c;
 }
 
+inline
 Vertex* vAdd(Vertex* restrict a, Vertex* restrict b, Vertex* restrict c)
 {
     (*c)[0] = (*a)[0] + (*b)[0];
@@ -51,6 +59,7 @@ Vertex* vAdd(Vertex* restrict a, Vertex* restrict b, Vertex* restrict c)
     return c;
 }
 
+inline
 Vertex* vScale(Vertex* restrict a, real s, Vertex* restrict b)
 {
     (*b)[0] = s * (*a)[0];
@@ -59,6 +68,7 @@ Vertex* vScale(Vertex* restrict a, real s, Vertex* restrict b)
     return b;
 }
 
+inline
 Vertex* vSub(Vertex* restrict a, Vertex* restrict b, Vertex* restrict c)
 {
     (*c)[0] = (*a)[0] - (*b)[0];
@@ -67,6 +77,7 @@ Vertex* vSub(Vertex* restrict a, Vertex* restrict b, Vertex* restrict c)
     return c;
 }
 
+inline
 Vertex* vNormalize(Vertex* restrict a, Vertex* restrict b)
 {
     real n = vNorm(a);
@@ -77,6 +88,7 @@ Vertex* vNormalize(Vertex* restrict a, Vertex* restrict b)
     return vScale(a, 1.0/eps, b);
 }
 
+inline
 Vertex* vCopy(Vertex* restrict from, Vertex* restrict to)
 {
     (*to)[0] = (*from)[0];
@@ -85,6 +97,7 @@ Vertex* vCopy(Vertex* restrict from, Vertex* restrict to)
     return to;
 }
 
+inline
 Vertex* vCrossI(Vertex* restrict a, Vertex* restrict b)
 {
     real a0 = (*a)[0];
@@ -95,6 +108,7 @@ Vertex* vCrossI(Vertex* restrict a, Vertex* restrict b)
     return a;
 }
 
+inline
 Vertex* vAddI(Vertex* restrict a, Vertex* restrict b)
 {
     (*a)[0] += (*b)[0];
@@ -103,6 +117,7 @@ Vertex* vAddI(Vertex* restrict a, Vertex* restrict b)
     return a;
 }
 
+inline
 Vertex* vScaleI(Vertex* restrict a, real s)
 {
     (*a)[0] *= s;
@@ -111,6 +126,7 @@ Vertex* vScaleI(Vertex* restrict a, real s)
     return a;
 }
 
+inline
 Vertex* vSubI(Vertex* restrict a, Vertex* restrict b)
 {
     (*a)[0] -= (*b)[0];
@@ -119,6 +135,7 @@ Vertex* vSubI(Vertex* restrict a, Vertex* restrict b)
     return a;
 }
 
+inline
 Vertex* vNormalizeI(Vertex* restrict a)
 {
     real n = vNorm(a);
@@ -129,6 +146,7 @@ Vertex* vNormalizeI(Vertex* restrict a)
     return vScaleI(a, 1.0/n);
 }
 
+inline
 Vertex* vSet(Vertex* restrict a, real x, real y, real z)
 {
     (*a)[0] = x;
@@ -137,12 +155,20 @@ Vertex* vSet(Vertex* restrict a, real x, real y, real z)
     return a;
 }
 
+inline
+bool vIsZero(Vertex* restrict a)
+{
+    return ((*a)[0] == (*a)[1]) && ((*a)[1] == (*a)[2]) && ((*a)[2] == 0.0);
+}
+
+inline
 void vPrint(Vertex* restrict a, FILE* restrict fp)
 {
     char s[128];
     fprintf(fp, "%s", vPrintStr(a, s));
 }
 
+inline
 char* vPrintStr(Vertex* restrict a, char* restrict s)
 {
     if (!a) strcpy(s, "<null>");

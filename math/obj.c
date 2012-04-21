@@ -4,6 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+void oShortPrint(Obj i, FILE* f)
+{
+    fprintf(f, "%d", *oCast(short*, i));
+    safe(fflush(f););
+}
+
 void oIntPrint(Obj i, FILE* f)
 {
     fprintf(f, "%d", *oCast(int*, i));
@@ -13,6 +19,12 @@ void oIntPrint(Obj i, FILE* f)
 void oLongPrint(Obj i, FILE* f)
 {
     fprintf(f, "%ld", *oCast(long*, i));
+    safe(fflush(f););
+}
+
+void oUshortPrint(Obj i, FILE* f)
+{
+    fprintf(f, "%u", *oCast(unsigned short*, i));
     safe(fflush(f););
 }
 

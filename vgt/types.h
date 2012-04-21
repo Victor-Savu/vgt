@@ -4,6 +4,9 @@
 #include <math/types.h>
 #include <ads/types.h>
 
+/* Types */
+typedef Vertex Vec3;
+typedef Vertex Normal;
 
 /* Classes */
 
@@ -18,7 +21,6 @@ typedef struct Tet* Tet;
 // under developement
 typedef struct Delaunay* Delaunay;
 typedef struct Victor* Victor;
-typedef struct HalfEdge* HalfEdge;
 
 // to be implemented
 typedef struct Spectrum* Spectrum;

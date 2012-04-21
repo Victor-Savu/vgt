@@ -17,6 +17,7 @@ uint32_t choose(uint32_t pool) {
 void speed_test(uint64_t test);
 void sanity_check(uint64_t test);
 void random_check(uint64_t test);
+void ref_check(uint64_t n);
 
 int main(int argc, char* argv[])
 {
@@ -33,7 +34,8 @@ int main(int argc, char* argv[])
 
     speed_test(test);
     //sanity_check(test);
-    random_check(test);
+    //random_check(test);
+    ref_check(test);
 
     return 0;
 }
@@ -154,6 +156,28 @@ void random_check(uint64_t n)
         arrPop(arr);
     }
 
+    printf("\n");
+
+    arrDestroy(arr);
+}
+
+void ref_check(uint64_t n)
+{
+    call;
+    short i;
+
+    Array arr = arrCreate(sizeof(short), 4);
+
+    for (i=0; i<n; i++) arrPush(arr, &i);
+
+    arrPrint(arr, stdout, oShortPrint);
+    printf("\n");
+
+    short** refs = arrRefs(arr);
+    for (i=0; i<n; i++) refs[i][0]++;
+    oDestroy(refs);
+
+    arrPrint(arr, stdout, oShortPrint);
     printf("\n");
 
     arrDestroy(arr);

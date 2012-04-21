@@ -324,6 +324,7 @@ void copy_elem(uint64_t i, Obj o, Obj d) {
     oCopyTo( dest->a + i * dest->elem_size, o,dest->elem_size);
 }
 
+inline
 Obj arrToC(const Array restrict arr)
 {
     struct dest_c_array c = {
@@ -332,6 +333,19 @@ Obj arrToC(const Array restrict arr)
     };
     arrForEach(arr, copy_elem, &c);
     return c.a;
+}
+
+inline static
+void copy_ref(uint64_t i, Obj o, Obj d) {
+    oCast(Obj*, d)[i] = o;
+}
+
+inline
+Obj arrRefs(const Array restrict arr)
+{
+    Obj* refs = oCreate(sizeof (Obj) * arrSize(arr));
+    arrForEach(arr, copy_ref, refs);
+    return refs;
 }
 
 inline

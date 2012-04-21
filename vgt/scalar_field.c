@@ -316,34 +316,34 @@ real* sfAt(const ScalarField const restrict s, uint64_t x, uint64_t y, uint64_t 
 }
 
 inline
-real* sfRelX(const ScalarField const restrict field, real* restrict e, int x)
+real* sfRelX(const ScalarField const restrict field, real* restrict e, int64_t x)
 {
     check(field);
-    e += field->step_x * x;
+    e += (int64_t)field->step_x * x;
     check(e >= field->data && e <= field->data + field->nz * field->step_z);
     return e;
 }
 
 inline
-real* sfRelY(const ScalarField const restrict field, real* restrict e, int y)
+real* sfRelY(const ScalarField const restrict field, real* restrict e, int64_t y)
 {
     check(field);
-    e += (int)field->step_y * y;
+    e += (int64_t)field->step_y * y;
     check(e >= field->data && e <= field->data + field->nz * field->step_z);
     return e;
 }
 
 inline
-real* sfRelZ(const ScalarField const restrict field, real* restrict e, int z)
+real* sfRelZ(const ScalarField const restrict field, real* restrict e, int64_t z)
 {
     check(field);
-    e += (int)field->step_z * z;
+    e += (int64_t)field->step_z * z;
     check(e >= field->data && e <= field->data + field->nz * field->step_z);
     return e;
 }
 
 inline
-real* sfRel(const ScalarField const restrict field, real* restrict e, int x, int y, int z)
+real* sfRel(const ScalarField const restrict field, real* restrict e, int64_t x, int64_t y, int64_t z)
 {
     return sfRelX(field, sfRelY(field, sfRelZ(field, e, z), y), x);
 }

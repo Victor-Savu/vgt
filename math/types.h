@@ -31,11 +31,10 @@
 //#define SAFE_MODE           1
 //#define SAFE_MODE_VERBOSE   1
 
-
-
-#ifdef SAFE_MODE
 #define conjecture(x, fail_message)  do { if (!(x)) { fprintf(stderr, "[x] %s:%s:%d: %s\n", __FILE__, __func__, __LINE__, (fail_message)); fflush(stderr); exit(EXIT_FAILURE); } } while (0)
 # define usage(x)    conjecture(x, "Invalid usage.")
+
+#ifdef SAFE_MODE
 # define safe(x)     do {x} while (0)
 # define check(x)    conjecture(x, "Check failed.")
 # define stub        do { fprintf(stderr, "[!] %s:%s:%d: Not yet implemented.\n", __FILE__, __func__, __LINE__); fflush(stderr); } while (0)
@@ -45,8 +44,6 @@
 #  define call
 # endif
 #else
-#define conjecture(x, fail_message)
-#define usage(x)
 # define safe(x)
 # define check(x)
 # define call

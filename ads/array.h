@@ -79,5 +79,6 @@ void arrRandomSwap(Array restrict a, const ObjRelocator relocate);
 
 Obj arrToC(const Array restrict arr);
 
+Obj arrRefs(const Array restrict arr);
 
 #endif//ADS_ARRAY_H

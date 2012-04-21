@@ -59,22 +59,22 @@ real* sfAt(ScalarField s, uint64_t x, uint64_t y, uint64_t z);
 /*
    Access an element of the scalar field relative to another element in the X direction.
 */
-real* sfRelX(const ScalarField const restrict s_field, real* restrict e, int x);
+real* sfRelX(const ScalarField const restrict s_field, real* restrict e, int64_t x);
 
 /*
    Access an element of the scalar field relative to another element in the Y direction.
 */
-real* sfRelY(const ScalarField const restrict s_field, real* restrict e, int y);
+real* sfRelY(const ScalarField const restrict s_field, real* restrict e, int64_t y);
 
 /*
    Access an element of the scalar field relative to another element in the Z direction.
 */
-real* sfRelZ(const ScalarField const restrict s_field, real* restrict e, int z);
+real* sfRelZ(const ScalarField const restrict s_field, real* restrict e, int64_t z);
 
 /*
    Access an element of the scalar field relative to another element.
 */
-real* sfRel(const ScalarField const restrict s_field, real* restrict e, int x, int y, int z);
+real* sfRel(const ScalarField const restrict s_field, real* restrict e, int64_t x, int64_t y, int64_t z);
 
 /*
    Find the global minimum value and its position.

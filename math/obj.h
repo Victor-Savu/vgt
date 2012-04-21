@@ -6,8 +6,10 @@
 
 
 
+void oShortPrint(Obj i, FILE* f);
 void oIntPrint(Obj i, FILE* f);
 void oLongPrint(Obj i, FILE* f);
+void oUshortPrint(Obj i, FILE* f);
 void oUintPrint(Obj i, FILE* f);
 void oUlongPrint(Obj i, FILE* f);
 void oFloatPrint(Obj i, FILE* f);

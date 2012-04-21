@@ -29,6 +29,8 @@ Vertex* vNormalizeI(Vertex* restrict a);
 
 Vertex* vSet(Vertex* restrict a, real x, real y, real z);
 
+bool vIsZero(Vertex* restrict a);
+
 void vPrint(Vertex* restrict a, FILE* restrict fp);
 char* vPrintStr(Vertex* restrict a, char* s);
 
