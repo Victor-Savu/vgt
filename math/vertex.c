@@ -82,8 +82,7 @@ Vertex* vNormalize(Vertex* restrict a, Vertex* restrict b)
 {
     real n = vNorm(a);
     if (n < eps) {
-        fprintf(stderr, "Normalizing zero vector.\n");
-        exit(EXIT_FAILURE);
+        conjecture (n > eps, "Normalizing zero vector.\n");
     }
     return vScale(a, 1.0/eps, b);
 }

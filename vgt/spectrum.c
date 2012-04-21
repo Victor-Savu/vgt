@@ -4,6 +4,7 @@
 
 #include <math/obj.h>
 #include <math/vertex.h>
+#include <math/algorithms.h>
 
 #include <ads/array.h>
 
@@ -12,6 +13,8 @@
 #include <vgt/volumetric_data.h>
 #include <vgt/volumetric_data_cls.h>
 
+#include <GL/gl.h>
+#include <pthread.h>
 
 #include <string.h>
 #include <stdlib.h>
@@ -106,6 +109,20 @@ int cross_cmp(const HalfEdge a, const HalfEdge b) {
     else return 0;
 }
 
+inline static
+void elimin_discon(uint64_t i, Obj o, Obj d)
+{
+    unused(i);
+
+    do {
+        Thread* t = o;
+        Sample s = arrBack((*t)->samples);
+        if (vIsZero(&s->n)) {
+            *t = *oCast(Thread*, arrBack(d));
+            arrPop(d);
+        } else break;
+    } while (i < arrSize(d));
+}
 
 Spectrum specCreate(const char* restrict conf)
 {
@@ -200,9 +217,9 @@ Spectrum specCreate(const char* restrict conf)
     unsigned int aux, vert, faces;
     conjecture(fgets(line, sizeof(line), fin), "Error reading from off file."); // OFF
     conjecture(fgets(line, sizeof(line), fin), "Error reading from off file."); // #vertices #faces #<unused>
-    fputs(line, stdout);
+   // fputs(line, stdout);
     conjecture(sscanf(line, "%u %u %u", &vert, &faces, &aux) == 3, "Failed to read #vert #faces #<unused> from off file.");
-    printf("%u vertices, %u faces\n", vert, faces);
+  //  printf("%u vertices, %u faces\n", vert, faces);
 
     // read vertices
     uint64_t i = 0;
@@ -221,45 +238,50 @@ Spectrum specCreate(const char* restrict conf)
         ignore arrPush(active_thr, &t);
     }
 
-    {// read faces
-        unsigned int a, b, c, cnt;
-        Normal p, q, norm;
-        ind i;
+    // read faces
+    unsigned int a, b, c, cnt;
+    Normal p, q, norm;
 
-        for (i = 0; i < faces; i++) {
-            conjecture(fgets(line, sizeof(line), fin), "Error reading from off file.");
-            conjecture(sscanf(line, "%u %u %u %u\n", &cnt, &a, &b, &c) == 4, "Failed to read face from off file.");
+    for (i = 0; i < faces; i++) {
+        conjecture(fgets(line, sizeof(line), fin), "Error reading from off file.");
+        conjecture(sscanf(line, "%u %u %u %u\n", &cnt, &a, &b, &c) == 4, "Failed to read face from off file.");
 
-            // create the half-edges
-            struct HalfEdge edge_a = { .t = arrGet(thr, a), .n = 0, .o = 0 };
-            struct HalfEdge edge_b = { .t = arrGet(thr, b), .n = 0, .o = 0 };
-            struct HalfEdge edge_c = { .t = arrGet(thr, c), .n = 0, .o = 0 };
+        usage(a < vert);
+        usage(b < vert);
+        usage(c < vert);
 
-            HalfEdge ea = arrPush(fringe, &edge_a);
-            HalfEdge eb = arrPush(fringe, &edge_b);
-            HalfEdge ec = arrPush(fringe, &edge_c);
+        // create the half-edges
+        struct HalfEdge edge_a = { .t = arrGet(thr, a), .n = 0, .o = 0 };
+        struct HalfEdge edge_b = { .t = arrGet(thr, b), .n = 0, .o = 0 };
+        struct HalfEdge edge_c = { .t = arrGet(thr, c), .n = 0, .o = 0 };
 
-            ea->n = eb; eb->n = ec; ec->n = ea;
+        HalfEdge ea = arrPush(fringe, &edge_a);
+        HalfEdge eb = arrPush(fringe, &edge_b);
+        HalfEdge ec = arrPush(fringe, &edge_c);
 
-            // create the triangloid
-            struct Triangloid t = {
-                .iso = {initial_isovalue, initial_isovalue},
-                .t_ids = {ea->t->id, eb->t->id, ec->t->id}
-            };
-            arrPush(tri, &t);
+        ea->n = eb; eb->n = ec; ec->n = ea;
 
-            Sample sa = oCast(Sample, arrBack(ea->t->samples));
-            Sample sb = oCast(Sample, arrBack(eb->t->samples));
-            Sample sc = oCast(Sample, arrBack(ec->t->samples));
+        // create the triangloid
+        struct Triangloid t = {
+            .iso = {initial_isovalue, initial_isovalue},
+                    .t_ids = {ea->t->id, eb->t->id, ec->t->id}
+        };
+        arrPush(tri, &t);
 
-            ignore vCross( vSub(&sb->p, &sa->p, &p),
-                           vSub(&sc->p, &sa->p, &q),
-                           &norm);
-            vAddI(&sa->n, &norm);
-            vAddI(&sb->n, &norm);
-            vAddI(&sc->n, &norm);
-        }
+        Sample sa = oCast(Sample, arrBack(ea->t->samples));
+        Sample sb = oCast(Sample, arrBack(eb->t->samples));
+        Sample sc = oCast(Sample, arrBack(ec->t->samples));
+
+        ignore vCross( vSub(&sb->p, &sa->p, &p),
+                       vSub(&sc->p, &sa->p, &q),
+                       &norm);
+        vAddI(&sa->n, &norm);
+        vAddI(&sb->n, &norm);
+        vAddI(&sc->n, &norm);
     }
+
+    // eliminate disconnected vertices
+    arrForEach(active_thr, elimin_discon, active_thr);
 
     // find opposing edges
     uint64_t n_edges = arrSize(fringe);
@@ -301,10 +323,49 @@ Spectrum specCreate(const char* restrict conf)
         .fringe = fringe,
         .vol = v,
         .active_threads = active_thr,
-        .max_force = 0.01;
+        .max_force = 1e-3,
     };
 
-    return oCopy(&sp, sizeof (struct Spectrum));
+
+    Spectrum ret = oCopy(&sp, sizeof (struct Spectrum));
+
+    pthread_mutex_init(&ret->mutex, 0);
+
+    return ret;
+}
+
+struct interp_kit {
+    real ierror;
+    real nerror;
+    ScalarField sf;
+    VectorField vf;
+};
+
+inline static
+void interp_error(uint64_t i, Obj o, Obj d)
+{
+    struct interp_kit* kit = d;
+    Thread* t = o;
+
+    Sample s = arrBack((*t)->samples);
+
+    kit->ierror += algoAbs(s->iso - sfValue(kit->sf, s->p[0], s->p[1], s->p[2]));
+    Normal n; vCopy(&s->n, &n);
+    Normal in; ignore vfValue(kit->vf, &in, s->p[0], s->p[1], s->p[2]);
+
+    Normal c;
+    kit->nerror += vNorm(vCross(vNormalizeI(&n), vNormalizeI(&in), &c));
+
+}
+
+inline
+void specStats(Spectrum restrict s)
+{
+    struct interp_kit kit = { .ierror = 0.0, .nerror = 0.0, .sf = s->vol->scal, .vf = s->vol->grad };
+    arrForEach(s->active_threads, interp_error, &kit);
+
+    fprintf(stderr, "Interp error: %lf\n", oCast(double, kit.ierror));
+    fprintf(stderr, "Normal error: %lf\n", oCast(double, kit.nerror));
 }
 
 inline static
@@ -321,50 +382,118 @@ void specDestroy(Spectrum restrict sp)
     vdDestroy(sp->vol);
     arrDestroy(sp->fringe);
     arrDestroy(sp->active_threads);
+    pthread_mutex_destroy(&sp->mutex);
     oDestroy(sp);
 }
 
 inline static
 void exert_force(uint64_t i, Obj o, Obj d)
 {
+    unused(d);
+    unused(i);
+    HalfEdge e = o;
+
+    Vec3* fa = &e->t->force;
+    Vec3* fb = &e->n->t->force;
+    Vec3* fc = &e->n->n->t->force;
+
+    Vertex* a = &oCast(Sample, arrBack(e->t->samples))->p;
+    Vertex* b = &oCast(Sample, arrBack(e->n->t->samples))->p;
+    Vertex* c = &oCast(Sample, arrBack(e->n->n->t->samples))->p;
+
+    Vec3 m; // median cm
+    vSubI(vScaleI(vAdd(a, b, &m), 0.5), c);
+
+    Vec3 ab;
+    vNormalizeI(vSub(b, a, &ab));
+
+    vScaleI(&ab, vDot(&m, &ab)/2);
+
+    vAddI(fc, &ab);
+    vScaleI(&ab, 0.5);
+    vSubI(fa, &ab);
+    vSubI(fb, &ab);
 }
 
-inline static
-void extract_tangential(uint64_t i, Obj o, Obj d)
-{
-}
+static real scale = 0.1;
 
 inline static
 void relax(uint64_t i, Obj o, Obj d)
 {
+    unused(i);
+    Thread* thr = o;
+    Sample s = arrBack((*thr)->samples);
+    Vec3* p = &s->p;
+    Vec3* n = &s->n;
+    Vec3* f = &(*thr)->force;
+
+    real sz = vDot(vNormalizeI(n), f);
+
+    sz = vNormSquared(vSubI(f, vScaleI(n, sz)));
+    sz = vNorm(vSubI(f, vScaleI(n, sz)));
+    vAddI(p, vScaleI(f, scale));
+
+    if (sz > *oCast(real*, d)) *oCast(real*, d) = sz;
+
+    //*oCast(real*, d) += sz;
+
+    vSet(n, 0, 0, 0);
+    vSet(f, 0, 0, 0);
 }
 
 inline static
 void recompute_normal(uint64_t i, Obj o, Obj d)
 {
+    unused(d);
+    unused(i);
+    HalfEdge e = o;
+    if ((e->t->id > e->n->t->id) || (e->t->id > e->n->n->t->id)) return;
+
+    Sample sa = arrBack(e->t->samples);
+    Sample sb = arrBack(e->n->t->samples);
+    Sample sc = arrBack(e->n->n->t->samples);
+
+    Normal p, q, norm;
+    ignore vCross( vSub(&sb->p, &sa->p, &p),
+            vSub(&sc->p, &sa->p, &q),
+            &norm);
+    vAddI(&sa->n, &norm);
+    vAddI(&sb->n, &norm);
+    vAddI(&sc->n, &norm);
 }
 
 
 void specRelax(Spectrum restrict sp)
 {
-    while (1) {
+    real force = 1e7;
+    real exforce = force;
+    while (scale > 1e-9 && force > sp->max_force) {
         // compute the exerted force
         arrForEach(sp->fringe, exert_force, 0);
 
         // extract the tangential component of the force
-        // and compute the maximum squared norm
-        real force = 0.0;
-        arrForEach(sp->active_threads, extract_tangential, &force);
+        // use it to relax the sample and compute the maximum squared norm
+        // of the force exerted to determine the stopping criteria
 
-        if (force < sp->max_force) break;
+        force = 0.0;
+        pthread_mutex_lock(&sp->mutex);
+        arrForEach(sp->active_threads, relax, &force);
+        pthread_mutex_unlock(&sp->mutex);
 
-        // relax samples
-        arrForEach(sp->active_threads, relax, 0);
+        fprintf(stderr, "force: %lf\tscale: %lf\n", oCast(double, force), oCast(double, scale));
+        fflush(stderr);
+
+        if (force > exforce)
+            scale *= 0.5;
+        else if (force < exforce)
+            scale *= 1.8 - force/exforce;
+        else scale *= algoRandomDouble(0.8, 1.0);
+
+        exforce = force;
 
         // recompute normal
         arrForEach(sp->fringe, recompute_normal, 0);
     }
-    oDestroy(energy);
 }
 
 void specSimplify(Spectrum restrict sp)
@@ -385,4 +514,86 @@ void specSample(Spectrum restrict sp)
 
 void specMerge(Spectrum restrict sp)
 {
+}
+
+void display_edge(uint64_t i, Obj o, Obj d)
+{
+    unused(i);
+    unused(d);
+
+    HalfEdge e = o;
+    if ((e->t->id > e->n->t->id) || (e->t->id > e->n->n->t->id)) return;
+
+    Sample sa = arrBack(e->t->samples);
+    Sample sb = arrBack(e->n->t->samples);
+    Sample sc = arrBack(e->n->n->t->samples);
+
+    glVertex3v(sa->p);
+    glVertex3v(sc->p);
+    glVertex3v(sb->p);
+}
+
+void display_sample(uint64_t i, Obj o, Obj d)
+{
+    unused(i);
+    unused(d);
+    glVertex3v(oCast(Sample, o)->p);
+}
+
+void display_thread(uint64_t i, Obj o, Obj d)
+{
+    unused(i);
+    unused(d);
+    glBegin(GL_LINE_STRIP);
+    arrForEach(oCast(Thread, o)->samples, display_sample, 0);
+    glEnd();
+}
+
+void display_vert(uint64_t i, Obj o, Obj d)
+{
+    unused(i);
+    unused(d);
+    Thread* t = o;
+    Sample s = arrBack((*t)->samples);
+    if (vIsZero(&s->n)) glVertex3v(s->p);
+}
+
+void specDisplay(Spectrum restrict sp)
+{
+    glLineWidth(1.0);
+
+    glEnable(GL_COLOR_MATERIAL);
+    glDisable(GL_LIGHTING);
+
+    glColor3f(0.0, 0.0, 1.0);
+
+    pthread_mutex_lock(&sp->mutex);
+
+    arrForEach(sp->thr, display_thread, 0);
+
+    glEnable(GL_LIGHTING);
+
+    glColor3f(0.0, 1.0, 0.0);
+    glBegin(GL_TRIANGLES);
+    arrForEach(sp->fringe, display_edge, 0);
+    glEnd();
+
+    glLineWidth(3.0);
+    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+    glColor3f(0.0, 1.0, 1.0);
+    glBegin(GL_TRIANGLES);
+    arrForEach(sp->fringe, display_edge, 0);
+    glEnd();
+    glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+
+    glPointSize(40.0);
+    glColor3f(1.0, 0.0, 0.0);
+    glBegin(GL_POINTS);
+    arrForEach(sp->active_threads, display_vert, 0);
+
+    pthread_mutex_unlock(&sp->mutex);
+
+    glEnd();
+
+    glDisable(GL_COLOR_MATERIAL);
 }

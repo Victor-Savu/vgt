@@ -28,5 +28,9 @@ void specSample(Spectrum restrict sp);
 // Merges the results of the projection and of the the sampling
 void specMerge(Spectrum restrict sp);
 
+void specDisplay(Spectrum restrict sp);
+
+void specStats(Spectrum restrict s);
+
 #endif//VGT_SPECTRUM_H
 

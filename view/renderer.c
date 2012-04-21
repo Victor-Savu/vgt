@@ -8,6 +8,9 @@
 #include <math/obj.h>
 #include <vgt/mesh.h>
 #include <vgt/delaunay.h>
+
+#include <vgt/spectrum.h>
+
 #include <view/camera.h>
 #include <view/graphics.h>
 
@@ -33,8 +36,13 @@ void* init_rendering(void*);
 struct Renderer instance = {
     .m = 0,
     .new_m = 0,
+
     .d = 0,
     .new_d = 0,
+
+    .s = 0,
+    .new_s = 0,
+
     .mutex = PTHREAD_MUTEX_INITIALIZER,
     .props = 0,
 
@@ -84,7 +92,10 @@ void rDestroy(Renderer restrict r)
     instance.new_m = 0;
     instance.d = 0;
     instance.new_d = 0;
+    instance.s = 0;
+    instance.new_s = 0;
     instance.props = 0;
+
 }
 
 void rWait(Renderer restrict r)
@@ -112,6 +123,15 @@ void rDisplayDelaunay(Renderer restrict r, Delaunay restrict d)
     pthread_mutex_unlock(&instance.mutex);
 }
 
+
+void rDisplaySpectrum(Renderer restrict r, Spectrum restrict s)
+{
+    if (instance.props & REQ_SHUTDOWN) rDestroy(&instance);
+    pthread_mutex_lock(&instance.mutex);
+    instance.new_s= s;
+    pthread_mutex_unlock(&instance.mutex);
+}
+
 void rWaitKey(Renderer r, char* c) {
     if (instance.props & REQ_SHUTDOWN) rDestroy(&instance);
 
@@ -128,6 +148,7 @@ void cb_display(void)
 
     if (instance.m) mDisplay(instance.m);
     if (instance.d) delDisplay(instance.d, instance.widget);
+    if (instance.s) specDisplay(instance.s);
 
     //if (instance.props & DRAW_FOCUS_POINT) {
     gfxDraw(&instance.camera.focus_point);
@@ -228,9 +249,16 @@ void cb_idle(void)
         instance.d = instance.new_d;
         instance.new_d = 0;
     }
+    Spectrum old_s = 0;
+    if (instance.new_s) {
+        old_s = instance.s;
+        instance.s = instance.new_s;
+        instance.new_s = 0;
+    }
     pthread_mutex_unlock(&instance.mutex);
     if (old_m) mDestroy(old_m);
     if (old_d) delDestroy(old_d);
+    if (old_s) specDestroy(old_s);
 }
 
 void* init_rendering(void* arg)

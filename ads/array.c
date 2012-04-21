@@ -225,13 +225,11 @@ void arrPop(Array arr)
 
 Obj arrGet(Array restrict arr, uint64_t p)
 {
+    usage(p<arrSize(arr));
+
     uint64_t elm = p & (arr->nseg-1);
     uint64_t pos = p >> arr->fact;
 
-    if (!arr || pos >= arr->n) {
-        fprintf(stderr, "[x] %s: Illegal memory access.\n", __func__);
-        exit(EXIT_FAILURE);
-    }
     if (pos == 0) return oCast(char*, arr->begin[0]) + arr->element_size * elm;
     if (pos == 1) return arr->begin[1] + arr->element_size * elm;
     if (pos == 2) return oCast(char*, arr->begin[1]) + arr->segment_size + arr->element_size * elm;

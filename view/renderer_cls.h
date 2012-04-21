@@ -16,6 +16,9 @@ struct Renderer
     Delaunay d;
     Delaunay new_d;
 
+    Spectrum s;
+    Spectrum new_s;
+
     pthread_t threadId;
     pthread_mutex_t mutex;
 

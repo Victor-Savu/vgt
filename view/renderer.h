@@ -3,13 +3,15 @@
 
 #include <view/types.h>
 
-Renderer rCreate(const char* winname);
+Renderer rCreate(const char* restrict winname);
 
-void rDestroy(Renderer r);
+void rDestroy(Renderer restrict r);
 
-void rDisplayMesh(Renderer r, Mesh m);
+void rDisplayMesh(Renderer restrict r, Mesh restrict m);
 
-void rDisplayDelaunay(Renderer r, Delaunay m);
+void rDisplayDelaunay(Renderer restrict r, Delaunay restrict m);
+
+void rDisplaySpectrum(Renderer restrict r, Spectrum restrict s);
 
 void rWait(Renderer r);
 

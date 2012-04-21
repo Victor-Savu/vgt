@@ -81,24 +81,79 @@ void vfDestroy(VectorField s)
     free(s);
 }
 
-
-Vertex* vfAt(VectorField s, uint64_t x, uint64_t y, uint64_t z)
+inline
+Vertex* vfAt(const VectorField const restrict s, uint64_t x, uint64_t y, uint64_t z)
 {
-    if (x >= s->nx || y >= s->ny || z >= s->nz) {
-        fprintf(stderr, "[!] Vector field access out of bounds.\n");
-        exit(EXIT_FAILURE);
-    }
-    return s->data + z * s->step_z + y * s->step_y + x * s->step_x;
+    return vfRel(s, s->data, x, y, z);
 }
 
-Vertex* vfRel(VectorField v_field, Vertex* e, int x, int y, int z)
+inline
+Vertex* vfRelX(const VectorField const restrict field, Vertex* restrict e, int64_t x)
 {
-    // TODO: Check preconditions & access range
-
-    //
-
-    return e + (int)v_field->step_x * x + (int)v_field->step_y * y + (int)v_field->step_z * z;
+    usage(field);
+    e += (int64_t)field->step_x * x;
+    usage(e >= field->data && e <= field->data + field->nz * field->step_z);
+    return e;
 }
+
+inline
+Vertex* vfRelY(const VectorField const restrict field, Vertex* restrict e, int64_t y)
+{
+    usage(field);
+    e += (int64_t)field->step_y * y;
+    usage(e >= field->data && e <= field->data + field->nz * field->step_z);
+    return e;
+}
+
+inline
+Vertex* vfRelZ(const VectorField const restrict field, Vertex* restrict e, int64_t z)
+{
+    usage(field);
+    e += (int64_t)field->step_z * z;
+    usage(e >= field->data && e <= field->data + field->nz * field->step_z);
+    return e;
+}
+inline
+Vertex* vfRel(const VectorField const restrict field, Vertex* restrict e, int64_t x, int64_t y, int64_t z)
+{
+    return vfRelX(field, vfRelY(field, vfRelZ(field, e, z), y), x);
+}
+
+inline
+Vertex* vfValue(const VectorField const restrict field, Vertex* v, real x, real y, real z)
+{
+    check(field);
+    check(x >= 0 && oCast(uint64_t, x * field->dx) < (field->nx-1) );
+    check(y >= 0 && oCast(uint64_t, y * field->dy) < (field->ny-1) );
+    check(z >= 0 && oCast(uint64_t, z * field->dz) < (field->nz-1) );
+
+    x /= field->dx; y /= field->dy; z /= field->dz;
+
+    Vertex* cell = vfAt(field, oCast(uint64_t, x), oCast(uint64_t, y), oCast(uint64_t, z));
+    x -= (uint64_t)x;  y -= (uint64_t)y;  z -= (uint64_t)z;
+
+    Vertex v000; vCopy(cell, &v000); cell = vfRel(field, cell, 1, 0, 0);
+    Vertex v100; vCopy(cell, &v100); cell = vfRel(field, cell, 0, 1, 0);
+    Vertex v110; vCopy(cell, &v110); cell = vfRel(field, cell,-1, 0, 0);
+    Vertex v010; vCopy(cell, &v010); cell = vfRel(field, cell, 0, 0, 1);
+    Vertex v011; vCopy(cell, &v011); cell = vfRel(field, cell, 1, 0, 0);
+    Vertex v111; vCopy(cell, &v111); cell = vfRel(field, cell, 0,-1, 0);
+    Vertex v101; vCopy(cell, &v101); cell = vfRel(field, cell,-1, 0, 0);
+    Vertex v001; vCopy(cell, &v001);
+
+    vAddI(vScaleI(&v000, 1-z), vScaleI(&v001, z));
+    vAddI(vScaleI(&v100, 1-z), vScaleI(&v101, z));
+    vAddI(vScaleI(&v010, 1-z), vScaleI(&v011, z));
+    vAddI(vScaleI(&v110, 1-z), vScaleI(&v111, z));
+
+    vAddI(vScaleI(&v000, 1-y), vScaleI(&v010, y));
+    vAddI(vScaleI(&v100, 1-y), vScaleI(&v110, y));
+
+    vAddI(vScaleI(&v000, 1-x), vScaleI(&v100, x));
+
+    return vCopy(&v000, v);
+}
+
 
 ScalarField vfDivergence(VectorField field)
 {

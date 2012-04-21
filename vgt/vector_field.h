@@ -32,14 +32,31 @@ VectorField vfCopy(VectorField s);
 void vfDestroy(VectorField s);
 
 /*
-   Accesses an element of the vector field.
+   Accesses an element of the scalar field.
 */
 Vertex* vfAt(VectorField s, uint64_t x, uint64_t y, uint64_t z);
 
 /*
+   Access an element of the scalar field relative to another element in the X direction.
+*/
+Vertex* vfRelX(const VectorField const restrict v_field, Vertex* restrict e, int64_t x);
+
+/*
+   Access an element of the scalar field relative to another element in the Y direction.
+*/
+Vertex* vfRelY(const VectorField const restrict v_field, Vertex* restrict e, int64_t y);
+
+/*
+   Access an element of the scalar field relative to another element in the Z direction.
+*/
+Vertex* vfRelZ(const VectorField const restrict v_field, Vertex* restrict e, int64_t z);
+
+/*
    Access an element of the scalar field relative to another element.
 */
-Vertex* vfRel(VectorField v_field, Vertex* e, int x, int y, int z);
+Vertex* vfRel(const VectorField const restrict v_field, Vertex* restrict e, int64_t x, int64_t y, int64_t z);
+
+Vertex* vfValue(const VectorField const restrict field, Vertex* v, real x, real y, real z);
 
 /*
    Computes the divergence of the vector field

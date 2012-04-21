@@ -92,4 +92,11 @@ uint64_t algoLog2(uint64_t x)
     return y;
 }
 
+static inline
+real algoAbs(real r)
+{
+    if (r > 0) return r;
+    return -r;
+}
+
 #endif//MATH_ALGORITHMS_H

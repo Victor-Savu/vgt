@@ -21,6 +21,8 @@ struct Spectrum {
     Array active_threads;
     
     real max_force;
+
+    pthread_mutex_t mutex;
 };
 
 #endif//VGT_SPECTRUM_CLS_H
