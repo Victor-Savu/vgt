@@ -122,10 +122,11 @@ Vertex* vfRel(const VectorField const restrict field, Vertex* restrict e, int64_
 inline
 Vertex* vfValue(const VectorField const restrict field, Vertex* v, real x, real y, real z)
 {
-    check(field);
-    check(x >= 0 && oCast(uint64_t, x * field->dx) < (field->nx-1) );
-    check(y >= 0 && oCast(uint64_t, y * field->dy) < (field->ny-1) );
-    check(z >= 0 && oCast(uint64_t, z * field->dz) < (field->nz-1) );
+    usage(field);
+    if (!(x >= 0 && oCast(uint64_t, x * field->dx) < (field->nx-1)))
+        usage(x >= 0 && oCast(uint64_t, x * field->dx) < (field->nx-1) );
+    usage(y >= 0 && oCast(uint64_t, y * field->dy) < (field->ny-1) );
+    usage(z >= 0 && oCast(uint64_t, z * field->dz) < (field->nz-1) );
 
     x /= field->dx; y /= field->dy; z /= field->dz;
 

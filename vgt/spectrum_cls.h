@@ -3,7 +3,6 @@
 
 #include <vgt/types.h>
 
-
 // a set of triangloids and their defining threads
 // it is constructed from a starting (minimum) isovalue isoMin
 struct Spectrum {
@@ -21,8 +20,11 @@ struct Spectrum {
     Array active_threads;
     
     real max_force;
+    real area_sqr;
+    real lambda;
 
     pthread_mutex_t mutex;
+    uint64_t observers;
 };
 
 #endif//VGT_SPECTRUM_CLS_H
