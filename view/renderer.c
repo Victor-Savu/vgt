@@ -199,6 +199,18 @@ void cb_keyboard(unsigned char key, int x, int y)
         instance.d->rendering ^= DELAUNAY_RENDER_CIRCUMSPHERE;
     case 'b':
         instance.d->rendering ^= DELAUNAY_RENDER_BOUNDING_TET;
+    case 'o':
+        camPan(&instance.camera, 0.1, 0.0);
+        break;
+    case 'l':
+        camPan(&instance.camera, 0.0, 0.1);
+        break;
+    case 'k':
+        camPan(&instance.camera, 0.0, -0.1);
+        break;
+    case ',':
+        camPan(&instance.camera, -0.1, 0.0);
+        break;
     default:
         if (instance.key && key == *instance.key) {
             pthread_cond_signal(&instance.key_pressed);
@@ -280,13 +292,11 @@ void* init_rendering(void* arg)
     GLfloat mat_diffuse[] = { 1.0, 1.0, 1.0, 1.0 };
     GLfloat mat_ambient[] = { 1.0, 1.0, 1.0, 1.0 };
     GLfloat mat_shininess[] = { 50.0 };
-    GLfloat light_position[] = { 1.0, 1.0, -1.0, 0.0 };
 
     glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
     glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
     glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
     glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);

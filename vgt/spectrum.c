@@ -19,6 +19,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <math.h>
 
 typedef struct Sample* Sample;
 typedef struct Thread* Thread;
@@ -228,6 +229,7 @@ Spectrum specCreate(const char* restrict conf)
         conjecture(fgets(line, sizeof(line), fin), "Error reading from off file.");
         conjecture(sscanf(line, "%f %f %f\n", &x, &y, &z) == 3, "failed to read vertex from off file.");
         vSet(&smpl.p, x, y, z);
+        vfValue(v->grad, &smpl.n, x, y, z);
         struct Thread tmp_thr = {
             .samples = arrCreate(sizeof (struct Sample), 1),
             .id = i,
@@ -240,7 +242,7 @@ Spectrum specCreate(const char* restrict conf)
 
     // read faces
     unsigned int a, b, c, cnt;
-    Normal p, q, norm;
+//    Normal p, q, norm;
 
     for (i = 0; i < faces; i++) {
         conjecture(fgets(line, sizeof(line), fin), "Error reading from off file.");
@@ -267,7 +269,7 @@ Spectrum specCreate(const char* restrict conf)
                     .t_ids = {ea->t->id, eb->t->id, ec->t->id}
         };
         arrPush(tri, &t);
-
+/*
         Sample sa = oCast(Sample, arrBack(ea->t->samples));
         Sample sb = oCast(Sample, arrBack(eb->t->samples));
         Sample sc = oCast(Sample, arrBack(ec->t->samples));
@@ -277,7 +279,7 @@ Spectrum specCreate(const char* restrict conf)
                        &norm);
         vAddI(&sa->n, &norm);
         vAddI(&sb->n, &norm);
-        vAddI(&sc->n, &norm);
+        vAddI(&sc->n, &norm);*/
     }
 
     // eliminate disconnected vertices
@@ -323,7 +325,7 @@ Spectrum specCreate(const char* restrict conf)
         .fringe = fringe,
         .vol = v,
         .active_threads = active_thr,
-        .max_force = 1e-3,
+        .max_force = 2,
     };
 
 
@@ -337,8 +339,7 @@ Spectrum specCreate(const char* restrict conf)
 struct interp_kit {
     real ierror;
     real nerror;
-    ScalarField sf;
-    VectorField vf;
+    Spectrum sp;
 };
 
 inline static
@@ -349,20 +350,40 @@ void interp_error(uint64_t i, Obj o, Obj d)
 
     Sample s = arrBack((*t)->samples);
 
-    kit->ierror += algoAbs(s->iso - sfValue(kit->sf, s->p[0], s->p[1], s->p[2]));
+    kit->ierror += algoAbs(s->iso - sfValue(kit->sp->vol->scal, s->p[0], s->p[1], s->p[2]));
     Normal n; vCopy(&s->n, &n);
-    Normal in; ignore vfValue(kit->vf, &in, s->p[0], s->p[1], s->p[2]);
+    Normal in; ignore vfValue(kit->sp->vol->grad, &in, s->p[0], s->p[1], s->p[2]);
 
     Normal c;
     kit->nerror += vNorm(vCross(vNormalizeI(&n), vNormalizeI(&in), &c));
 
 }
 
+inline static
+void interp_bar_error(uint64_t i, Obj o, Obj d)
+{
+    struct interp_kit* kit = d;
+    HalfEdge e = o;
+    Sample sa = arrBack(e->t->samples);
+    Sample sb = arrBack(e->n->t->samples);
+    Sample sc = arrBack(e->n->n->t->samples);
+    Vertex g;
+    vAdd(&sa->p, &sb->p, &g);
+    vAddI(&g, &sc->p);
+    vScaleI(&g, 1./3.);
+
+    real iso = (sa->iso + sb->iso + sc->iso)/3.;
+
+    kit->ierror += algoAbs(iso - sfValue(kit->sp->vol->scal, g[0], g[1], g[2]));
+
+}
+
 inline
 void specStats(Spectrum restrict s)
 {
-    struct interp_kit kit = { .ierror = 0.0, .nerror = 0.0, .sf = s->vol->scal, .vf = s->vol->grad };
+    struct interp_kit kit = { .ierror = 0.0, .nerror = 0.0, .sp = s };
     arrForEach(s->active_threads, interp_error, &kit);
+  //  arrForEach(s->fringe, interp_bar_error, &kit);
 
     fprintf(stderr, "Interp error: %lf\n", oCast(double, kit.ierror));
     fprintf(stderr, "Normal error: %lf\n", oCast(double, kit.nerror));
@@ -387,7 +408,7 @@ void specDestroy(Spectrum restrict sp)
 }
 
 inline static
-void exert_force(uint64_t i, Obj o, Obj d)
+void exert_tangent_force(uint64_t i, Obj o, Obj d)
 {
     unused(d);
     unused(i);
@@ -415,7 +436,27 @@ void exert_force(uint64_t i, Obj o, Obj d)
     vSubI(fb, &ab);
 }
 
-static real scale = 0.1;
+static real scale = 0.3;
+
+inline static
+void exert_normal_force(uint64_t i, Obj o, Obj d)
+{
+    unused(i);
+
+    Thread* t = o;
+    Sample s = arrBack((*t)->samples);
+
+    Normal n; vNormalize(&s->n, &n);
+
+    vSubI(&(*t)->force, vScaleI(&n, vDot(&n, &(*t)->force)));
+
+    real di = s->iso - sfValue(d, s->p[0], s->p[1], s->p[2]);
+
+    vScale(&s->n, di, &n);
+    vAddI(&(*t)->force, &n);
+}
+
+
 
 inline static
 void relax(uint64_t i, Obj o, Obj d)
@@ -424,28 +465,35 @@ void relax(uint64_t i, Obj o, Obj d)
     Thread* thr = o;
     Sample s = arrBack((*thr)->samples);
     Vec3* p = &s->p;
-    Vec3* n = &s->n;
     Vec3* f = &(*thr)->force;
 
-    real sz = vDot(vNormalizeI(n), f);
+    real sz = vNorm(f);
 
-    sz = vNormSquared(vSubI(f, vScaleI(n, sz)));
-    sz = vNorm(vSubI(f, vScaleI(n, sz)));
     vAddI(p, vScaleI(f, scale));
 
-    if (sz > *oCast(real*, d)) *oCast(real*, d) = sz;
+    //if (sz > *oCast(real*, d)) *oCast(real*, d) = sz;
 
-    //*oCast(real*, d) += sz;
-
-    vSet(n, 0, 0, 0);
+    *oCast(real*, d) += sz;
     vSet(f, 0, 0, 0);
 }
+
 
 inline static
 void recompute_normal(uint64_t i, Obj o, Obj d)
 {
-    unused(d);
     unused(i);
+
+    Thread* t = o;
+    Sample s = arrBack((*t)->samples);
+    while (vIsZero(vfValue(d, &s->n, s->p[0], s->p[1], s->p[2]))) {
+        s->p[0] += algoRandomDouble(-0.1, 0.1);
+        s->p[1] += algoRandomDouble(-0.1, 0.1);
+        s->p[2] += algoRandomDouble(-0.1, 0.1);
+    }
+
+    conjecture(!vIsZero(&s->n), "oh no!");
+
+/*
     HalfEdge e = o;
     if ((e->t->id > e->n->t->id) || (e->t->id > e->n->n->t->id)) return;
 
@@ -460,16 +508,25 @@ void recompute_normal(uint64_t i, Obj o, Obj d)
     vAddI(&sa->n, &norm);
     vAddI(&sb->n, &norm);
     vAddI(&sc->n, &norm);
+*/
 }
 
 
 void specRelax(Spectrum restrict sp)
 {
     real force = 1e7;
-    real exforce = force;
-    while (scale > 1e-9 && force > sp->max_force) {
+    uint32_t maxit = 100;
+    scale = 0.3;
+    real e = force;
+
+    fprintf(stderr, "force: %lf\tscale: %lf\n", oCast(double, force), oCast(double, scale));
+    fflush(stderr);
+
+    //while (force > sp->max_force && maxit--) {
+    while (maxit--) {
         // compute the exerted force
-        arrForEach(sp->fringe, exert_force, 0);
+        arrForEach(sp->fringe, exert_tangent_force, 0);
+        arrForEach(sp->active_threads, exert_normal_force, sp->vol->scal);
 
         // extract the tangential component of the force
         // use it to relax the sample and compute the maximum squared norm
@@ -480,19 +537,32 @@ void specRelax(Spectrum restrict sp)
         arrForEach(sp->active_threads, relax, &force);
         pthread_mutex_unlock(&sp->mutex);
 
+        e /= force; // finite
+
+        //e *= e;
+
+        if (e < 1)
+            scale *= 1.05*e*e;
+        else
+            scale *= 1.0 + 0.05/e;
+        /*
+        if (e > 1.01)
+            scale /= e;
+        else if (e < 0.99)
+            scale *= 2 - e;
+        else force = 0;
+        */
+
         fprintf(stderr, "force: %lf\tscale: %lf\n", oCast(double, force), oCast(double, scale));
         fflush(stderr);
 
-        if (force > exforce)
-            scale *= 0.5;
-        else if (force < exforce)
-            scale *= 1.8 - force/exforce;
-        else scale *= algoRandomDouble(0.8, 1.0);
 
-        exforce = force;
+
+        e = force;
 
         // recompute normal
-        arrForEach(sp->fringe, recompute_normal, 0);
+        //arrForEach(sp->fringe, recompute_normal, 0);
+        arrForEach(sp->active_threads, recompute_normal, sp->vol->grad);
     }
 }
 
@@ -528,8 +598,16 @@ void display_edge(uint64_t i, Obj o, Obj d)
     Sample sb = arrBack(e->n->t->samples);
     Sample sc = arrBack(e->n->n->t->samples);
 
+    Vec3 n;
+
+    vScale(&sa->n, -1, &n);
+    glNormal3v(n);
     glVertex3v(sa->p);
+    vScale(&sc->n, -1, &n);
+    glNormal3v(n);
     glVertex3v(sc->p);
+    vScale(&sb->n, -1, &n);
+    glNormal3v(n);
     glVertex3v(sb->p);
 }
 
@@ -570,15 +648,15 @@ void specDisplay(Spectrum restrict sp)
     pthread_mutex_lock(&sp->mutex);
 
     arrForEach(sp->thr, display_thread, 0);
-
     glEnable(GL_LIGHTING);
+
 
     glColor3f(0.0, 1.0, 0.0);
     glBegin(GL_TRIANGLES);
     arrForEach(sp->fringe, display_edge, 0);
     glEnd();
 
-    glLineWidth(3.0);
+    //glLineWidth(2.0);
     glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
     glColor3f(0.0, 1.0, 1.0);
     glBegin(GL_TRIANGLES);

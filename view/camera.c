@@ -62,14 +62,16 @@ void camPosition(Camera c)
     frTransformI(&c->frame, &f);
     matCrossI(&c->frame.rot, &up);
 
-
+    glTranslatef(c->frame.trans[0], c->frame.trans[1], c->frame.trans[2]);
 
     gluLookAt(
             f[0], f[1], f[2],   // from
-            c->frame.trans[0], c->frame.trans[1], c->frame.trans[2], // to
+            0, 0, 0,
+//            c->frame.trans[0], c->frame.trans[1], c->frame.trans[2], // to
             //-1.0 * sin(v->phi) * cos(v->theta), sin(v->theta), -1.0 * cos(v->phi) * sin(v->theta) // up
             //0.0, 1.0 * sin(v->theta - M_PI) , 0.0
             up[0], up[1], up[2]
             );
+
 
 }

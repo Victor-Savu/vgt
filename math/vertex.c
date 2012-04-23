@@ -81,10 +81,10 @@ inline
 Vertex* vNormalize(Vertex* restrict a, Vertex* restrict b)
 {
     real n = vNorm(a);
-    if (n < eps) {
+    if (n < 1e-10) {
         conjecture (n > eps, "Normalizing zero vector.\n");
     }
-    return vScale(a, 1.0/eps, b);
+    return vScale(a, 1.0/n, b);
 }
 
 inline
@@ -138,7 +138,7 @@ inline
 Vertex* vNormalizeI(Vertex* restrict a)
 {
     real n = vNorm(a);
-    if (n < eps) {
+    if (n < 1e-10) {
         fprintf(stderr, "Normalizing zero vector.\n"); fflush(stderr);
         exit(EXIT_FAILURE);
     }

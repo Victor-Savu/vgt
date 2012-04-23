@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
         call;
         Spectrum sp = specCreate(argv[1]);
         (void) printf("Created!\n"); fflush(stdout);
-        specStats(sp);
+          specStats(sp);
 
         if (!sp) continue;
 
