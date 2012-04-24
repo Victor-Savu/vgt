@@ -7,15 +7,11 @@
 #include <stdio.h>
 
 #include <math/obj.h>
+#include <math/algorithms.h>
 
 void do_nothing(Obj o)
 {
     unused(o);
-}
-
-bool compare_addresses(Obj a, Obj b)
-{
-    return a<b;
 }
 
 List lCreate(const CompareMethod cmp, const DeleteMethod del)
@@ -24,7 +20,7 @@ List lCreate(const CompareMethod cmp, const DeleteMethod del)
     if (cmp) {
         l->cmp = cmp;
     } else {
-        l->cmp = compare_addresses;
+        l->cmp = algoComparePtr;
     }
     if(del) {
         l->del = del;

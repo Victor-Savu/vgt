@@ -32,17 +32,17 @@ int main(int argc, char* argv[])
         rWaitKey(r, &key);
 
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
-        specRelax(sp);
+        specSimplify(sp);
         clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
-        printf("Relaxing  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        printf("Simplifying  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
         specStats(sp);
 
         rWaitKey(r, &key);
 
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
-        specSimplify(sp);
+        specRelax(sp);
         clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
-        printf("Simplifying  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        printf("Relaxing  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
         specStats(sp);
 
         rWaitKey(r, &key);

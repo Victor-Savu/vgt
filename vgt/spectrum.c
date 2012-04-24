@@ -7,11 +7,13 @@
 #include <math/algorithms.h>
 
 #include <ads/array.h>
+#include <ads/vector.h>
 
 #include <vgt/scalar_field.h>
 #include <vgt/vector_field.h>
 #include <vgt/volumetric_data.h>
 #include <vgt/volumetric_data_cls.h>
+#include <vgt/scalar_field_cls.h>
 
 #include <GL/gl.h>
 #include <pthread.h>
@@ -71,7 +73,43 @@ struct HalfEdge {
     HalfEdge n;
     HalfEdge o;
     real iso; // the initial isovalue for which it was spawn
+    Obj att; // an attached object
 };
+
+inline static
+Vector heOneCircle(HalfEdge e)
+{
+    if (!e) return 0;
+    const HalfEdge const flag = e;
+
+    Vector v = vecCreate(sizeof (HalfEdge));
+    do {
+        vecPush(v, &e->n);
+        e = e->n->n->o;
+        usage(vecSize(v) < 100);
+    } while (e && e!=flag);
+
+    if (e==0) {
+        e = flag->o;
+        while (e) {
+            e = e->n;
+            vecPush(v, &e->n);
+            usage(vecSize(v) < 100);
+            e = e->o;
+        }
+    }
+
+    return v;
+}
+
+inline static
+int cmp_edges(const void* a, const void* b)
+{
+    Thread ta = (*oCast(HalfEdge*, a))->t; while (ta->t != ta) ta = ta->t;
+    Thread tb = (*oCast(HalfEdge*, b))->t; while (tb->t != tb) tb = tb->t;
+
+    if (ta < tb) return -1; else if (ta == tb) return 0; else return 1;
+}
 
 inline static
 char* strip(char* line)
@@ -237,7 +275,7 @@ Spectrum specCreate(const char* restrict conf)
     for (i = 0; i < vert; i++) {
         conjecture(fgets(line, sizeof(line), fin), "Error reading from off file.");
         conjecture(sscanf(line, "%f %f %f\n", &x, &y, &z) == 3, "failed to read vertex from off file.");
-        x+= 0.2; y+=0.2; z+=0.2;
+        //x+= 0.2; y+=0.2; z+=0.2;
 
         while (vIsZero(vfValue(v->grad, &smpl.n, x, y, z))) {
             x += algoRandomDouble(0.0001, 0.001);
@@ -469,7 +507,6 @@ void exert_tangent_force(uint64_t i, Obj o, Obj d)
 
     Vec3 ab;
     vNormalizeI(vSub(pb, pa, &ab));
-
     vScaleI(&ab, vDot(&m, &ab)/2);
 
     vAddI(fc, &ab);
@@ -477,6 +514,32 @@ void exert_tangent_force(uint64_t i, Obj o, Obj d)
     vSubI(fa, &ab);
     vSubI(fb, &ab);
 }
+/*
+struct triangle {
+    Vertex g;
+    real rsqr;
+};
+
+inline static
+void exert_circumpet_force(uint64_t, Obj o, Obj d)
+{
+    unused(d);
+    unused(i);
+    HalfEdge e = o;
+    Thread a = e->t; while (a != a->t) a = a->t;
+
+    Vec3* fa = &a->force;
+    Sample sa = arrBack(a->samples);
+    Vertex* pa = &sa->p;
+
+    struct triangle* tri = e->att;
+    Vec3 og; arrSub(pa, &tri->g, &og);
+    real n = vNormSquared(&og);
+
+
+}
+*/
+
 
 static real scale = 0.3;
 
@@ -494,12 +557,16 @@ void exert_normal_force(uint64_t i, Obj o, Obj d)
     vSubI(&(*t)->force, vScaleI(&n, vDot(&n, &(*t)->force)));
 
     real di = s->iso - sfValue(d, s->p[0], s->p[1], s->p[2]);
+    ScalarField sf = d;
 
     vScale(&s->n, di, &n);
     vAddI(&(*t)->force, &n);
+
+    Vec3 f; vAddI(vScale(&(*t)->force, scale, &f), &s->p);
+    if (! ( f[0] > 0 && f[1] > 0 && f[2] > 0 && f[0] < sf->nx * sf->dx && f[1] < sf->ny * sf->dy && f[2] < sf->nz * sf->dz))
+        vSet(&(*t)->force, 0, 0, 0);
+
 }
-
-
 
 inline static
 void relax(uint64_t i, Obj o, Obj d)
@@ -511,9 +578,10 @@ void relax(uint64_t i, Obj o, Obj d)
     Vec3* p = &s->p;
     Vec3* f = &(*t)->force;
 
+
     real sz = vNorm(f);
 
-    vAddI(p, vScaleI(f, scale));
+    vAddI(vScaleI(f, scale), p);
 
     //if (sz > *oCast(real*, d)) *oCast(real*, d) = sz;
 
@@ -542,20 +610,23 @@ void specRelax(Spectrum restrict sp)
 {
     call;
     real force = 1e7;
-    uint32_t maxit = 15e5/arrSize(sp->fringe);
-    scale = 0.5;
+    uint64_t maxit = 15e6/arrSize(sp->fringe);
+    //scale = 0.3;
+    scale = 1e-2;
     real e = force;
 
     fprintf(stderr, "force: %lf\tscale: %lf\n", oCast(double, force), oCast(double, scale));
     fflush(stderr);
 
     //while (force > sp->max_force && maxit--) {
-    while (maxit--) {
+    while (scale>1e-11 && maxit--) {
         // compute the exerted force
         arrForEach(sp->fringe, exert_tangent_force, 0);
         arrForEach(sp->active_threads, exert_normal_force, sp->vol->scal);
 
         force = 0.0;
+        //arrForEach(sp->active_threads, pre_relax, &force);
+
         pthread_mutex_lock(&sp->mutex);
         arrForEach(sp->active_threads, relax, &force);
         pthread_mutex_unlock(&sp->mutex);
@@ -633,6 +704,42 @@ void simplify(uint64_t i, Obj o, Obj d)
 
     // TODO: simplifying this triangle is desirable if manifold prezervation is possible
 
+    if (a->o) {
+        Vector oa = vecSort(heOneCircle(a), algoComparePtr);
+        Vector oo = vecSort(heOneCircle(a->o), algoComparePtr);
+
+        uint64_t ia = 0, io = 0;
+
+        while (ia < vecSize(oa) && io < vecSize(oo)) {
+            HalfEdge* ea = vecGet(oa, ia);
+            HalfEdge* eo = vecGet(oo, io);
+            if (algoComparePtr(ea, eo) > 0) io++;
+            else if (algoComparePtr(ea, eo) < 0) ia++;
+            else {// they share an edge
+                vecDestroy(oo);
+                vecDestroy(oa);
+                return;
+            }
+        }
+
+        oa = vecSort(oa, cmp_edges);
+        oo = vecSort(oo, cmp_edges);
+
+        ia = 0, io = 0;
+
+        while (ia < vecSize(oa) && io < vecSize(oo)) {
+            HalfEdge* ea = vecGet(oa, ia);
+            HalfEdge* eo = vecGet(oo, io);
+            if (cmp_edges(ea, eo) > 0) io++;
+            else if (cmp_edges(ea, eo) < 0) ia++;
+            else if ((cmp_edges(&a->n->n, ea) != 0) && (cmp_edges(&a->o->n->n, ea) != 0)) { // they share a thread other than the two intersections of the one-circles
+                    vecDestroy(oo);
+                    vecDestroy(oa);
+                    return;
+                } else {io++; ia++;}
+        }
+
+    }
 
 
     fprintf(stderr, "collapsing <%u, %u> A = %lf  rR = %lf/%lf  %lf %lf %lf\n", ta->id, tb->id, area_sqr, irad, crad, l_ab, l_bc, l_ca);
@@ -824,6 +931,7 @@ void display_vert(uint64_t i, Obj o, Obj d)
 
 void specDisplay(Spectrum restrict sp)
 {
+    glTranslatef(-32, -32, -32);
     glLineWidth(1.0);
 
     glEnable(GL_COLOR_MATERIAL);
@@ -834,7 +942,6 @@ void specDisplay(Spectrum restrict sp)
     pthread_mutex_lock(&sp->mutex);
 
     arrForEach(sp->thr, display_thread, 0);
-    glEnable(GL_LIGHTING);
 
 
     glColor3f(0.0, 1.0, 0.0);
@@ -859,6 +966,7 @@ void specDisplay(Spectrum restrict sp)
 
     glEnd();
 
+    glEnable(GL_LIGHTING);
     glDisable(GL_COLOR_MATERIAL);
 }
 

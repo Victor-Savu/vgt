@@ -123,15 +123,28 @@ inline
 Vertex* vfValue(const VectorField const restrict field, Vertex* v, real x, real y, real z)
 {
     usage(field);
-    if (!(x >= 0 && oCast(uint64_t, x * field->dx) < (field->nx-1)))
-        usage(x >= 0 && oCast(uint64_t, x * field->dx) < (field->nx-1) );
-    usage(y >= 0 && oCast(uint64_t, y * field->dy) < (field->ny-1) );
-    usage(z >= 0 && oCast(uint64_t, z * field->dz) < (field->nz-1) );
+
+    if (    x<0 || y <0 || z < 0 ||
+            x * field->dx >= (field->nx-1) ||
+            y * field->dy >= (field->ny-1) ||
+            z * field->dz >= (field->nz-1) ) {
+        fprintf(stderr, "<x, y, z> : <%f, %f, %f>\n", (float)x, (float)y, (float)z);
+        vSet(v, 0, 0, 0);
+        return v;
+    }
+
+    usage(x >= 0 && x * field->dx < (field->nx-1));
+    usage(y >= 0 && y * field->dy < (field->ny-1));
+    usage(z >= 0 && z * field->dz < (field->nz-1));
 
     x /= field->dx; y /= field->dy; z /= field->dz;
 
     Vertex* cell = vfAt(field, oCast(uint64_t, x), oCast(uint64_t, y), oCast(uint64_t, z));
     x -= (uint64_t)x;  y -= (uint64_t)y;  z -= (uint64_t)z;
+
+    usage ( oCast(uint64_t, x * field->dx) < (field->nx-1) || x==0 );
+    usage ( oCast(uint64_t, y * field->dy) < (field->ny-1) || x==0 );
+    usage ( oCast(uint64_t, z * field->dz) < (field->nz-1) || x==0 );
 
     Vertex v000; vCopy(cell, &v000); cell = vfRel(field, cell, 1, 0, 0);
     Vertex v100; vCopy(cell, &v100); cell = vfRel(field, cell, 0, 1, 0);

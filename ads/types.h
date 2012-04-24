@@ -28,7 +28,7 @@ typedef struct RedBlackTree* RedBlackTree;
 typedef struct RedBlackNode* RedBlackNode;
 
 /* Methods */
-typedef bool (*CompareMethod)(const Obj a, const Obj b);
+typedef int (*CompareMethod)(const void* a, const void* b);
 typedef void (*DeleteMethod)(Obj a);
 typedef void (*ArrOperation)(uint64_t, Obj, Obj);
 

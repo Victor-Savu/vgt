@@ -57,10 +57,10 @@ Obj vecGet(Vector restrict v, uint64_t pos)
     return oCast(char*, v->dat) + pos * v->elem_size;
 }
 
-void vecPush(Vector restrict v, Obj restrict o)
+Obj vecPushSafe(Vector restrict v, const Obj restrict o, size_t objsize, const char* restrict filename, const char* restrict funcname, int lineno)
 {
     vec_grow(v);
-    memcpy(vecGet(v, v->n-1), o, v->elem_size);
+    return oCopyTo(vecGet(v, v->n-1), o, v->elem_size);
 }
 
 void vecPop(Vector restrict v)
@@ -75,7 +75,7 @@ Obj vecBegin(Vector restrict v)
 
 Obj vecEnd(Vector restrict v)
 {
-    return v->dat + v->n * v->elem_size;
+    return oCast(char*, v->dat) + v->n * v->elem_size;
 }
 
 uint64_t vecSize(Vector restrict v)
@@ -83,3 +83,8 @@ uint64_t vecSize(Vector restrict v)
     return v->n;
 }
 
+Vector vecSort(Vector restrict v, int(*cmp)(const void *, const void *))
+{
+    qsort(v->dat, v->n, v->elem_size, cmp);
+    return v;
+}
