@@ -18,13 +18,21 @@ struct Spectrum {
     VolumetricData vol;
 
     Array active_threads;
+    Vector active_triangles;
     
-    real max_force;
+    pthread_mutex_t mutex;
+    uint64_t observers;
+
+    // relaxation parameters
+    real scale;
+    real scale_threshold;
+    real current_stress;
+    real previous_stress;
+
+    // simplification parameters
     real area_sqr;
     real lambda;
 
-    pthread_mutex_t mutex;
-    uint64_t observers;
 };
 
 #endif//VGT_SPECTRUM_CLS_H

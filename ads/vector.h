@@ -8,6 +8,8 @@ Vector vecCreate(size_t elem_size);
 
 void vecDestroy(Vector restrict v);
 
+void vecClear(Vector restrict v);
+
 Obj vecGet(Vector restrict v, uint64_t pos);
 
 #define vecPush(vector, object)   vecPushSafe((vector), (object), sizeof (*object), __FILE__, __func__, __LINE__)

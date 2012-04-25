@@ -13,9 +13,7 @@ void vec_grow(Vector v)
 {
     if (v->n >= v->mem) {
         v->mem <<= 1;
-        Obj o = v->dat;
-        v->dat = oCreate(v->elem_size * v->mem);
-        memcpy(v->dat, o, v->n * v->elem_size);
+        v->dat = realloc(v->dat, v->elem_size * v->mem);
     }
 
     v->n++;
@@ -25,9 +23,7 @@ void vec_shrink(Vector v)
 {
     if ((v->n <= (v->mem >> 2)) && (v->mem > VEC_MIN_SIZE)) {
         v->mem >>= 1;
-        Obj o = v->dat;
-        v->dat = oCreate(v->elem_size * v->mem);
-        memcpy(v->dat, o, v->n * v->elem_size);
+        v->dat = realloc(v->dat, v->elem_size * v->mem);
     }
 
     v->n--;
@@ -46,6 +42,13 @@ void vecDestroy(Vector restrict v)
 {
     oDestroy(v->dat);
     oDestroy(v);
+}
+
+void vecClear(Vector restrict v)
+{
+    v->n = 0;
+    v->mem = VEC_MIN_SIZE;
+    v->dat = realloc(v->dat, v->elem_size * VEC_MIN_SIZE);
 }
 
 Obj vecGet(Vector restrict v, uint64_t pos)

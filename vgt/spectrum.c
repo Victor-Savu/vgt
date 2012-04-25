@@ -26,6 +26,7 @@
 typedef struct Sample* Sample;
 typedef struct Thread* Thread;
 typedef struct Triangloid* Triangloid;
+typedef struct Triangle* Triangle;
 typedef struct HalfEdge* HalfEdge;
 
 // a 3D sample point of the scalar field
@@ -51,10 +52,15 @@ struct Thread {
        the isovalue where the thread got collapsed into another
        this value should be disregarded if t points to this thread itself
      */
-    real iso; 
+    real iso;
 
     // the force exerted on the last sample of the thread by its incident triangles
-    Vec3 force;
+    Vec3 force_t;
+    Vec3 force_n;
+
+    // the "relaxed" sample;
+    struct Sample relaxed;
+
     bool active;
 };
 
@@ -64,6 +70,13 @@ struct Triangloid {
     float iso[2];
     // thread IDs defining the vertices of each slice.
     uint32_t t_ids[3];
+};
+
+// a temporary struct for storing active triangles
+struct Triangle {
+    Vertex g;
+    real r4;
+    real AA16;
 };
 
 // A half-edge data structure for representing
@@ -288,11 +301,7 @@ Spectrum specCreate(const char* restrict conf)
         struct Thread tmp_thr = {
             .samples = arrCreate(sizeof (struct Sample), 1),
             .id = i,
-            .t = 0,
-            .depth = 0,
-            .iso = initial_isovalue,
-            .force = VERT_0,
-            .active = false
+            .iso = initial_isovalue
         };
         ignore arrPush(tmp_thr.samples, &smpl);
         Thread t = arrPush(thr, &tmp_thr);
@@ -326,29 +335,6 @@ Spectrum specCreate(const char* restrict conf)
         ea->t->active = true;
         eb->t->active = true;
         ec->t->active = true;
-
-/*
-        // create the triangloid
-        struct Triangloid t = {
-            .iso = {initial_isovalue, initial_isovalue},
-                    .t_ids = {ea->t->id, eb->t->id, ec->t->id}
-        };
-        arrPush(tri, &t);
-
-        Sample sa = oCast(Sample, arrBack(ea->t->samples));
-        Sample sb = oCast(Sample, arrBack(eb->t->samples));
-        Sample sc = oCast(Sample, arrBack(ec->t->samples));
-
-        sa->iso = initial_isovalue;
-        sb->iso = initial_isovalue;
-        sc->iso = initial_isovalue;
-
-        ignore vCross( vSub(&sb->p, &sa->p, &p),
-                       vSub(&sc->p, &sa->p, &q),
-                       &norm);
-        vAddI(&sa->n, &norm);
-        vAddI(&sb->n, &norm);
-        vAddI(&sc->n, &norm);*/
     }
 
     // eliminate disconnected vertices
@@ -394,9 +380,7 @@ Spectrum specCreate(const char* restrict conf)
         .fringe = fringe,
         .vol = v,
         .active_threads = active_thr,
-        .max_force = 2,
-        .area_sqr = 0.0,
-        .lambda = 0.04,
+        .active_triangles = vecCreate(sizeof (struct Triangle)),
     };
 
 
@@ -483,7 +467,7 @@ void specDestroy(Spectrum restrict sp)
     pthread_mutex_destroy(&sp->mutex);
     oDestroy(sp);
 }
-
+/*
 inline static
 void exert_tangent_force(uint64_t i, Obj o, Obj d)
 {
@@ -514,11 +498,7 @@ void exert_tangent_force(uint64_t i, Obj o, Obj d)
     vSubI(fa, &ab);
     vSubI(fb, &ab);
 }
-/*
-struct triangle {
-    Vertex g;
-    real rsqr;
-};
+
 
 inline static
 void exert_circumpet_force(uint64_t, Obj o, Obj d)
@@ -538,10 +518,7 @@ void exert_circumpet_force(uint64_t, Obj o, Obj d)
 
 
 }
-*/
 
-
-static real scale = 0.3;
 
 inline static
 void exert_normal_force(uint64_t i, Obj o, Obj d)
@@ -569,7 +546,7 @@ void exert_normal_force(uint64_t i, Obj o, Obj d)
 }
 
 inline static
-void relax(uint64_t i, Obj o, Obj d)
+void pre_relax(uint64_t i, Obj o, Obj d)
 {
     unused(i);
     Thread* t = o;
@@ -578,7 +555,6 @@ void relax(uint64_t i, Obj o, Obj d)
     Vec3* p = &s->p;
     Vec3* f = &(*t)->force;
 
-
     real sz = vNorm(f);
 
     vAddI(vScaleI(f, scale), p);
@@ -586,9 +562,25 @@ void relax(uint64_t i, Obj o, Obj d)
     //if (sz > *oCast(real*, d)) *oCast(real*, d) = sz;
 
     *oCast(real*, d) += sz;
-    vSet(f, 0, 0, 0);
+}
+*/
+inline static
+void relax(uint64_t i, Obj o, Obj d)
+{
+    unused(i);
+    Thread* t = o;
+    conjecture((*t)->t == *t, "Not the representing thread.");
+    Sample s = arrBack((*t)->samples);
+    Vec3* p = &s->p;
+
+    vAddI(p, &(*t)->force_t);
+    vAddI(p, &(*t)->force_n);
+
+    vSet(&(*t)->force_t, 0, 0, 0);
+    vSet(&(*t)->force_n, 0, 0, 0);
 }
 
+/*
 
 inline static
 void recompute_normal(uint64_t i, Obj o, Obj d)
@@ -605,14 +597,269 @@ void recompute_normal(uint64_t i, Obj o, Obj d)
     }
 }
 
+*/
+
+inline static
+void compute_triangles(uint64_t i, Obj o, Obj d)
+{
+    Spectrum sp = d;
+    HalfEdge ha = o;
+    HalfEdge hb = ha->n;
+    HalfEdge hc = hb->n;
+    // only compute for one of the three half-edges in a triangle
+    if (ha > hb || ha > hc) return;
+
+    Thread a = ha->t; while (a != a->t) a = a->t;
+    Thread b = hb->t; while (b != b->t) b = b->t;
+    Thread c = hc->t; while (c != c->t) c = c->t;
+
+    Sample sa = arrBack(a->samples);
+    Sample sb = arrBack(b->samples);
+    Sample sc = arrBack(c->samples);
+
+    Vertex* pa = &sa->p;
+    Vertex* pb = &sb->p;
+    Vertex* pc = &sc->p;
+
+    struct Triangle tr = { .g = VERT_0, .r4 = 0, .AA16 = 0 };
+    vScaleI(vAddI(vAdd(pa, pb, &tr.g), pc), 1./3.);
+    Vec3 ab, ac;
+    tr.AA16 = vNormSquared(vCrossI(vSub(pb, pa, &ab), vSub(pc, pa, &ac)));
+
+    check(tr.AA16 > 1e-3);
+
+    /*
+    Vertex tmp;
+    real ab2 = vNormSquared(vSub(b, a, &tmp));
+    real bc2 = vNormSquared(vSub(c, b, &tmp));
+    real ca2 = vNormSquared(vSub(a, c, &tmp));
+
+    if (ab2 >= bc2)
+        if (bc2 >= ca2)
+            // ab2 >= bc2 >= ca2
+            x = ab2; y = bc2; z = ca2;
+        else
+            if (ab2 >= ca2)
+                // ab2 >= ca2 > bc2
+                x = ab2; y = ca2; z = bc2;
+            else
+                // ca2 > ab2 > bc2
+                x = ca2; y = ab2; z = bc2;
+    else
+        if (ab2 >= ca2)
+            // bc2 > ab2 >= ca2
+            x = bc2; y = ab2; z = ca2;
+        else
+            if (bc2 >= ca2)
+                // bc2 >= ca2 > ab2
+                x =  bc2 y = ca2; z = ab2;
+            else
+                // ca2 > bc2 > ab2
+                x = ca2; y = bc2; z = ab2;
+
+    tr.AA16 = (x-y)*(x-y) - z(4*sqrt(x*y)+z);
+    */
+    tr.r4 = tr.AA16/27;
+
+    ha->att = hb->att = hc->att = vecPush(sp->active_triangles, &tr);
+}
+
+inline static
+void compute_idealizing_force(uint64_t i, Obj o, Obj d)
+{
+    unused(d);
+    unused(i);
+    HalfEdge e = o;
+
+    if (e > e->n || e > e->n->n) return;
+
+    Thread a = e->t; while (a != a->t) a = a->t;
+    Thread b = e->n->t; while (b != b->t) b = b->t;
+    Thread c = e->n->n->t; while (c != c->t) c = c->t;
+
+    Vec3* fa = &a->force_t;
+    Vec3* fb = &b->force_t;
+    Vec3* fc = &c->force_t;
+
+    Vertex* pa = &a->relaxed.p;
+    Vertex* pb = &b->relaxed.p;
+    Vertex* pc = &c->relaxed.p;
+
+    Vec3 l;
+    Vec3 m; // median
+
+    vSubI(vScaleI(vAdd(pb, pa, &m), 0.5), pc);
+    vNormalizeI(vSub(pb, pa, &l));
+    vScaleI(&l, vDot(&m, &l)/2);
+    vAddI(fc, &l);  vScaleI(&l, 0.5);  vSubI(fa, &l); vSubI(fb, &l);
+
+    vSubI(vScaleI(vAdd(pc, pb, &m), 0.5), pa);
+    vNormalizeI(vSub(pc, pb, &l));
+    vScaleI(&l, vDot(&m, &l)/2);
+    vAddI(fa, &l);  vScaleI(&l, 0.5);  vSubI(fb, &l); vSubI(fc, &l);
+
+    vSubI(vScaleI(vAdd(pa, pc, &m), 0.5), pb);
+    vNormalizeI(vSub(pa, pc, &l));
+    vScaleI(&l, vDot(&m, &l)/2);
+    vAddI(fb, &l);  vScaleI(&l, 0.5);  vSubI(fc, &l); vSubI(fa, &l);
+
+    Triangle t = e->att;
+    vPrint(vCrossI(&m, &l), stderr); fprintf(stderr, " ");
+    vNormalizeI(&m); // m is now parallel to the triangle's normal
+    vAddI(vScaleI(&m, vDot(&m, vSub(pa, &t->g, &l))), &t->g); // m is the projection of e->g on the triangle
+
+    real d2;
+    d2 = vNormSquared(vSub(pa, &m, &l)); vAddI(fa, vScaleI(&l, t->r4/d2 - d2));
+    d2 = vNormSquared(vSub(pb, &m, &l)); vAddI(fb, vScaleI(&l, t->r4/d2 - d2));
+    d2 = vNormSquared(vSub(pc, &m, &l)); vAddI(fc, vScaleI(&l, t->r4/d2 - d2));
+}
+
+inline static
+void extract_tangent_force(uint64_t i, Obj o, Obj d)
+{
+    unused(i);
+    Thread t = o;
+    check(t = t->t);
+    Sample s = &t->relaxed;
+    Vec3 n; vNormalize(&s->n, &n);
+    vScaleI(&n, vDot(&n, &t->force_t));
+    vSubI(&t->force_t, &n);
+}
+
+inline static
+void compute_stress(uint64_t i, Obj o, Obj d)
+{
+    unused(i);
+    Thread t = *oCast(Thread*, o);
+    check(t = t->t);
+    check(t->active);
+    Spectrum sp = d;
+    Sample s = &t->relaxed;
+
+    sp->current_stress += vNormSquared(&t->force_t);
+    real diso = algoAbs(s->iso - sfValue(sp->vol->scal, s->p[0], s->p[1], s->p[2]));
+    sp->current_stress += vNormSquared(&s->n) * diso * diso;
+}
+
+
+inline static
+void compute_normal_force(uint64_t i, Obj o, Obj d)
+{
+    unused(i);
+    Thread t = *oCast(Thread*, o);
+    check(t = t->t);
+    check(t->active);
+    Spectrum sp = d;
+    Sample s = &t->relaxed;
+
+    Vec3 tmp;
+    vScale(&t->force_t, sp->scale, &tmp);
+    vAddI(&s->p, &tmp);
+
+    real di = s->iso - sfValue(sp->vol->scal, s->p[0], s->p[1], s->p[2]);
+    vfValue(sp->vol->grad, &s->n, s->p[0], s->p[1], s->p[2]);
+
+
+    vScale(&s->n, di, &t->force_n);
+
+    vScale(&t->force_n, sp->scale, &tmp);
+    vAddI(&s->p, &tmp);
+
+    vfValue(sp->vol->grad, &s->n, s->p[0], s->p[1], s->p[2]);
+}
+
+
+inline static
+void set_relaxed_to_current(uint64_t i, Obj o, Obj d)
+{
+    Thread t = *oCast(Thread*, o);
+    check(t = t->t);
+    check(t->active);
+    oCopyTo(arrBack(t->samples), &t->relaxed, sizeof (struct Sample));
+    vSet(&t->force_t, 0, 0, 0);
+    vSet(&t->force_n, 0, 0, 0);
+}
+
+inline static
+void set_current_to_relaxed(uint64_t i, Obj o, Obj d)
+{
+    Thread t = *oCast(Thread*, o);
+    check(t = t->t);
+    check(t->active);
+    oCopyTo(&t->relaxed, arrBack(t->samples), sizeof (struct Sample));
+    vSet(&t->force_n, 0, 0, 0);
+}
+
 
 void specRelax(Spectrum restrict sp)
 {
     call;
+
+    sp->scale = 0.3;
+    sp->scale_threshold = 1e-5;
+
+    vecClear(sp->active_triangles);
+
+    // pre-compute the barycenter and the radius of the ideal triangle
+    arrForEach(sp->fringe, compute_triangles, sp);
+
+    // set the "relaxed" point to be the current point
+    arrForEach(sp->active_threads, set_relaxed_to_current, sp);
+    call;
+    // compute idealizing force
+    arrForEach(sp->fringe, compute_idealizing_force, sp);
+    // extract tangent component
+    arrForEach(sp->active_threads, extract_tangent_force, sp);
+    // compute stress
+    sp->current_stress = 0;
+    arrForEach(sp->active_threads, compute_stress, sp);
+
+
+    bool relaxing = true;
+    while (relaxing) {
+        sp->previous_stress = sp->current_stress;
+
+        bool scaling = true;
+        while (scaling) {
+            sp->scale *= 0.9;
+            if (sp->scale < sp->scale_threshold) break;
+
+            // compute the normal component of the force
+            // compute the relaxed point
+            arrForEach(sp->active_threads, compute_normal_force, sp);
+
+            // compute idealizing force
+            arrForEach(sp->fringe, compute_idealizing_force, sp);
+            // extract tangent component
+            arrForEach(sp->active_threads, extract_tangent_force, sp);
+            // compute stress
+            sp->current_stress = 0;
+            arrForEach(sp->active_threads, compute_stress, sp);
+
+            if (sp->current_stress > sp->previous_stress)
+                // set the "relaxed" point to be the current point
+                arrForEach(sp->active_threads, set_relaxed_to_current, sp);
+            else
+                scaling = false;
+
+        }
+
+        if (sp->current_stress > sp->previous_stress) {
+            // relax the current point by moving it to the "relaxed" point
+            arrForEach(sp->active_threads, set_current_to_relaxed, 0);
+            sp->scale *= 1.2;
+        } else {
+            relaxing = false;
+        }
+
+    }
+
+/*
+    call;
     real force = 1e7;
     uint64_t maxit = 15e6/arrSize(sp->fringe);
     //scale = 0.3;
-    scale = 1e-2;
+    scale = 1e-1;
     real e = force;
 
     fprintf(stderr, "force: %lf\tscale: %lf\n", oCast(double, force), oCast(double, scale));
@@ -625,19 +872,15 @@ void specRelax(Spectrum restrict sp)
         arrForEach(sp->active_threads, exert_normal_force, sp->vol->scal);
 
         force = 0.0;
-        //arrForEach(sp->active_threads, pre_relax, &force);
+        arrForEach(sp->active_threads, pre_relax, &force);
 
-        pthread_mutex_lock(&sp->mutex);
-        arrForEach(sp->active_threads, relax, &force);
-        pthread_mutex_unlock(&sp->mutex);
-
-        e /= force; // finite
-        e *= e;
-
-        if (e < 1)
-            scale *= 1.01*e;
-        else
-            scale *= 1.0 + 0.01/e;
+        if (e/force < 1) scale *= 0.5;
+        else {
+            scale *= 1.1;
+            pthread_mutex_lock(&sp->mutex);
+            arrForEach(sp->active_threads, relax, 0);
+            pthread_mutex_unlock(&sp->mutex);
+        }
 
         fprintf(stderr, "force: %lf\tscale: %lf\n", oCast(double, force), oCast(double, scale));
         fflush(stderr);
@@ -647,7 +890,7 @@ void specRelax(Spectrum restrict sp)
         // recompute normal
         arrForEach(sp->active_threads, recompute_normal, sp->vol->grad);
     }
-
+*/
 }
 
 inline static
