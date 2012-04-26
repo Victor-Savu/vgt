@@ -34,6 +34,7 @@ Array arrCreate(uint8_t elem_size, uint8_t fact);
 */
 void arrDestroy(Array restrict arr);
 
+
 /*
   Create a deep copy of an array.
 */
@@ -55,7 +56,7 @@ Obj arrBack(Array restrict arr);
 #define arrFind(arr, what, ind) arrFindSafe(arr, what, sizeof(*what), ind, __FILE__, __func__, __LINE__)
 Obj arrFindSafe(const Array restrict arr, Obj what, size_t objsize, uint64_t *i, const char* restrict filename, const char* restrict funcname, int lineno);
 
-void arrForEach(Array restrict arr, const ArrOperation op, Obj data);
+void arrForEach(Array arr, const ArrOperation op, Obj data);
 
 bool arrIsEmpty(const Array restrict arr);
 

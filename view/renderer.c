@@ -133,6 +133,7 @@ void rDisplaySpectrum(Renderer restrict r, Spectrum restrict s)
 }
 
 void rWaitKey(Renderer r, char* c) {
+    if (!(instance.props & RUNNING)) return;
     if (instance.props & REQ_SHUTDOWN) rDestroy(&instance);
 
     r->key = c;

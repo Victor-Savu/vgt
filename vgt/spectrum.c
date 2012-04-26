@@ -90,16 +90,21 @@ struct HalfEdge {
 };
 
 inline static
-Vector heOneCircle(HalfEdge e)
+Vector heOneRing(HalfEdge e)
 {
     if (!e) return 0;
     const HalfEdge const flag = e;
+    Thread thr = e->t; while(thr->t != thr) thr = thr->t;
+    uint32_t id = thr->id;
 
     Vector v = vecCreate(sizeof (HalfEdge));
     do {
         vecPush(v, &e->n);
         e = e->n->n->o;
-        usage(vecSize(v) < 100);
+        safe(thr = e->t; while(thr->t != thr) thr = thr->t;);
+        if (id != thr->id)
+            check(id == thr->id);
+        usage(vecSize(v) < 1000); // a vertex should not have >= 1000 incident triangles
     } while (e && e!=flag);
 
     if (e==0) {
@@ -107,7 +112,7 @@ Vector heOneCircle(HalfEdge e)
         while (e) {
             e = e->n;
             vecPush(v, &e->n);
-            usage(vecSize(v) < 100);
+            usage(vecSize(v) < 1000); // a vertex should not have >= 1000 incident triangles
             e = e->o;
         }
     }
@@ -116,12 +121,30 @@ Vector heOneCircle(HalfEdge e)
 }
 
 inline static
+void hePrintOneRing(HalfEdge e){
+    Vector oc_a = heOneRing(e);
+    Thread thr = e->t; while (thr != thr->t) thr = thr->t;
+    fprintf(stderr, "One ring of #%u: <", thr->id);
+    uint64_t i;
+    for (i=0; i+1<vecSize(oc_a); i++) {
+        HalfEdge* half_e = vecGet(oc_a, i);
+        Thread thr = (*half_e)->t; while (thr != thr->t) thr = thr->t;
+        fprintf(stderr, "%u, ", thr->id);
+    }
+    HalfEdge* half_e = vecGet(oc_a, i);
+    thr = (*half_e)->t; while (thr != thr->t) thr = thr->t;
+    fprintf(stderr, "%u", thr->id);
+    fprintf(stderr, ">\n"); fflush(stderr);
+    vecDestroy(oc_a);
+}
+
+inline static
 int cmp_edges(const void* a, const void* b)
 {
     Thread ta = (*oCast(HalfEdge*, a))->t; while (ta->t != ta) ta = ta->t;
     Thread tb = (*oCast(HalfEdge*, b))->t; while (tb->t != tb) tb = tb->t;
 
-    if (ta < tb) return -1; else if (ta == tb) return 0; else return 1;
+    if (ta->id < tb->id) return -1; else if (ta == tb) return 0; else return 1;
 }
 
 inline static
@@ -280,7 +303,7 @@ Spectrum specCreate(const char* restrict conf)
     conjecture(fgets(line, sizeof(line), fin), "Error reading from off file."); // #vertices #faces #<unused>
    // fputs(line, stdout);
     conjecture(sscanf(line, "%u %u %u", &vert, &faces, &aux) == 3, "Failed to read #vert #faces #<unused> from off file.");
-  //  printf("%u vertices, %u faces\n", vert, faces);
+    fprintf(stderr, "%u vertices, %u faces\n", vert, faces); fflush(stderr);
 
     // read vertices
     uint64_t i = 0;
@@ -289,13 +312,14 @@ Spectrum specCreate(const char* restrict conf)
         conjecture(fgets(line, sizeof(line), fin), "Error reading from off file.");
         conjecture(sscanf(line, "%f %f %f\n", &x, &y, &z) == 3, "failed to read vertex from off file.");
         //x+= 0.2; y+=0.2; z+=0.2;
-
+        vfValue(v->grad, &smpl.n, x, y, z);
+/*
         while (vIsZero(vfValue(v->grad, &smpl.n, x, y, z))) {
             x += algoRandomDouble(0.0001, 0.001);
             y += algoRandomDouble(0.0001, 0.001);
             z += algoRandomDouble(0.0001, 0.001);
         }
-
+*/
         vSet(&smpl.p, x+0.2, y+0.2, z+0.2);
 
         struct Thread tmp_thr = {
@@ -313,6 +337,7 @@ Spectrum specCreate(const char* restrict conf)
     unsigned int a, b, c, cnt;
 //    Normal p, q, norm;
 
+    fprintf(stderr, "Reading faces.\n"); fflush(stderr);
     for (i = 0; i < faces; i++) {
         conjecture(fgets(line, sizeof(line), fin), "Error reading from off file.");
         conjecture(sscanf(line, "%u %u %u %u\n", &cnt, &a, &b, &c) == 4, "Failed to read face from off file.");
@@ -337,9 +362,11 @@ Spectrum specCreate(const char* restrict conf)
         ec->t->active = true;
     }
 
+    fprintf(stderr, "Eliminating inactive threads.\n"); fflush(stderr);
     // eliminate disconnected vertices
     arrForEach(active_thr, remove_inactive_threads, active_thr);
 
+    fprintf(stderr, "Computing the opposing edges.\n"); fflush(stderr);
     // find opposing edges
     uint64_t n_edges = arrSize(fringe);
     HalfEdge* left  = arrRefs(fringe);
@@ -380,7 +407,7 @@ Spectrum specCreate(const char* restrict conf)
         .fringe = fringe,
         .vol = v,
         .active_threads = active_thr,
-        .active_triangles = vecCreate(sizeof (struct Triangle)),
+        .active_triangles = 0,
     };
 
 
@@ -420,6 +447,9 @@ void interp_bar_error(uint64_t i, Obj o, Obj d)
 {
     struct interp_kit* kit = d;
     HalfEdge e = o;
+
+    if (e->t->id == 4532 && e->n->t->id == 4534) hePrintOneRing(e);
+
     Thread a = e->t; while (a != a->t) a = a->t;
     Thread b = e->n->t; while (b != b->t) b = b->t;
     Thread c = e->n->n->t; while (c != c->t) c = c->t;
@@ -464,6 +494,7 @@ void specDestroy(Spectrum restrict sp)
     vdDestroy(sp->vol);
     arrDestroy(sp->fringe);
     arrDestroy(sp->active_threads);
+    arrDestroy(sp->active_triangles);
     pthread_mutex_destroy(&sp->mutex);
     oDestroy(sp);
 }
@@ -626,7 +657,7 @@ void compute_triangles(uint64_t i, Obj o, Obj d)
     Vec3 ab, ac;
     tr.AA16 = vNormSquared(vCrossI(vSub(pb, pa, &ab), vSub(pc, pa, &ac)));
 
-    check(tr.AA16 > 1e-3);
+//    check(tr.AA16 > 1e-3);
 
     /*
     Vertex tmp;
@@ -661,7 +692,7 @@ void compute_triangles(uint64_t i, Obj o, Obj d)
     */
     tr.r4 = tr.AA16/27;
 
-    ha->att = hb->att = hc->att = vecPush(sp->active_triangles, &tr);
+    ha->att = hb->att = hc->att = arrPush(sp->active_triangles, &tr);
 }
 
 inline static
@@ -704,8 +735,7 @@ void compute_idealizing_force(uint64_t i, Obj o, Obj d)
     vAddI(fb, &l);  vScaleI(&l, 0.5);  vSubI(fc, &l); vSubI(fa, &l);
 
     Triangle t = e->att;
-    vPrint(vCrossI(&m, &l), stderr); fprintf(stderr, " ");
-    vNormalizeI(&m); // m is now parallel to the triangle's normal
+    vNormalizeI(vCrossI(&m, &l)); // m is now parallel to the triangle's normal
     vAddI(vScaleI(&m, vDot(&m, vSub(pa, &t->g, &l))), &t->g); // m is the projection of e->g on the triangle
 
     real d2;
@@ -718,7 +748,7 @@ inline static
 void extract_tangent_force(uint64_t i, Obj o, Obj d)
 {
     unused(i);
-    Thread t = o;
+    Thread t = *oCast(Thread*, o);
     check(t = t->t);
     Sample s = &t->relaxed;
     Vec3 n; vNormalize(&s->n, &n);
@@ -754,16 +784,20 @@ void compute_normal_force(uint64_t i, Obj o, Obj d)
 
     Vec3 tmp;
     vScale(&t->force_t, sp->scale, &tmp);
-    vAddI(&s->p, &tmp);
+    vAddI(&tmp, &s->p);
 
+    if (!sfInside(sp->vol->scal, tmp[0], tmp[1], tmp[2])) return;
+
+    vSet(&s->p, tmp[0], tmp[1], tmp[2]);
     real di = s->iso - sfValue(sp->vol->scal, s->p[0], s->p[1], s->p[2]);
     vfValue(sp->vol->grad, &s->n, s->p[0], s->p[1], s->p[2]);
 
 
     vScale(&s->n, di, &t->force_n);
 
-    vScale(&t->force_n, sp->scale, &tmp);
-    vAddI(&s->p, &tmp);
+ //   vScale(&t->force_n, sp->scale, &tmp);
+ //   vAddI(&s->p, &tmp);
+    vAddI(&s->p, &t->force_n);
 
     vfValue(sp->vol->grad, &s->n, s->p[0], s->p[1], s->p[2]);
 }
@@ -775,7 +809,7 @@ void set_relaxed_to_current(uint64_t i, Obj o, Obj d)
     Thread t = *oCast(Thread*, o);
     check(t = t->t);
     check(t->active);
-    oCopyTo(arrBack(t->samples), &t->relaxed, sizeof (struct Sample));
+    oCopyTo(&t->relaxed, arrBack(t->samples), sizeof (struct Sample));
     vSet(&t->force_t, 0, 0, 0);
     vSet(&t->force_n, 0, 0, 0);
 }
@@ -786,7 +820,7 @@ void set_current_to_relaxed(uint64_t i, Obj o, Obj d)
     Thread t = *oCast(Thread*, o);
     check(t = t->t);
     check(t->active);
-    oCopyTo(&t->relaxed, arrBack(t->samples), sizeof (struct Sample));
+    oCopyTo(arrBack(t->samples), &t->relaxed, sizeof (struct Sample));
     vSet(&t->force_n, 0, 0, 0);
 }
 
@@ -798,14 +832,14 @@ void specRelax(Spectrum restrict sp)
     sp->scale = 0.3;
     sp->scale_threshold = 1e-5;
 
-    vecClear(sp->active_triangles);
+    arrDestroy(sp->active_triangles);
+    sp->active_triangles = arrCreate(sizeof(struct Triangle), 4);
 
     // pre-compute the barycenter and the radius of the ideal triangle
     arrForEach(sp->fringe, compute_triangles, sp);
 
     // set the "relaxed" point to be the current point
     arrForEach(sp->active_threads, set_relaxed_to_current, sp);
-    call;
     // compute idealizing force
     arrForEach(sp->fringe, compute_idealizing_force, sp);
     // extract tangent component
@@ -821,7 +855,7 @@ void specRelax(Spectrum restrict sp)
 
         bool scaling = true;
         while (scaling) {
-            sp->scale *= 0.9;
+            sp->scale *= 0.5;
             if (sp->scale < sp->scale_threshold) break;
 
             // compute the normal component of the force
@@ -836,6 +870,7 @@ void specRelax(Spectrum restrict sp)
             sp->current_stress = 0;
             arrForEach(sp->active_threads, compute_stress, sp);
 
+            fprintf(stderr, "<prev, crt> : <%10.4lf, %10.4lf>\n", sp->previous_stress, sp->current_stress);
             if (sp->current_stress > sp->previous_stress)
                 // set the "relaxed" point to be the current point
                 arrForEach(sp->active_threads, set_relaxed_to_current, sp);
@@ -844,10 +879,13 @@ void specRelax(Spectrum restrict sp)
 
         }
 
-        if (sp->current_stress > sp->previous_stress) {
+        fprintf(stderr, "! <prev, crt> : <%10.4lf, %10.4lf>\n", sp->previous_stress, sp->current_stress);
+        if (!scaling) {
             // relax the current point by moving it to the "relaxed" point
+            pthread_mutex_lock(&sp->mutex);
             arrForEach(sp->active_threads, set_current_to_relaxed, 0);
-            sp->scale *= 1.2;
+            pthread_mutex_unlock(&sp->mutex);
+            sp->scale *= 2.5;
         } else {
             relaxing = false;
         }
@@ -894,31 +932,19 @@ void specRelax(Spectrum restrict sp)
 }
 
 inline static
-void simplify(uint64_t i, Obj o, Obj d)
+void simplify(uint64_t ind, Obj o, Obj d)
 {
-    unused(i);
+    unused(ind);
     HalfEdge a = o;  check(a);
     HalfEdge b = a->n; check(b);
     HalfEdge c = b->n; check(c);
 
     Thread ta = a->t;
-    check(ta);
-    while (ta != ta->t) {
-        ta = ta->t;
-        check(ta);
-    }
+    while (ta != ta->t) ta = ta->t;
     Thread tb = b->t;
-    check(tb);
-    while (tb != tb->t) {
-        tb = tb->t;
-        check(tb);
-    }
+    while (tb != tb->t) tb = tb->t;
     Thread tc = c->t;
-    check(tc);
-    while (tc != tc->t) {
-        tc = tc->t;
-        check(tc);
-    }
+    while (tc != tc->t) tc = tc->t;
 
     Sample sa = arrBack(ta->samples);
     Sample sb = arrBack(tb->samples);
@@ -948,8 +974,8 @@ void simplify(uint64_t i, Obj o, Obj d)
     // TODO: simplifying this triangle is desirable if manifold prezervation is possible
 
     if (a->o) {
-        Vector oa = vecSort(heOneCircle(a), algoComparePtr);
-        Vector oo = vecSort(heOneCircle(a->o), algoComparePtr);
+        Vector oa = vecSort(heOneRing(a), algoComparePtr);
+        Vector oo = vecSort(heOneRing(a->o), algoComparePtr);
 
         uint64_t ia = 0, io = 0;
 
@@ -985,16 +1011,37 @@ void simplify(uint64_t i, Obj o, Obj d)
     }
 
 
-    fprintf(stderr, "collapsing <%u, %u> A = %lf  rR = %lf/%lf  %lf %lf %lf\n", ta->id, tb->id, area_sqr, irad, crad, l_ab, l_bc, l_ca);
+
+    if (ta->id == 4535) {
+        usage(1);
+       // hePrintOneRing();
+    }
+
+    hePrintOneRing(a);
+    hePrintOneRing(a->n->n);
+    if (a->o) {
+        hePrintOneRing(a->o);
+        hePrintOneRing(a->o->n->n);
+    }
+
 
     pthread_mutex_lock(&sp->mutex);
 
+
+    // save a pointer to the opposite edge
+    HalfEdge opp = a->o;
     if (b->o) b->o->o = c->o;
     if (c->o) c->o->o = b->o;
+    a->o = a->n = a;
+    b->o = b->n = b;
+    c->o = c->n = c;
+
     ignore vScaleI(vAddI(&sb->p, &sa->p), 0.5);
     vCopy(&sb->p, &sa->p);
     sa->iso = sb->iso = sfValue(sp->vol->scal, sa->p[0], sa->p[1], sa->p[2]);
     vCopy(vfValue(sp->vol->grad, &sb->n, sa->p[0], sa->p[1], sa->p[2]), &sa->n);
+
+
 
     // store the collapse of ta->id and tb->id
     if (ta->depth > tb->depth) {
@@ -1002,17 +1049,14 @@ void simplify(uint64_t i, Obj o, Obj d)
         tb->t = ta;
         tb->iso = sb->iso;
         tb->active = false;
-    } else if (tb->depth > ta->depth) {
+        fprintf(stderr, "collapsing <%u, %u> A = %lf  rR = %lf/%lf  %lf %lf %lf\n", tb->id, ta->id, area_sqr, irad, crad, l_ab, l_bc, l_ca);
+    } else  {
         // ta -> tb
         ta->t = tb;
+        if (tb->depth == ta->depth) tb->depth ++;
         ta->iso = sa->iso;
         ta->active = false;
-    } else {
-        // ta -> tb
-        ta->t = tb;
-        tb->depth ++;
-        ta->iso = sa->iso;
-        ta->active = false;
+        fprintf(stderr, "collapsing <%u, %u> A = %lf  rR = %lf/%lf  %lf %lf %lf\n", ta->id, tb->id, area_sqr, irad, crad, l_ab, l_bc, l_ca);
     }
 
 
@@ -1024,30 +1068,39 @@ void simplify(uint64_t i, Obj o, Obj d)
         };
         arrPush(sp->tri, &tria);
     }
-    // save a pointer to the opposite edge
-    HalfEdge opp = a->o;
+
 
     // delete edges
-    a->o = 0; b->o = 0; c->o = 0;
-    Obj bk = arrBack(sp->fringe);
+    HalfEdge bk = arrBack(sp->fringe);
     if (a!= bk) {
+        if (bk == opp) opp = a;
         oCopyTo(a, bk, sizeof(struct HalfEdge));
+        memset(bk, 0, sizeof (struct HalfEdge));
         if (a->o) a->o->o = a;
-        if (bk != b && bk != c) a->n->n->n = a;
+        a->n->n->n = a;
+        //if (bk != b && bk != c) vecDestroy(heOneRing(a));
     }
     arrPop(sp->fringe);
+
     bk = arrBack(sp->fringe);
     if (b!= bk) {
+        if (bk == opp) opp = b;
         oCopyTo(b, bk, sizeof(struct HalfEdge));
+        memset(bk, 0, sizeof (struct HalfEdge));
         if (b->o) b->o->o = b;
-        if (bk != c) b->n->n->n = b;
+        b->n->n->n = b;
+        //if (bk != c) vecDestroy(heOneRing(b));
     }
     arrPop(sp->fringe);
+
     bk = arrBack(sp->fringe);
     if (c!= bk) {
+        if (bk == opp) opp = c;
         oCopyTo(c, bk, sizeof(struct HalfEdge));
+        memset(bk, 0, sizeof (struct HalfEdge));
         if (c->o) c->o->o = c;
-        b->n->n->n = b;
+        c->n->n->n = c;
+        //vecDestroy(heOneRing(c));
     }
     arrPop(sp->fringe);
 
@@ -1057,11 +1110,15 @@ void simplify(uint64_t i, Obj o, Obj d)
         c = b->n;
         if (b->o) b->o->o = c->o;
         if (c->o) c->o->o = b->o;
+        a->o = a->n = a;
+        b->o = b->n = b;
+        c->o = c->n = c;
+/*
         ignore vScaleI(vAddI(&sb->p, &sa->p), 0.5);
         vCopy(&sb->p, &sa->p);
         sa->iso = sb->iso = sfValue(sp->vol->scal, sa->p[0], sa->p[1], sa->p[2]);
         vCopy(vfValue(sp->vol->grad, &sb->n, sa->p[0], sa->p[1], sa->p[2]), &sa->n);
-
+*/
         // store the triangloid with the initial ids
         struct Triangloid tria = {
             .iso = { a->iso , sa->iso},
@@ -1070,29 +1127,35 @@ void simplify(uint64_t i, Obj o, Obj d)
         arrPush(sp->tri, &tria);
 
         // delete edges
-        a->o = 0; b->o = 0; c->o = 0;
         bk = arrBack(sp->fringe);
         if (a!= bk) {
             oCopyTo(a, bk, sizeof(struct HalfEdge));
+            memset(bk, 0, sizeof (struct HalfEdge));
             if (a->o) a->o->o = a;
-            if (bk != b && bk != c) a->n->n->n = a;
-        }
-        arrPop(sp->fringe);
-        bk = arrBack(sp->fringe);
-        if (b!= bk) {
-            oCopyTo(b, bk, sizeof(struct HalfEdge));
-            if (b->o) b->o->o = b;
-            if (bk != c) b->n->n->n = b;
-        }
-        arrPop(sp->fringe);
-        bk = arrBack(sp->fringe);
-        if (c!= bk) {
-            oCopyTo(c, bk, sizeof(struct HalfEdge));
-            if (c->o) c->o->o = c;
-            b->n->n->n = b;
+            a->n->n->n = a;
+            //if (bk != b && bk != c) vecDestroy(heOneRing(a));
         }
         arrPop(sp->fringe);
 
+        bk = arrBack(sp->fringe);
+        if (b!= bk) {
+            oCopyTo(b, bk, sizeof(struct HalfEdge));
+            memset(bk, 0, sizeof (struct HalfEdge));
+            if (b->o) b->o->o = b;
+            b->n->n->n = b;
+            //if (bk != c) vecDestroy(heOneRing(b));
+        }
+        arrPop(sp->fringe);
+
+        bk = arrBack(sp->fringe);
+        if (c!= bk) {
+            oCopyTo(c, bk, sizeof(struct HalfEdge));
+            memset(bk, 0, sizeof (struct HalfEdge));
+            if (c->o) c->o->o = c;
+            c->n->n->n = c;
+            //vecDestroy(heOneRing(c));
+        }
+        arrPop(sp->fringe);
     }
 
     pthread_mutex_unlock(&sp->mutex);
@@ -1102,6 +1165,8 @@ void simplify(uint64_t i, Obj o, Obj d)
 void specSimplify(Spectrum restrict sp)
 {
     call;
+    sp->area_sqr = 0.02;
+    sp->lambda = 0.04;
     arrForEach(sp->fringe, simplify, sp);
     arrForEach(sp->active_threads, remove_inactive_threads, sp->active_threads);
 }
@@ -1134,16 +1199,19 @@ void display_edge(uint64_t i, Obj o, Obj d)
     Sample sb = arrBack(e->n->t->samples);
     Sample sc = arrBack(e->n->n->t->samples);
 
-    Vec3 n;
+//  Vec3 n;
 
-    vScale(&sa->n, -1, &n);
-    glNormal3v(n);
+//  vScale(&sa->n, -1, &n);
+//  glNormal3v(n);
+    glNormal3v(sa->n);
     glVertex3v(sa->p);
-    vScale(&sc->n, -1, &n);
-    glNormal3v(n);
+//  vScale(&sc->n, -1, &n);
+//  glNormal3v(n);
+    glNormal3v(sc->n);
     glVertex3v(sc->p);
-    vScale(&sb->n, -1, &n);
-    glNormal3v(n);
+//  vScale(&sb->n, -1, &n);
+//  glNormal3v(n);
+    glNormal3v(sb->n);
     glVertex3v(sb->p);
 }
 
@@ -1186,12 +1254,14 @@ void specDisplay(Spectrum restrict sp)
 
     arrForEach(sp->thr, display_thread, 0);
 
+    glEnable(GL_LIGHTING);
 
     glColor3f(0.0, 1.0, 0.0);
     glBegin(GL_TRIANGLES);
     arrForEach(sp->fringe, display_edge, 0);
     glEnd();
 
+    glDisable(GL_LIGHTING);
     //glLineWidth(2.0);
     glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
     glColor3f(0.0, 1.0, 1.0);

@@ -129,8 +129,15 @@ Vertex* vfValue(const VectorField const restrict field, Vertex* v, real x, real 
             y * field->dy >= (field->ny-1) ||
             z * field->dz >= (field->nz-1) ) {
         fprintf(stderr, "<x, y, z> : <%f, %f, %f>\n", (float)x, (float)y, (float)z);
-        vSet(v, 0, 0, 0);
-        return v;
+//        vSet(v, 0, 0, 0);
+//        return v;
+        x = *(int*)0;
+        if (x < 0) x = 0;
+        if (y < 0) y = 0;
+        if (z < 0) z = 0;
+        if (x * field->dx >= (field->nx-1)) x = (field->nx -1)/field->dx - 1e-6;
+        if (y * field->dy >= (field->ny-1)) y = (field->ny -1)/field->dy - 1e-6;
+        if (z * field->dz >= (field->nz-1)) z = (field->nz -1)/field->dz - 1e-6;
     }
 
     usage(x >= 0 && x * field->dx < (field->nx-1));

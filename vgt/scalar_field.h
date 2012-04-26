@@ -30,6 +30,8 @@ void sfClear(ScalarField s);
 
 ScalarField sfCopy(ScalarField s);
 
+bool sfInside(ScalarField field, real x, real y, real z);
+
 /*
    Clears and then deallocates the field structure.
    After the execution, @s will point to an unallocated clunk of memory.

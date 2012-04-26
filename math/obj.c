@@ -98,5 +98,5 @@ Obj oCopyTo(Obj restrict dst, Obj restrict src, size_t size)
     check(dst);
     check(src);
     check(size);
-    return memcpy(dst, src, size);
+    return memcpy(dst, src, size);;
 }

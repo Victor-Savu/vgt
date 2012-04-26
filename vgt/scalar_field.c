@@ -276,16 +276,34 @@ ScalarField sfLaplacian(ScalarField field)
 }
 
 inline
+bool sfInside(ScalarField field, real x, real y, real z)
+{
+
+    return x>=0 && y>=0 && z>=0 &&
+            x * field->dx < (field->nx-1) &&
+            y * field->dy < (field->ny-1) &&
+            z * field->dz < (field->nz-1) ;
+}
+
+inline
 real sfValue(const ScalarField const restrict field, real x, real y, real z)
 {
     usage(field);
-    
+ 
     if (    x<0 || y <0 || z < 0 ||
             x * field->dx >= (field->nx-1) ||
             y * field->dy >= (field->ny-1) ||
             z * field->dz >= (field->nz-1) ) {
         fprintf(stderr, "<x, y, z> : <%f, %f, %f>\n", (float)x, (float)y, (float)z);
-        return 0;
+//        return 0;
+
+        x = *(int*)0;
+        if (x < 0) x = 0;
+        if (y < 0) y = 0;
+        if (z < 0) z = 0;
+        if (x * field->dx >= (field->nx-1)) x = (field->nx -1)/field->dx - 1e-6;
+        if (y * field->dy >= (field->ny-1)) y = (field->ny -1)/field->dy - 1e-6;
+        if (z * field->dz >= (field->nz-1)) z = (field->nz -1)/field->dz - 1e-6;
     }
 
 
@@ -297,7 +315,7 @@ real sfValue(const ScalarField const restrict field, real x, real y, real z)
 
     real* cell = sfAt(field, oCast(uint64_t, x), oCast(uint64_t, y), oCast(uint64_t, z));
     x -= (uint64_t)x;  y -= (uint64_t)y;  z -= (uint64_t)z;
-    
+
     usage ( oCast(uint64_t, x * field->dx) < (field->nx-1) || x==0 );
     usage ( oCast(uint64_t, y * field->dy) < (field->ny-1) || x==0 );
     usage ( oCast(uint64_t, z * field->dz) < (field->nz-1) || x==0 );

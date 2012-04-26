@@ -258,7 +258,7 @@ Obj arrGet(Array restrict arr, uint64_t p)
 }
 
 
-void arrForEach(Array restrict arr, const ArrOperation op, Obj data)
+void arrForEach(Array arr, const ArrOperation op, Obj data)
 {
     if (!(arr && op)) return;
     uint64_t i = 0;

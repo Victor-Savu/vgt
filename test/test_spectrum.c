@@ -22,14 +22,15 @@ int main(int argc, char* argv[])
         call;
         Spectrum sp = specCreate(argv[1]);
         (void) printf("Created!\n"); fflush(stdout);
-        specStats(sp);
 
         if (!sp) continue;
 
         Renderer r = rCreate("Test spectrum.");
         rDisplaySpectrum(r, sp);
+
         char key = 13;
         rWaitKey(r, &key);
+        specStats(sp);
 
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
         specSimplify(sp);

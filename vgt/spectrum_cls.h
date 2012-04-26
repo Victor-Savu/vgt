@@ -18,7 +18,7 @@ struct Spectrum {
     VolumetricData vol;
 
     Array active_threads;
-    Vector active_triangles;
+    Array active_triangles;
     
     pthread_mutex_t mutex;
     uint64_t observers;
