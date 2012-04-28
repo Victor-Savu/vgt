@@ -18,6 +18,7 @@ void speed_test(uint64_t test);
 void sanity_check(uint64_t test);
 void random_check(uint64_t test);
 void ref_check(uint64_t n);
+void ref_arr_check(uint64_t n);
 
 int main(int argc, char* argv[])
 {
@@ -36,6 +37,7 @@ int main(int argc, char* argv[])
     //sanity_check(test);
     //random_check(test);
     ref_check(test);
+    ref_arr_check(test);
 
     return 0;
 }
@@ -176,6 +178,35 @@ void ref_check(uint64_t n)
     short** refs = arrRefs(arr);
     for (i=0; i<n; i++) refs[i][0]++;
     oDestroy(refs);
+
+    arrPrint(arr, stdout, oShortPrint);
+    printf("\n");
+
+    arrDestroy(arr);
+}
+
+inline static
+void inc(uint64_t i, Obj o, Obj d)
+{
+    short* sp = *oCast(short**, o);
+    *sp += 1;
+}
+
+void ref_arr_check(uint64_t n)
+{
+    call;
+    short i;
+
+    Array arr = arrCreate(sizeof(short), 4);
+
+    for (i=0; i<n; i++) arrPush(arr, &i);
+
+    arrPrint(arr, stdout, oShortPrint);
+    printf("\n");
+
+    Array refs = arrRefsArr(arr);
+    arrForEach(refs, inc, 0);
+    arrDestroy(refs);
 
     arrPrint(arr, stdout, oShortPrint);
     printf("\n");

@@ -82,4 +82,6 @@ Obj arrToC(const Array restrict arr);
 
 Obj arrRefs(const Array restrict arr);
 
+Obj arrRefsArr(const Array restrict arr);
+
 #endif//ADS_ARRAY_H

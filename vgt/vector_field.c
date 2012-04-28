@@ -128,7 +128,7 @@ Vertex* vfValue(const VectorField const restrict field, Vertex* v, real x, real 
             x * field->dx >= (field->nx-1) ||
             y * field->dy >= (field->ny-1) ||
             z * field->dz >= (field->nz-1) ) {
-        fprintf(stderr, "<x, y, z> : <%f, %f, %f>\n", (float)x, (float)y, (float)z);
+        debug(fprintf(stderr, "<x, y, z> : <%f, %f, %f>\n", (float)x, (float)y, (float)z);fflush(stderr););
 //        vSet(v, 0, 0, 0);
 //        return v;
         x = *(int*)0;

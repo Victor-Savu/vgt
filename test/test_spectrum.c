@@ -29,14 +29,38 @@ int main(int argc, char* argv[])
         rDisplaySpectrum(r, sp);
 
         char key = 13;
-        rWaitKey(r, &key);
         specStats(sp);
+        printf("\n");
+
+        rWaitKey(r, &key);
+
+        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
+        specSnap(sp);
+        clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
+        printf("Snapping  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        printf("\n");
+        specStats(sp);
+        printf("\n");
+
+        rWaitKey(r, &key);
+
+        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
+        specRelax(sp);
+        clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
+        printf("Relaxing  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        printf("\n");
+        specStats(sp);
+        printf("\n");
+
+        rWaitKey(r, &key);
 
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
         specSimplify(sp);
         clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
         printf("Simplifying  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        printf("\n");
         specStats(sp);
+        printf("\n");
 
         rWaitKey(r, &key);
 
@@ -44,18 +68,20 @@ int main(int argc, char* argv[])
         specRelax(sp);
         clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
         printf("Relaxing  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        printf("\n");
         specStats(sp);
-
+        printf("\n");
+/*
         rWaitKey(r, &key);
 
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
-        specRelax(sp);
+        specRefine(sp);
         clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
-        printf("Relaxing  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        printf("Refining  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        printf("\n");
         specStats(sp);
-
-        //        (void) printf("Relaxed!\n"); fflush(stdout);
-
+        printf("\n");
+*/
         rWait(r);
         rDestroy(r);
 

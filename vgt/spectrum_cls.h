@@ -23,6 +23,10 @@ struct Spectrum {
     pthread_mutex_t mutex;
     uint64_t observers;
 
+    // snapping parameters
+    real snap_iso;
+    real snap_iso_thr;
+
     // relaxation parameters
     real scale;
     real scale_threshold;
@@ -33,6 +37,8 @@ struct Spectrum {
     real area_sqr;
     real lambda;
 
+    // refinement parameters
+    real ref_norm_thr;
 };
 
 #endif//VGT_SPECTRUM_CLS_H

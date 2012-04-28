@@ -12,7 +12,7 @@ const real min_distance = 1e-6;
 const real max_distance = 1e+6;
 
 void camPan(Camera c, real x, real y)
-{
+{/*
     const real st = sin(c->view.theta);
     const real sp = sin(c->view.phi);
     const real ct = cos(c->view.theta);
@@ -20,6 +20,10 @@ void camPan(Camera c, real x, real y)
     c->frame.trans[0] -= x * (cp * st) * (ct + st) + y * sp * ct;
     c->frame.trans[1] += st * (y - x * cp * sp * (ct-sp));
     c->frame.trans[2] += x * sp * (ct * ct + st * st) - y * cp * st;
+*/
+    c->frame.trans[0] += x;
+    c->frame.trans[1] += y;
+
 }
 
 void camRotate(Camera c, real up, real right)
@@ -73,5 +77,6 @@ void camPosition(Camera c)
             up[0], up[1], up[2]
             );
 
+    glTranslatef(-c->frame.trans[0], -c->frame.trans[1], -c->frame.trans[2]);
 
 }

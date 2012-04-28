@@ -9,6 +9,10 @@ Spectrum specCreate(const char* restrict conf);
 // Destroys a spectrum structure.
 void specDestroy(Spectrum restrict sp);
 
+// Snaps the active threads' endpoints to the spectrum's
+// current snap isovalue
+void specSnap(Spectrum restrict sp);
+
 // Relaxes the front mesh to improve triangle quality
 void specRelax(Spectrum restrict sp);
 

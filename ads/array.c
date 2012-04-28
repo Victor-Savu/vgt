@@ -187,7 +187,7 @@ Obj arrSet(Array restrict arr, Obj restrict o, uint64_t pos)
 Obj arrPushSafe(Array restrict arr, const Obj restrict o, size_t objsize, const char* filename, const char* funcname, int lineno)
 {
     if (objsize != arr->element_size) {
-        fprintf(stderr, "[x] %s:%s:%d: Trying to push element of different size onto the array.", filename, funcname, lineno);
+        fprintf(stderr, "[x] %s:%s:%d: Trying to push element of different size onto the array.\n", filename, funcname, lineno);
         fflush(stderr);
         exit(EXIT_FAILURE);
     }
@@ -343,6 +343,19 @@ Obj arrRefs(const Array restrict arr)
 {
     Obj* refs = oCreate(sizeof (Obj) * arrSize(arr));
     arrForEach(arr, copy_ref, refs);
+    return refs;
+}
+
+inline static
+void push_ref(uint64_t i, Obj o, Obj d) {
+    arrPush(d, &o);
+}
+
+inline
+Obj arrRefsArr(const Array restrict arr)
+{
+    Array refs = arrCreate(sizeof (Obj), 1);
+    arrForEach(arr, push_ref, refs);
     return refs;
 }
 
