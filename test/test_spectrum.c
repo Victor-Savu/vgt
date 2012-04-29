@@ -24,15 +24,15 @@ int main(int argc, char* argv[])
         (void) printf("Created!\n"); fflush(stdout);
 
         if (!sp) continue;
-
+/*
         Renderer r = rCreate("Test spectrum.");
         rDisplaySpectrum(r, sp);
-
         char key = 13;
+*/
         specStats(sp);
         printf("\n");
 
-        rWaitKey(r, &key);
+//        rWaitKey(r, &key);
 
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
         specSnap(sp);
@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
         specStats(sp);
         printf("\n");
 
-        rWaitKey(r, &key);
+//        rWaitKey(r, &key);
 
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
         specRelax(sp);
@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
         specStats(sp);
         printf("\n");
 
-        rWaitKey(r, &key);
+//        rWaitKey(r, &key);
 
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
         specSimplify(sp);
@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
         specStats(sp);
         printf("\n");
 
-        rWaitKey(r, &key);
+//        rWaitKey(r, &key);
 
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
         specRelax(sp);
@@ -71,9 +71,9 @@ int main(int argc, char* argv[])
         printf("\n");
         specStats(sp);
         printf("\n");
-/*
-        rWaitKey(r, &key);
 
+//        rWaitKey(r, &key);
+/*
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
         specRefine(sp);
         clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
@@ -82,9 +82,10 @@ int main(int argc, char* argv[])
         specStats(sp);
         printf("\n");
 */
+/*
         rWait(r);
         rDestroy(r);
-
+*/
         specDestroy(sp);
         (void) printf("Success!\n"); fflush(stdout);
         sp = 0;

@@ -491,8 +491,6 @@ void interp_bar_error(uint64_t i, Obj o, Obj d)
     struct interp_kit* kit = d;
     HalfEdge e = o;
 
-    // if (e->t->id == 4532 && e->n->t->id == 4534) hePrintOneRing(e);
-
     Thread a = e->t; while (a != a->t) a = a->t;
     Thread b = e->n->t; while (b != b->t) b = b->t;
     Thread c = e->n->n->t; while (c != c->t) c = c->t;
@@ -541,103 +539,7 @@ void specDestroy(Spectrum restrict sp)
     pthread_mutex_destroy(&sp->mutex);
     oDestroy(sp);
 }
-/*
-inline static
-void exert_tangent_force(uint64_t i, Obj o, Obj d)
-{
-    unused(d);
-    unused(i);
-    HalfEdge e = o;
-    Thread a = e->t; while (a != a->t) a = a->t;
-    Thread b = e->n->t; while (b != b->t) b = b->t;
-    Thread c = e->n->n->t; while (c != c->t) c = c->t;
 
-    Vec3* fa = &a->force;
-    Vec3* fb = &b->force;
-    Vec3* fc = &c->force;
-
-    Vertex* pa = &oCast(Sample, arrBack(a->samples))->p;
-    Vertex* pb = &oCast(Sample, arrBack(b->samples))->p;
-    Vertex* pc = &oCast(Sample, arrBack(c->samples))->p;
-
-    Vec3 m; // median cm
-    vSubI(vScaleI(vAdd(pa, pb, &m), 0.5), pc);
-
-    Vec3 ab;
-    vNormalizeI(vSub(pb, pa, &ab));
-    vScaleI(&ab, vDot(&m, &ab)/2);
-
-    vAddI(fc, &ab);
-    vScaleI(&ab, 0.5);
-    vSubI(fa, &ab);
-    vSubI(fb, &ab);
-}
-
-
-inline static
-void exert_circumpet_force(uint64_t, Obj o, Obj d)
-{
-    unused(d);
-    unused(i);
-    HalfEdge e = o;
-    Thread a = e->t; while (a != a->t) a = a->t;
-
-    Vec3* fa = &a->force;
-    Sample sa = arrBack(a->samples);
-    Vertex* pa = &sa->p;
-
-    struct triangle* tri = e->att;
-    Vec3 og; arrSub(pa, &tri->g, &og);
-    real n = vNormSquared(&og);
-
-
-}
-
-
-inline static
-void exert_normal_force(uint64_t i, Obj o, Obj d)
-{
-    unused(i);
-
-    Thread* t = o;
-    conjecture((*t)->t == *t, "Not the representing thread.");
-    Sample s = arrBack((*t)->samples);
-
-    Normal n; vNormalize(&s->n, &n);
-
-    vSubI(&(*t)->force, vScaleI(&n, vDot(&n, &(*t)->force)));
-
-    real di = s->iso - sfValue(d, s->p[0], s->p[1], s->p[2]);
-    ScalarField sf = d;
-
-    vScale(&s->n, di, &n);
-    vAddI(&(*t)->force, &n);
-
-    Vec3 f; vAddI(vScale(&(*t)->force, scale, &f), &s->p);
-    if (! ( f[0] > 0 && f[1] > 0 && f[2] > 0 && f[0] < sf->nx * sf->dx && f[1] < sf->ny * sf->dy && f[2] < sf->nz * sf->dz))
-        vSet(&(*t)->force, 0, 0, 0);
-
-}
-
-inline static
-void pre_relax(uint64_t i, Obj o, Obj d)
-{
-    unused(i);
-    Thread* t = o;
-    conjecture((*t)->t == *t, "Not the representing thread.");
-    Sample s = arrBack((*t)->samples);
-    Vec3* p = &s->p;
-    Vec3* f = &(*t)->force;
-
-    real sz = vNorm(f);
-
-    vAddI(vScaleI(f, scale), p);
-
-    //if (sz > *oCast(real*, d)) *oCast(real*, d) = sz;
-
-    *oCast(real*, d) += sz;
-}
-*/
 inline static
 void relax(uint64_t i, Obj o, Obj d)
 {
@@ -653,25 +555,6 @@ void relax(uint64_t i, Obj o, Obj d)
     vSet(&(*t)->force_t, 0, 0, 0);
     vSet(&(*t)->force_n, 0, 0, 0);
 }
-
-/*
-
-inline static
-void recompute_normal(uint64_t i, Obj o, Obj d)
-{
-    unused(i);
-
-    Thread* t = o;
-    conjecture((*t)->t == *t, "Not the representing thread.");
-    Sample s = arrBack((*t)->samples);
-    while (vIsZero(vfValue(d, &s->n, s->p[0], s->p[1], s->p[2]))) {
-        s->p[0] += algoRandomDouble(-0.001, 0.001);
-        s->p[1] += algoRandomDouble(-0.001, 0.001);
-        s->p[2] += algoRandomDouble(-0.001, 0.001);
-    }
-}
-
-*/
 
 inline static
 void compute_triangles(uint64_t i, Obj o, Obj d)
@@ -828,31 +711,11 @@ void compute_normal_force(uint64_t i, Obj o, Obj d)
     Thread t = *oCast(Thread*, o);
     check(t = t->t);
     check(t->active);
-    Spectrum sp = d;
     Sample s = &t->relaxed;
 
     snap_sample(s, d);
 
     return;
-
-    Vec3 tmp;
-    vScale(&t->force_t, sp->scale, &tmp);
-    vAddI(&tmp, &s->p);
-
-    if (!sfInside(sp->vol->scal, tmp[0], tmp[1], tmp[2])) return;
-
-    vSet(&s->p, tmp[0], tmp[1], tmp[2]);
-    real di = s->iso - sfValue(sp->vol->scal, s->p[0], s->p[1], s->p[2]);
-    vfValue(sp->vol->grad, &s->n, s->p[0], s->p[1], s->p[2]);
-
-
-    vScale(&s->n, di, &t->force_n);
-
- //   vScale(&t->force_n, sp->scale, &tmp);
- //   vAddI(&s->p, &tmp);
-    vAddI(&s->p, &t->force_n);
-
-    vfValue(sp->vol->grad, &s->n, s->p[0], s->p[1], s->p[2]);
 }
 
 
@@ -959,43 +822,6 @@ void specRelax(Spectrum restrict sp)
 
     }
 
-/*
-    call;
-    real force = 1e7;
-    uint64_t maxit = 15e6/arrSize(sp->fringe);
-    //scale = 0.3;
-    scale = 1e-1;
-    real e = force;
-
-    fprintf(stderr, "force: %lf\tscale: %lf\n", oCast(double, force), oCast(double, scale));
-    fflush(stderr);
-
-    //while (force > sp->max_force && maxit--) {
-    while (scale>1e-11 && maxit--) {
-        // compute the exerted force
-        arrForEach(sp->fringe, exert_tangent_force, 0);
-        arrForEach(sp->active_threads, exert_normal_force, sp->vol->scal);
-
-        force = 0.0;
-        arrForEach(sp->active_threads, pre_relax, &force);
-
-        if (e/force < 1) scale *= 0.5;
-        else {
-            scale *= 1.1;
-            pthread_mutex_lock(&sp->mutex);
-            arrForEach(sp->active_threads, relax, 0);
-            pthread_mutex_unlock(&sp->mutex);
-        }
-
-        fprintf(stderr, "force: %lf\tscale: %lf\n", oCast(double, force), oCast(double, scale));
-        fflush(stderr);
-
-        e = force;
-
-        // recompute normal
-        arrForEach(sp->active_threads, recompute_normal, sp->vol->grad);
-    }
-*/
 }
 
 inline static
@@ -1074,26 +900,12 @@ void simplify(uint64_t ind, Obj o, Obj d)
                     return;
                 } else {io++; ia++;}
         }
+        vecDestroy(oo);
+        vecDestroy(oa);
 
     }
-
-/*
-
-    if (ta->id == 4535) {
-        usage(1);
-       // hePrintOneRing();
-    }
-
-    hePrintOneRing(a);
-    hePrintOneRing(a->n->n);
-    if (a->o) {
-        hePrintOneRing(a->o);
-        hePrintOneRing(a->o->n->n);
-    }
-*/
 
     pthread_mutex_lock(&sp->mutex);
-
 
     // save a pointer to the opposite edge
     HalfEdge opp = a->o; opp->o = opp;
@@ -1115,16 +927,13 @@ void simplify(uint64_t ind, Obj o, Obj d)
         tb->t = ta;
         tb->iso = sb->iso;
         tb->active = false;
- //     fprintf(stderr, "collapsing <%u, %u> A = %lf  rR = %lf/%lf  %lf %lf %lf\n", tb->id, ta->id, area_sqr, irad, crad, l_ab, l_bc, l_ca);
     } else  {
         // ta -> tb
         ta->t = tb;
         if (tb->depth == ta->depth) tb->depth ++;
         ta->iso = sa->iso;
         ta->active = false;
-//      fprintf(stderr, "collapsing <%u, %u> A = %lf  rR = %lf/%lf  %lf %lf %lf\n", ta->id, tb->id, area_sqr, irad, crad, l_ab, l_bc, l_ca);
     }
-
 
     // store the triangloid with the initial ids
     {
@@ -1134,7 +943,6 @@ void simplify(uint64_t ind, Obj o, Obj d)
         };
         arrPush(sp->tri, &tria);
     }
-
 
     // delete edges
     HalfEdge bk = arrBack(sp->fringe);
@@ -1152,7 +960,6 @@ void simplify(uint64_t ind, Obj o, Obj d)
             a->n = a;
             a->o = a;
         }
-        //if (bk != b && bk != c) vecDestroy(heOneRing(a));
     }
     arrPop(sp->fringe);
 
@@ -1170,7 +977,6 @@ void simplify(uint64_t ind, Obj o, Obj d)
             b->n = b;
             b->o = b;
         }
-        //if (bk != c) vecDestroy(heOneRing(b));
     }
     arrPop(sp->fringe);
 
@@ -1188,7 +994,6 @@ void simplify(uint64_t ind, Obj o, Obj d)
             c->n = c;
             c->o = c;
         }
-        //vecDestroy(heOneRing(c));
     }
     arrPop(sp->fringe);
 
@@ -1201,12 +1006,7 @@ void simplify(uint64_t ind, Obj o, Obj d)
         a->o = a->n = a;
         b->o = b->n = b;
         c->o = c->n = c;
-/*
-        ignore vScaleI(vAddI(&sb->p, &sa->p), 0.5);
-        vCopy(&sb->p, &sa->p);
-        sa->iso = sb->iso = sfValue(sp->vol->scal, sa->p[0], sa->p[1], sa->p[2]);
-        vCopy(vfValue(sp->vol->grad, &sb->n, sa->p[0], sa->p[1], sa->p[2]), &sa->n);
-*/
+
         // store the triangloid with the initial ids
         struct Triangloid tria = {
             .iso = { a->iso , sa->iso},
@@ -1228,7 +1028,6 @@ void simplify(uint64_t ind, Obj o, Obj d)
                 a->n = a;
                 a->o = a;
             }
-            //if (bk != b && bk != c) vecDestroy(heOneRing(a));
         }
         arrPop(sp->fringe);
 
@@ -1245,7 +1044,6 @@ void simplify(uint64_t ind, Obj o, Obj d)
                 b->n = b;
                 b->o = b;
             }
-            //if (bk != c) vecDestroy(heOneRing(b));
         }
         arrPop(sp->fringe);
 
@@ -1262,14 +1060,11 @@ void simplify(uint64_t ind, Obj o, Obj d)
                 c->n = b;
                 c->o = c;
             }
-            //vecDestroy(heOneRing(c));
         }
         arrPop(sp->fringe);
     }
 
     pthread_mutex_unlock(&sp->mutex);
-
-   // usleep(100000);
 
 }
 
@@ -1296,7 +1091,7 @@ void stage1(uint64_t i, Obj o, Obj d)
         HalfEdge e = *pe;
 
         Thread t = e->t; while (t->t != t) t = t->t;
-        Thread tn = e->n->t; while (tn->t != t) tn = tn->t;
+        Thread tn = e->n->t; while (tn->t != tn) tn = tn->t;
 
         // check if the opposite was already processed
         if (e->o && e->o->o == 0) {
@@ -1329,12 +1124,14 @@ void stage1(uint64_t i, Obj o, Obj d)
 
         if (    algoAbs(iso - sm.iso) < 2 * ref->sp->snap_iso_thr &&
                 vDot(&n, &sm.n) > ref->sp->ref_norm_thr ) {
+            // it does not have to be split
             e->att = 0;
             HalfEdge* bk = arrBack(ref->q);
             if (bk != pe) oCopyTo(pe, bk, sizeof (HalfEdge));
             arrPop(ref->q);
             continue;
         } else {
+            // it needs to be split
             snap_sample(&sm, ref->sp);
             struct Thread thr = {
                 .samples = arrCreate(sizeof(struct Sample), 1),
@@ -1348,7 +1145,7 @@ void stage1(uint64_t i, Obj o, Obj d)
             };
             arrPush(thr.samples, &sm);
             oCopyTo(&thr.relaxed, &sm, sizeof (struct Sample));
-            e->att = arrPush(ref->sp->thr, &sm);
+            e->att = arrPush(ref->sp->thr, &thr);
             oCast(Thread, e->att)->t = e->att;
             arrPush(ref->sp->active_threads, &e->att);
             return;
@@ -1357,19 +1154,149 @@ void stage1(uint64_t i, Obj o, Obj d)
 }
 
 inline static
-void stage2(uint64_t i, Obj o, Obj d)
+void stage23(uint64_t i, Obj o, Obj d)
 {
+    HalfEdge* pe = o;
+    HalfEdge e = *pe;
+    struct refinement_kit* ref = d;
 
+    check(e->att);
+
+    // it needs to be split
+    if ((e->n->att) && !(e->n->n->att)) e = e->n->n;
+    else if (!(e->n->att) && (e->n->n->att)) e = e->n->att;
+    else return;
+
+    Thread t = e->t; while (t->t != t) t = t->t;
+    Thread tn = e->n->t; while (tn->t != tn) tn = tn->t;
+
+    Sample s = arrBack(t->samples);
+    Sample sn = arrBack(tn->samples);
+
+    // compute midpoint sample
+    struct Sample sm;
+    vScaleI(vAdd(&s->p, &sn->p, &sm.p), .5);
+    vScaleI(vAdd(&s->n, &sn->n, &sm.n), .5);
+    sm.iso = (s->iso + sn->iso)/2;
+
+    snap_sample(&sm, ref->sp);
+    struct Thread thr = {
+        .samples = arrCreate(sizeof(struct Sample), 1),
+        .id = arrSize(ref->sp->thr),
+        .t = 0,
+        .depth = 0,
+        .iso = 0,
+        .force_t = VERT_0,
+        .force_n = VERT_0,
+        .active = 1
+    };
+    arrPush(thr.samples, &sm);
+    oCopyTo(&thr.relaxed, &sm, sizeof (struct Sample));
+    e->att = arrPush(ref->sp->thr, &thr);
+    oCast(Thread, e->att)->t = e->att;
+    arrPush(ref->sp->active_threads, &e->att);
+
+    arrPush(ref->q, &e);
+    if (e->o) {
+        e->o->att = e->att;
+        arrPush(ref->q, &e->o);
+    }
 }
+
 inline static
-void stage4(uint64_t i, Obj o, Obj d)
+void split_match(HalfEdge a)
 {
+    // case *1.1: b does not exist
+    if (!a->o) return;
+    HalfEdge b = a->o;
 
+    // case *1.2: b was not yet split
+    if (a->n->t == b->att) return;
+
+    // case *2: b exists and was split
+    HalfEdge a_ = a->att;
+    HalfEdge b_ = b->att;
+
+    a->o = b_; a_->o = b;
+    b->o = a_; b_->o = a;
 }
+
+inline static
+Triangloid storeTriangloid(HalfEdge a, Array tri)
+{
+    // compute the final isovalue for each thread
+    Thread ta = a->t; while (ta!=ta->t) ta = ta->t;
+    Thread tb = a->n->t; while (tb!=tb->t) tb = tb->t;
+    Thread tc = a->n->n->t; while (tc!=tc->t) tc = tc->t;
+
+    Sample sa = arrBack(ta->samples);
+    Sample sb = arrBack(tb->samples);
+    Sample sc = arrBack(tc->samples);
+
+    real iso = (sa->iso < sb->iso)?(sa->iso):(sb->iso);
+    if (sc->iso < iso) iso = sc->iso;
+
+    // store the triangloid with the initial ids
+    struct Triangloid tria = {
+        .iso = { a->iso , iso},
+        .t_ids = {a->t->id, a->n->t->id, a->n->n->t->id}
+    };
+    return arrPush(tri, &tria);
+}
+
+inline static
+void split_case_1(HalfEdge a, struct refinement_kit* ref)
+{
+    Triangloid t = storeTriangloid(a, ref->sp->tri);
+    HalfEdge a1, a2, a3;
+    {
+        struct HalfEdge tmp = { .t = a->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        a1 = arrPush(ref->sp->fringe, &tmp);
+    }
+    {
+        struct HalfEdge tmp = { .t = a->n->n->t, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        a2 = arrPush(ref->sp->fringe, &tmp);
+    }
+    {
+        struct HalfEdge tmp = { .t = a->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        a3 = arrPush(ref->sp->fringe, &tmp);
+    }
+    a1->n = a->n->n; a1->o = a2;
+    a2->n = a3; a2->o = a1;
+    a3->n = a->n;
+
+    a->n->n = a2; a->n = a1; a->att = a3;
+}
+
+inline static
+void split_case_2(HalfEdge a, struct refinement_kit* ref)
+{
+}
+
+inline static
+void stage45(uint64_t i, Obj o, Obj d)
+{
+    HalfEdge* pe = o;
+    HalfEdge e = *pe;
+
+    // check if it is still marked
+    if (!e->att) return;
+
+    conjecture((e->n->att == 0) ^ (e->n->n->att == 0), "The triangle is neither in case 1 nor in case 2.");
+
+    if (e->n->att && e->n->n->att) split_case_1(e, d);
+    else split_case_2(e, d);
+}
+
 inline static
 void stage6(uint64_t i, Obj o, Obj d)
 {
+    HalfEdge* pe = o;
+    HalfEdge e = *pe;
+    struct refinement_kit* ref = d;
 
+    arrPush(ref->q, pe);
+    if (e->o) arrPush(ref->q, &e->o);
 }
 
 void specRefine(Spectrum restrict sp)
@@ -1384,24 +1311,24 @@ void specRefine(Spectrum restrict sp)
 
     Array q1 = arrRefsArr(sp->fringe);
 
-    while (q1) {
+    while (!arrIsEmpty(q1)) {
         // stage #1
         ref_kit.q = q1;
         arrForEach(q1, stage1, &ref_kit);
 
         // stage #2
         Array q2 = ref_kit.q = arrCreate(sizeof (HalfEdge), 1);
-        arrForEach(q1, stage2, &ref_kit);
+        arrForEach(q1, stage23, &ref_kit);
 
         // stage #3
-        arrForEach(q2, stage2, &ref_kit);
+        arrForEach(q2, stage23, &ref_kit);
 
         // stage #4
         Array q3 = ref_kit.q = arrCreate(sizeof (HalfEdge), 1);
-        arrForEach(q1, stage4, &ref_kit);
+        arrForEach(q1, stage45, &ref_kit);
 
         // stage #5
-        arrForEach(q2, stage4, &ref_kit);
+        arrForEach(q2, stage45, &ref_kit);
 
         // stage #6
         arrForEach(q1, stage6, &ref_kit);
