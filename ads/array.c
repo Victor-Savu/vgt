@@ -262,16 +262,12 @@ void arrForEach(Array arr, const ArrOperation op, Obj data)
 {
     if (!(arr && op)) return;
     uint64_t i = 0;
-    Obj* restrict datablock_begin = arr->begin;
-    Obj* restrict datablock_end = arr->end;
     //Obj* const stop_begin = arr->begin + arr->d;
     //Obj* const stop_end = arr->end + arr->d;
-    Obj restrict element;
-    while (datablock_begin < arr->begin + arr->d && datablock_end < arr->end + arr->d) {
-        for (element = *datablock_begin; element < *datablock_end; i++, element += arr->element_size) op(i, element, data);
-        datablock_begin++;
-        datablock_end++;
-    }
+    Obj element;
+    uint64_t j = 0;
+    for (j=0; j<arr->d; j++)
+        for (element = arr->begin[j]; element < arr->end[j]; i++, element += arr->element_size) op(i, element, data);
 }
 
 
@@ -348,6 +344,7 @@ Obj arrRefs(const Array restrict arr)
 
 inline static
 void push_ref(uint64_t i, Obj o, Obj d) {
+    //arrPushSafe(d, o, sizeof (Obj), __FILE__, __func__, __LINE__);
     arrPush(d, &o);
 }
 

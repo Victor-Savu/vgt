@@ -55,9 +55,29 @@ int main(int argc, char* argv[])
 //        rWaitKey(r, &key);
 
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
+        specRefine(sp);
+        clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
+        printf("Refining  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        printf("\n");
+        specStats(sp);
+        printf("\n");
+
+//        rWaitKey(r, &key);
+
+        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
         specSimplify(sp);
         clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
         printf("Simplifying  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        printf("\n");
+        specStats(sp);
+        printf("\n");
+
+//        rWaitKey(r, &key);
+
+        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
+        specRefine(sp);
+        clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
+        printf("Refining  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
         printf("\n");
         specStats(sp);
         printf("\n");
@@ -72,16 +92,6 @@ int main(int argc, char* argv[])
         specStats(sp);
         printf("\n");
 
-//        rWaitKey(r, &key);
-/*
-        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
-        specRefine(sp);
-        clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
-        printf("Refining  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
-        printf("\n");
-        specStats(sp);
-        printf("\n");
-*/
 /*
         rWait(r);
         rDestroy(r);

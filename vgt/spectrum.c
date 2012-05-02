@@ -15,7 +15,7 @@
 #include <vgt/volumetric_data_cls.h>
 #include <vgt/scalar_field_cls.h>
 
-#include <GL/gl.h>
+#include <GL/glut.h>
 #include <pthread.h>
 
 #include <string.h>
@@ -42,23 +42,26 @@ struct Sample {
 
 
 inline static
-void snap_sample(Sample restrict s, Spectrum restrict sp)
+void snap_sample(Sample restrict s, VolumetricData restrict vol, real snap_iso, real snap_iso_thr)
 {
-    real iso = sfValue(sp->vol->scal, s->p[0], s->p[1], s->p[2]);
-    real d_iso = sp->snap_iso - iso;
+    // the real isovalue
+    real iso = sfValue(vol->scal, s->p[0], s->p[1], s->p[2]);
+    // the distance to the isosurface (in normalized isovalue space)
+    real d_iso = snap_iso - iso;
+
     Normal dn;
-    while (algoAbs(d_iso) > sp->snap_iso_thr) {
-        vScale(vfValue(sp->vol->grad, &s->n, s->p[0], s->p[1], s->p[2]), d_iso, &dn);
+    while (algoAbs(d_iso) > snap_iso_thr) {
+        vScale(vfValue(vol->grad, &s->n, s->p[0], s->p[1], s->p[2]), d_iso, &dn);
         vAddI(&dn, &s->p);
-        iso = sfValue(sp->vol->scal, dn[0], dn[1], dn[2]);
-        while (algoAbs(d_iso) <= algoAbs(sp->snap_iso - iso)) {
+        iso = sfValue(vol->scal, dn[0], dn[1], dn[2]);
+        while (algoAbs(d_iso) <= algoAbs(snap_iso - iso)) {
             dn[0] = algoRandomDouble(-0.001, 0.001);
             dn[1] = algoRandomDouble(-0.001, 0.001);
             dn[2] = algoRandomDouble(-0.001, 0.001);
             vAddI(&dn, &s->p);
-            iso = sfValue(sp->vol->scal, dn[0], dn[1], dn[2]);
+            iso = sfValue(vol->scal, dn[0], dn[1], dn[2]);
         }
-        d_iso = sp->snap_iso - iso;
+        d_iso = snap_iso - iso;
         vCopy(&dn, &s->p);
         s->iso = iso;
     }
@@ -127,8 +130,7 @@ Vector heOneRing(HalfEdge e)
         vecPush(v, &e->n);
         e = e->n->n->o;
         safe(thr = e->t; while(thr->t != thr) thr = thr->t;);
-        if (id != thr->id)
-            check(id == thr->id);
+        check(id == thr->id);
         usage(vecSize(v) < 1000); // a vertex should not have >= 1000 incident triangles
     } while (e && e!=flag);
 
@@ -238,7 +240,8 @@ inline static
 void snap_thread_endpoint(uint64_t i, Obj o, Obj d)
 {
     Thread* t = o;
-    snap_sample(arrBack((*t)->samples), d);
+    Spectrum sp = d;
+    snap_sample(arrBack((*t)->samples), sp->vol, sp->snap_iso, sp->snap_iso_thr);
 }
 
 inline
@@ -359,8 +362,10 @@ Spectrum specCreate(const char* restrict conf)
             y += algoRandomDouble(0.0001, 0.001);
             z += algoRandomDouble(0.0001, 0.001);
         }
-*/
+
         vSet(&smpl.p, x+0.2, y+0.2, z+0.2);
+*/
+        vSet(&smpl.p, x, y, z);
 
         struct Thread tmp_thr = {
             .samples = arrCreate(sizeof (struct Sample), 1),
@@ -449,8 +454,8 @@ Spectrum specCreate(const char* restrict conf)
         .active_threads = active_thr,
         .active_triangles = 0,
         .snap_iso = initial_isovalue,
-        .snap_iso_thr = 10./arrSize(active_thr),
-        .ref_norm_thr = 0.2
+        .snap_iso_thr = 5e-3,
+        .ref_norm_thr = 0.9
     };
 
 
@@ -512,13 +517,14 @@ void interp_bar_error(uint64_t i, Obj o, Obj d)
 inline
 void specStats(Spectrum restrict s)
 {
+    call;
     struct interp_kit kit = { .ierror = 0.0, .nerror = 0.0, .sp = s };
     arrForEach(s->active_threads, interp_error, &kit);
     arrForEach(s->fringe, interp_bar_error, &kit);
 
     fprintf(stderr, "Samples: %lu\n", arrSize(s->active_threads));
     fprintf(stderr, "Triangles: %lu\n", arrSize(s->fringe)/3);
-    fprintf(stderr, "Interp error: %lf\n", oCast(double, kit.ierror));
+    fprintf(stderr, "Interp error: %lf\n", oCast(double, kit.ierror)/(arrSize(s->active_threads)+arrSize(s->fringe)/3));
 }
 
 inline static
@@ -712,8 +718,8 @@ void compute_normal_force(uint64_t i, Obj o, Obj d)
     check(t = t->t);
     check(t->active);
     Sample s = &t->relaxed;
-
-    snap_sample(s, d);
+    Spectrum sp = d;
+    snap_sample(s, sp->vol, sp->snap_iso, sp->snap_iso_thr);
 
     return;
 }
@@ -917,9 +923,10 @@ void simplify(uint64_t ind, Obj o, Obj d)
 
 
     ignore vScaleI(vAddI(&sb->p, &sa->p), 0.5);
+    snap_sample(sb, sp->vol, sp->snap_iso, sp->snap_iso_thr);
     vCopy(&sb->p, &sa->p);
-    sa->iso = sb->iso = sfValue(sp->vol->scal, sa->p[0], sa->p[1], sa->p[2]);
-    vCopy(vfValue(sp->vol->grad, &sb->n, sa->p[0], sa->p[1], sa->p[2]), &sa->n);
+    vCopy(&sb->n, &sa->n);
+    sa->iso = sb->iso;
 
     // store the collapse of ta->id and tb->id
     if (ta->depth > tb->depth) {
@@ -950,16 +957,11 @@ void simplify(uint64_t ind, Obj o, Obj d)
         if (bk == opp) opp = a;
         oCopyTo(a, bk, sizeof(struct HalfEdge));
         memset(bk, 0, sizeof (struct HalfEdge));
-        if (a->o)
-            a->o->o = a;
-        else
-            check(0);
-        if (a->n->n) {
+        if (a->o && a->o != bk) a->o->o = a;
+        if (a->n != bk)
             a->n->n->n = a;
-        } else {
-            a->n = a;
-            a->o = a;
-        }
+        else
+            a->n = a->o = a;
     }
     arrPop(sp->fringe);
 
@@ -968,15 +970,11 @@ void simplify(uint64_t ind, Obj o, Obj d)
         if (bk == opp) opp = b;
         oCopyTo(b, bk, sizeof(struct HalfEdge));
         memset(bk, 0, sizeof (struct HalfEdge));
-        if (b->o) b->o->o = b;
-        else
-            check(0);
-        if(b->n->n) {
+        if (b->o && b->o != bk) b->o->o = b;
+        if(b->n != bk)
             b->n->n->n = b;
-        } else {
-            b->n = b;
-            b->o = b;
-        }
+        else
+            b->n = b->o = b;
     }
     arrPop(sp->fringe);
 
@@ -985,15 +983,11 @@ void simplify(uint64_t ind, Obj o, Obj d)
         if (bk == opp) opp = c;
         oCopyTo(c, bk, sizeof(struct HalfEdge));
         memset(bk, 0, sizeof (struct HalfEdge));
-        if (c->o) c->o->o = c;
-        else
-            check(0);
-        if (c->n->n) {
+        if (c->o && c->o != bk) c->o->o = c;
+        if (c->n != bk)
             c->n->n->n = c;
-        } else {
-            c->n = c;
-            c->o = c;
-        }
+        else
+            c->n = c->o = c;
     }
     arrPop(sp->fringe);
 
@@ -1019,15 +1013,11 @@ void simplify(uint64_t ind, Obj o, Obj d)
         if (a!= bk) {
             oCopyTo(a, bk, sizeof(struct HalfEdge));
             memset(bk, 0, sizeof (struct HalfEdge));
-            if (a->o) a->o->o = a;
-            else
-                check(0);
-            if (a->n->n) {
+            if (a->o && a->o != bk) a->o->o = a;
+            if (a->n != bk)
                 a->n->n->n = a;
-            } else {
-                a->n = a;
-                a->o = a;
-            }
+            else
+                a->n = a->o = a;
         }
         arrPop(sp->fringe);
 
@@ -1035,15 +1025,11 @@ void simplify(uint64_t ind, Obj o, Obj d)
         if (b!= bk) {
             oCopyTo(b, bk, sizeof(struct HalfEdge));
             memset(bk, 0, sizeof (struct HalfEdge));
-            if (b->o) b->o->o = b;
-            else
-                check(0);
-            if (b->n->n) {
+            if (b->o && b->o != bk) b->o->o = b;
+            if (b->n != bk)
                 b->n->n->n = b;
-            } else {
-                b->n = b;
-                b->o = b;
-            }
+            else
+                b->n = b->o = b;
         }
         arrPop(sp->fringe);
 
@@ -1051,15 +1037,11 @@ void simplify(uint64_t ind, Obj o, Obj d)
         if (c!= bk) {
             oCopyTo(c, bk, sizeof(struct HalfEdge));
             memset(bk, 0, sizeof (struct HalfEdge));
-            if (c->o) c->o->o = c;
-            else
-                check(0);
-            if (c->n->n) {
+            if (c->o && c->o != bk) c->o->o = c;
+            if (c->n != bk)
                 c->n->n->n = c;
-            } else {
-                c->n = b;
-                c->o = c;
-            }
+            else
+                c->n = c->o = c;
         }
         arrPop(sp->fringe);
     }
@@ -1073,8 +1055,21 @@ void specSimplify(Spectrum restrict sp)
     call;
     sp->area_sqr = 0.02;
     sp->lambda = 0.04;
-    arrForEach(sp->fringe, simplify, sp);
-    arrForEach(sp->active_threads, remove_inactive_threads, sp->active_threads);
+    uint64_t before = 0;
+    uint64_t after = arrSize(sp->fringe);
+
+    while (before!= after) {
+        before = after;
+        after = 0;
+        arrForEach(sp->fringe, simplify, sp);
+        fprintf(stderr, "Loop!\n"); fflush(stderr);
+
+        pthread_mutex_lock(&sp->mutex);
+        arrForEach(sp->active_threads, remove_inactive_threads, sp->active_threads);
+        pthread_mutex_unlock(&sp->mutex);
+
+        after = arrSize(sp->fringe);
+    }
 }
 
 struct refinement_kit {
@@ -1115,14 +1110,14 @@ void stage1(uint64_t i, Obj o, Obj d)
         // compute midpoint sample
         struct Sample sm;
         vScaleI(vAdd(&s->p, &sn->p, &sm.p), .5);
-        vScaleI(vAdd(&s->n, &sn->n, &sm.n), .5);
+        vNormalizeI(vScaleI(vAdd(&s->n, &sn->n, &sm.n), .5));
         sm.iso = (s->iso + sn->iso)/2;
 
         // get the real midpoint values
-        Normal n; vfValue(ref->sp->vol->grad, &n, sm.p[0], sm.p[1], sm.p[2]);
+        Normal n; vNormalizeI(vfValue(ref->sp->vol->grad, &n, sm.p[0], sm.p[1], sm.p[2]));
         real iso = sfValue(ref->sp->vol->scal, sm.p[0], sm.p[1], sm.p[2]);
 
-        if (    algoAbs(iso - sm.iso) < 2 * ref->sp->snap_iso_thr &&
+        if (    (algoAbs(iso - sm.iso) < ref->sp->snap_iso_thr) &&
                 vDot(&n, &sm.n) > ref->sp->ref_norm_thr ) {
             // it does not have to be split
             e->att = 0;
@@ -1132,7 +1127,12 @@ void stage1(uint64_t i, Obj o, Obj d)
             continue;
         } else {
             // it needs to be split
-            snap_sample(&sm, ref->sp);
+            // fprintf(stderr, "Before: "); vPrint(&sm.p, stderr); fprintf(stderr, "  After: "); vPrint(&sm.p, stderr); fprintf(stderr, "\n");
+            //if (i % 10 == 0)
+            //  fprintf(stderr, "Split %lu: <%lf, %lf> <%lf, %lf>\n", i, (double) algoAbs(iso - sm.iso), (double) ref->sp->snap_iso_thr, (double) vDot(&n, &sm.n), (double) ref->sp->ref_norm_thr);
+
+            snap_sample(&sm, ref->sp->vol, ref->sp->snap_iso, 0.5 * ref->sp->snap_iso_thr);
+
             struct Thread thr = {
                 .samples = arrCreate(sizeof(struct Sample), 1),
                 .id = arrSize(ref->sp->thr),
@@ -1141,7 +1141,7 @@ void stage1(uint64_t i, Obj o, Obj d)
                 .iso = 0,
                 .force_t = VERT_0,
                 .force_n = VERT_0,
-                .active = 1
+                .active = 0
             };
             arrPush(thr.samples, &sm);
             oCopyTo(&thr.relaxed, &sm, sizeof (struct Sample));
@@ -1160,13 +1160,14 @@ void stage23(uint64_t i, Obj o, Obj d)
     HalfEdge e = *pe;
     struct refinement_kit* ref = d;
 
-    check(e->att);
+    if (e->t->id == 711 && e->n->t->id == 712)
+        check(e->att);
 
-    // it needs to be split
-    if ((e->n->att) && !(e->n->n->att)) e = e->n->n;
-    else if (!(e->n->att) && (e->n->n->att)) e = e->n->att;
+    if ((e->n->att) && (!e->n->n->att)) e = e->n->n;
+    else if ((!e->n->att) && (e->n->n->att)) e = e->n;
     else return;
 
+    // it needs to be split
     Thread t = e->t; while (t->t != t) t = t->t;
     Thread tn = e->n->t; while (tn->t != tn) tn = tn->t;
 
@@ -1179,7 +1180,8 @@ void stage23(uint64_t i, Obj o, Obj d)
     vScaleI(vAdd(&s->n, &sn->n, &sm.n), .5);
     sm.iso = (s->iso + sn->iso)/2;
 
-    snap_sample(&sm, ref->sp);
+    snap_sample(&sm, ref->sp->vol, ref->sp->snap_iso, 0.5 * ref->sp->snap_iso_thr);
+
     struct Thread thr = {
         .samples = arrCreate(sizeof(struct Sample), 1),
         .id = arrSize(ref->sp->thr),
@@ -1197,9 +1199,11 @@ void stage23(uint64_t i, Obj o, Obj d)
     arrPush(ref->sp->active_threads, &e->att);
 
     arrPush(ref->q, &e);
+    check((*oCast(HalfEdge*, arrBack(ref->q)))->t->id == e->t->id);
     if (e->o) {
         e->o->att = e->att;
         arrPush(ref->q, &e->o);
+        check((*oCast(HalfEdge*, arrBack(ref->q)))->t->id == e->o->t->id);
     }
 }
 
@@ -1219,6 +1223,8 @@ void split_match(HalfEdge a)
 
     a->o = b_; a_->o = b;
     b->o = a_; b_->o = a;
+    a->att = b->att = 0;
+    a_->t->active = true;
 }
 
 inline static
@@ -1266,11 +1272,81 @@ void split_case_1(HalfEdge a, struct refinement_kit* ref)
     a3->n = a->n;
 
     a->n->n = a2; a->n = a1; a->att = a3;
+    split_match(a);
 }
 
 inline static
 void split_case_2(HalfEdge a, struct refinement_kit* ref)
 {
+    HalfEdge b = a->n;
+    HalfEdge c = b->n;
+
+    Triangloid t = storeTriangloid(a, ref->sp->tri);
+    HalfEdge a1, a2, a3;
+    {
+        struct HalfEdge tmp = { .t = a->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        a1 = arrPush(ref->sp->fringe, &tmp);
+    }
+    {
+        struct HalfEdge tmp = { .t = c->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        a2 = arrPush(ref->sp->fringe, &tmp);
+    }
+    {
+        struct HalfEdge tmp = { .t = a->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        a3 = arrPush(ref->sp->fringe, &tmp);
+    }
+
+    HalfEdge b1, b2, b3;
+    {
+        struct HalfEdge tmp = { .t = b->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        b1 = arrPush(ref->sp->fringe, &tmp);
+    }
+    {
+        struct HalfEdge tmp = { .t = a->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        b2 = arrPush(ref->sp->fringe, &tmp);
+    }
+    {
+        struct HalfEdge tmp = { .t = b->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        b3 = arrPush(ref->sp->fringe, &tmp);
+    }
+
+    HalfEdge c1, c2, c3;
+    {
+        struct HalfEdge tmp = { .t = c->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        c1 = arrPush(ref->sp->fringe, &tmp);
+    }
+    {
+        struct HalfEdge tmp = { .t = b->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        c2 = arrPush(ref->sp->fringe, &tmp);
+    }
+    {
+        struct HalfEdge tmp = { .t = c->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        c3 = arrPush(ref->sp->fringe, &tmp);
+    }
+
+    a->n = a1;
+    b->n = b1;
+    c->n = c1;
+
+    a1->n = c3; a1->o = a2;
+    b1->n = a3; b1->o = b2;
+    c1->n = b3; c1->o = c2;
+
+    a2->n = b2; a2->o = a1;
+    b2->n = c2; b2->o = b1;
+    c2->n = a2; c2->o = c1;
+
+    a3->n = b;
+    b3->n = c;
+    c3->n = a;
+
+    a->att = a3;
+    b->att = b3;
+    c->att = c3;
+
+    split_match(a);
+    split_match(b);
+    split_match(c);
 }
 
 inline static
@@ -1279,13 +1355,24 @@ void stage45(uint64_t i, Obj o, Obj d)
     HalfEdge* pe = o;
     HalfEdge e = *pe;
 
-    // check if it is still marked
+    // it was already split and matched
     if (!e->att) return;
 
-    conjecture((e->n->att == 0) ^ (e->n->n->att == 0), "The triangle is neither in case 1 nor in case 2.");
+    // it was split, but not yet matched
+    if (e->n->o && (e->n->o->n == e->att || (e->n->o->n->o && e->n->o->n->o->n == e->att))) return;
+/*
+    // check if it is still marked
+    if (e->att == 0 || e->att == e->n->t) return;
 
-    if (e->n->att && e->n->n->att) split_case_1(e, d);
+    conjecture((e->n->att == e->n->n->t) == (e->n->n->att == e->t), "The triangle is neither in case 1 nor in case 2.");
+
+
+    if ((e->n->att == e->n->n->t) && (e->n->n->att == e->t)) split_case_1(e, d);
     else split_case_2(e, d);
+*/
+    if (e->n->att && e->n->n->att) split_case_2(e, d);
+    else if (!e->n->att && !e->n->n->att) split_case_1(e, d);
+    else conjecture(0, "The triangle is neither in case 1 nor in case 2.");
 }
 
 inline static
@@ -1299,11 +1386,42 @@ void stage6(uint64_t i, Obj o, Obj d)
     if (e->o) arrPush(ref->q, &e->o);
 }
 
+/*
+inline static
+void check_stage_23(uint64_t i, Obj o, Obj d)
+{
+    HalfEdge e = o;
+    i = 0;
+    if (e->att) i++;
+    if (e->n->att) i++;
+    if (e->n->n->att) i++;
+    conjecture(i==0 || i==1 || i==3, "Nooohh!");
+
+}
+
+inline static
+void check_stage_1(uint64_t i, Obj o, Obj d)
+{
+    HalfEdge e = o;
+    if (e->att) {
+        Thread t = e->att;
+        Sample s = arrBack(t->samples);
+        Thread t1 = e->t; while (t1 != t1->t) t1 = t1->t;
+        Thread t2 = e->n->t; while (t2 != t2->t) t2 = t2->t;
+        Sample s1 = arrBack(t1->samples);
+        Sample s2 = arrBack(t2->samples);
+        Vec3 v; vScaleI(vAdd(&s1->p, &s2->p, &v), 0.5);
+        vSubI(&v, &s->p);
+        if (vNorm(&v) > 2e-1) {
+            fprintf(stderr, "Norm : %lf\n", vNorm(&v));
+        }
+    }
+}
+*/
+
 void specRefine(Spectrum restrict sp)
 {
-
-    // specSnapFringeToIso(sp);
-
+    call;
     struct refinement_kit ref_kit = {
         .sp = sp,
         .q = 0,
@@ -1312,9 +1430,12 @@ void specRefine(Spectrum restrict sp)
     Array q1 = arrRefsArr(sp->fringe);
 
     while (!arrIsEmpty(q1)) {
+        //fprintf(stderr, "Spuff %lu!\n", arrSize(q1)); fflush(stderr);
         // stage #1
         ref_kit.q = q1;
         arrForEach(q1, stage1, &ref_kit);
+
+//        arrForEach(sp->fringe, check_stage_1, sp);
 
         // stage #2
         Array q2 = ref_kit.q = arrCreate(sizeof (HalfEdge), 1);
@@ -1323,12 +1444,22 @@ void specRefine(Spectrum restrict sp)
         // stage #3
         arrForEach(q2, stage23, &ref_kit);
 
+//        arrForEach(sp->fringe, check_stage_23, sp);
+
+    //    usleep(1000000);
+
+        pthread_mutex_lock(&sp->mutex);
         // stage #4
         Array q3 = ref_kit.q = arrCreate(sizeof (HalfEdge), 1);
         arrForEach(q1, stage45, &ref_kit);
 
         // stage #5
         arrForEach(q2, stage45, &ref_kit);
+        pthread_mutex_unlock(&sp->mutex);
+
+//        arrForEach(sp->fringe, check_stage_1, sp);
+
+   //     usleep(3000000);
 
         // stage #6
         arrForEach(q1, stage6, &ref_kit);
@@ -1339,8 +1470,13 @@ void specRefine(Spectrum restrict sp)
     }
 }
 
+void project_thread(uint64_t i, Obj o, Obj d)
+{
+}
+
 void specProject(Spectrum restrict sp)
 {
+    arrForEach(sp->active_threads, project_thread, sp);
 }
 
 void specSample(Spectrum restrict sp)
@@ -1386,16 +1522,14 @@ void display_sample(uint64_t i, Obj o, Obj d)
 {
     unused(i);
     unused(d);
-    glVertex3v(oCast(Sample, o)->p);
-}
-
-void display_thread(uint64_t i, Obj o, Obj d)
-{
-    unused(i);
-    unused(d);
-    glBegin(GL_LINE_STRIP);
-    arrForEach(oCast(Thread, o)->samples, display_sample, 0);
-    glEnd();
+    Sample s = o;
+    if (d) glVertex3v(s->p);
+    else {
+        glPushMatrix();
+        glTranslatef(s->p[0], s->p[1], s->p[2]);
+        glutSolidSphere(0.1, 5, 5);
+        glPopMatrix();
+    }
 }
 
 void display_vert(uint64_t i, Obj o, Obj d)
@@ -1404,8 +1538,30 @@ void display_vert(uint64_t i, Obj o, Obj d)
     unused(d);
     Thread* t = o;
     Sample s = arrBack((*t)->samples);
-    if (vIsZero(&s->n)) glVertex3v(s->p);
+    if (vIsZero(&s->n)) {
+        glPushMatrix();
+        glTranslatef(s->p[0], s->p[1], s->p[2]);
+        glutSolidSphere(0.1, 5, 5);
+        glPopMatrix();
+    }
 }
+
+void display_thread(uint64_t i, Obj o, Obj d)
+{
+    unused(i);
+    unused(d);
+    Thread* pt = o;
+    Thread t = *pt;
+    if (t->active) glColor3f(0.0, 0.0, 1.0); else glColor3f(1.0, 0.0, 0.0);
+
+    glLineWidth(1.0);
+    glBegin(GL_LINE_STRIP);
+    arrForEach(t->samples, display_sample, oCast(Obj, 1));
+    glEnd();
+
+    arrForEach(t->samples, display_sample, 0);
+}
+
 
 void specDisplay(Spectrum restrict sp)
 {
@@ -1418,7 +1574,7 @@ void specDisplay(Spectrum restrict sp)
 
     pthread_mutex_lock(&sp->mutex);
 
-    arrForEach(sp->thr, display_thread, 0);
+    arrForEach(sp->active_threads, display_thread, 0);
 
     glEnable(GL_LIGHTING);
 
@@ -1441,7 +1597,6 @@ void specDisplay(Spectrum restrict sp)
     glEnd();
     glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 
-    glPointSize(40.0);
     glColor3f(1.0, 0.0, 0.0);
     glBegin(GL_POINTS);
     arrForEach(sp->active_threads, display_vert, 0);

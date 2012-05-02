@@ -63,7 +63,7 @@ bool arrIsEmpty(const Array restrict arr);
 
 Obj arrSet(Array restrict arr, const Obj restrict o, uint64_t pos);
 
-#define arrPush(array, object)   arrPushSafe((array), (object), sizeof (*object), __FILE__, __func__, __LINE__)
+#define arrPush(array, object)   arrPushSafe((array), (object), sizeof (*(object)), __FILE__, __func__, __LINE__)
 Obj arrPushSafe(Array restrict arr, const Obj restrict o, size_t objsize, const char* restrict filename, const char* restrict funcname, int lineno);
 
 void arrPop(Array restrict arr);
