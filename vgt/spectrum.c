@@ -1606,8 +1606,24 @@ void specRefine(Spectrum restrict sp)
     }
 }
 
-//struct projection_kit { Spectrum sp; };
-/*
+inline static
+void project_sample(Sample s, VolumetricData vol, real iso)
+{
+    // determine the cell in which the sample point is
+    int64_t i = s->p[0] / vol->sf->dx;
+    int64_t j = s->p[1] / vol->sf->dy;
+    int64_t k = s->p[2] / vol->sf->dz;
+    check(i > 0);
+    check(j > 0);
+    check(k > 0);
+    check(i < vol->sf->nx);
+    check(j < vol->sf->ny);
+    check(k < vol->sf->nz);
+}
+
+struct projection_kit { Spectrum sp; real iso;};
+
+inline static
 void project_thread(uint64_t i, Obj o, Obj d)
 {
     Thread* pt = o;
@@ -1616,18 +1632,10 @@ void project_thread(uint64_t i, Obj o, Obj d)
     check(t->t == t);
 
     Sample s = arrBack(t->samples);
-
-    CriticalPoint cp = sp->vol->topology.criticalities;
-    CriticalPoint end = sp->vol->topology.criticalities + sp->vol->topology.size;
-    while (cp < end) {
-        if (inBetween(cp->isovalue, s->iso, sp->proj_iso))
-        cp++;
-    }
-
     s = arrPush(t->samples, s);
-    project_sample(s, sp->vol, sp->proj_iso);
+
+    project_sample(s, sp->vol, kit->iso);
 }
-*/
 
 
 void specProject(Spectrum restrict sp)
@@ -1635,18 +1643,32 @@ void specProject(Spectrum restrict sp)
     specSnap(sp);
 
     // find the next isovalue to project to
+    real crt = sp->snap_iso;
+    while (!arrIsEmpty(sp->isosamples) && crt <= *oCast(real*, arrBack(sp->isosamples))) arrPop(sp->isosamples);
+    if (arrIsEmpty(sp->isosamples)) return;
+
+    real next = *oCast(real*, arrBack(sp->isosamples));
+    Array criticalities = arrCreate(sizeof (Vertex), 1);
+    {
+        CriticalPoint cp = sp->vol->topology.criticalities;
+        CriticalPoint end = cp + sp->vol->topology.size;
+        while (++cp < end-1) // skip the global min and global max
+            if (crt > cp->isovalue && next < cp->isovalue)
+                arrPush(criticalities, &cp->p);
+    }
 
     // if it does not cross any critical value, project normally
-
-    // otherwise:
-    // compute the "border"
-    // do a partial projection and create a delaunay tetrahedrization containing:
-    //  > the unprojected samples
-    //  > the projections of samples whose triangle neighbors have not been projected
-    //  > the critical points crossed
-
-
-    //struct projection_kit kit = { .sp = sp};
+    if (arrIsEmpty(criticalities)) {
+        struct projection_kit kit = { .sp = sp, .iso = next };
+        arrForEach(sp->active_threads, project_thread, );
+    } else {
+        // otherwise:
+        // compute the "border"
+        // do a partial projection and create a delaunay tetrahedrization containing:
+        //  > the unprojected samples
+        //  > the projections of samples whose triangle neighbors have not been projected
+        //  > the critical points crossed
+    }
 }
 
 void specSample(Spectrum restrict sp)
