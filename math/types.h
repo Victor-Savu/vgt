@@ -70,10 +70,17 @@ typedef double           real;
 #define glNormal3v       glNormal3dv
 #define glVertex3v       glVertex3dv
 
+typedef real            Vertex[3];
+typedef int64_t         Vec3l[3];
+typedef int32_t         Vec3i[3];
+typedef uint64_t        Vec3lu[3];
+typedef uint32_t        Vec3u[3];
+typedef Vertex Vec3;
+typedef Vertex Normal;
+
 typedef uint8_t         byte;
 typedef uint8_t         bool;
 typedef uint8_t         mask8;
-typedef real            Vertex[3];
 typedef Vertex             Mat[3];
 typedef void*           Obj;
 

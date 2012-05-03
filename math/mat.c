@@ -12,11 +12,11 @@ Mat* matCopy(Mat* restrict a, Mat* restrict b)
     return b;
 }
 
-Mat* matScale(Mat* restrict a, real s, Mat* restrict b)
+Mat* matScale(const Mat* restrict a, real s, Mat* restrict b)
 {
-    Vertex* restrict v0 = (*a);
-    Vertex* restrict v1 = (*a)+1;
-    Vertex* restrict v2 = (*a)+2;
+    const Vertex* restrict v0 = (const Vertex*) (*a);
+    const Vertex* restrict v1 = (const Vertex*) ((*a)+1);
+    const Vertex* restrict v2 = (const Vertex*) ((*a)+2);
     vScale(v0, s, (*b));
     vScale(v1, s, (*b)+1);
     vScale(v2, s, (*b)+2);

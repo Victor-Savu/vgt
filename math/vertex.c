@@ -30,13 +30,13 @@ real vDot(Vertex* restrict a, Vertex* restrict b)
 }
 
 inline
-real vNormSquared(Vertex* restrict a)
+real vNormSquared(const Vertex* restrict a)
 {
     return (*a)[0] * (*a)[0] + (*a)[1] * (*a)[1] + (*a)[2] * (*a)[2];
 }
 
 inline
-real vNorm(Vertex* restrict a)
+real vNorm(const Vertex* restrict a)
 {
     return sqrt(vNormSquared(a));
 }
@@ -60,7 +60,7 @@ Vertex* vAdd(Vertex* restrict a, Vertex* restrict b, Vertex* restrict c)
 }
 
 inline
-Vertex* vScale(Vertex* restrict a, real s, Vertex* restrict b)
+Vertex* vScale(const Vertex* restrict a, real s, Vertex* restrict b)
 {
     (*b)[0] = s * (*a)[0];
     (*b)[1] = s * (*a)[1];
@@ -78,7 +78,7 @@ Vertex* vSub(Vertex* restrict a, Vertex* restrict b, Vertex* restrict c)
 }
 
 inline
-Vertex* vNormalize(Vertex* restrict a, Vertex* restrict b)
+Vertex* vNormalize(const Vertex* restrict a, Vertex* restrict b)
 {
     real n = vNorm(a);
     if (n < 1e-10) {
@@ -108,7 +108,7 @@ Vertex* vCrossI(Vertex* restrict a, Vertex* restrict b)
 }
 
 inline
-Vertex* vAddI(Vertex* restrict a, Vertex* restrict b)
+Vertex* vAddI(Vertex* restrict a, const Vertex* restrict b)
 {
     (*a)[0] += (*b)[0];
     (*a)[1] += (*b)[1];
@@ -137,7 +137,7 @@ Vertex* vSubI(Vertex* restrict a, Vertex* restrict b)
 inline
 Vertex* vNormalizeI(Vertex* restrict a)
 {
-    real n = vNorm(a);
+    real n = vNorm((const Vertex*)a);
     if (n < 1e-10) {
         fprintf(stderr, "Normalizing zero vector.\n"); fflush(stderr);
         exit(EXIT_FAILURE);

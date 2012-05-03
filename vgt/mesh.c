@@ -163,9 +163,9 @@ Mesh mReadOff(Mesh restrict m, const char* restrict filename)
             ignore vCross( vSub(m->vert+b, m->vert+a, &p),
                            vSub(m->vert+c, m->vert+a, &q),
                            &norm);
-            vAddI(m->norm + a, &norm);
-            vAddI(m->norm + b, &norm);
-            vAddI(m->norm + c, &norm);
+            vAddI(m->norm + a, (const Vec3*)&norm);
+            vAddI(m->norm + b, (const Vec3*)&norm);
+            vAddI(m->norm + c, (const Vec3*)&norm);
         }
     }
 /*

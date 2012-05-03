@@ -10,6 +10,12 @@ struct VolumetricData {
     // The scalar values
     ScalarField scal;
 
+    // Minimum cell values
+    ScalarField min;
+
+    // Maximum cell values
+    ScalarField max;
+
     // The precomputed gradient of the field
     VectorField grad;
 

@@ -146,10 +146,10 @@ Mesh isoMarchingTets(const ScalarField const restrict data, Array restrict borde
     vSubI(&bound[2], &trans);
     vSubI(&bound[3], &trans);
 
-    vAddI(&bound[0], &pos);
-    vAddI(&bound[1], &pos);
-    vAddI(&bound[2], &pos);
-    vAddI(&bound[3], &pos);
+    vAddI(&bound[0], (const Vec3*)&pos);
+    vAddI(&bound[1], (const Vec3*)&pos);
+    vAddI(&bound[2], (const Vec3*)&pos);
+    vAddI(&bound[3], (const Vec3*)&pos);
 
     Delaunay del = delCreate(&bound);
 
@@ -174,18 +174,18 @@ Mesh isoMarchingTets(const ScalarField const restrict data, Array restrict borde
             skipped++;
         } else {
             Vertex g;
-            if (    vNormSquared(vSub(t->v[B], t->v[A], &g)) > min_cell_size_sqr ||
-                    vNormSquared(vSub(t->v[C], t->v[A], &g)) > min_cell_size_sqr ||
-                    vNormSquared(vSub(t->v[D], t->v[A], &g)) > min_cell_size_sqr ||
-                    vNormSquared(vSub(t->v[C], t->v[B], &g)) > min_cell_size_sqr ||
-                    vNormSquared(vSub(t->v[D], t->v[B], &g)) > min_cell_size_sqr ||
-                    vNormSquared(vSub(t->v[D], t->v[C], &g)) > min_cell_size_sqr) {
+            if (    vNormSquared((const Vec3*)vSub(t->v[B], t->v[A], &g)) > min_cell_size_sqr ||
+                    vNormSquared((const Vec3*)vSub(t->v[C], t->v[A], &g)) > min_cell_size_sqr ||
+                    vNormSquared((const Vec3*)vSub(t->v[D], t->v[A], &g)) > min_cell_size_sqr ||
+                    vNormSquared((const Vec3*)vSub(t->v[C], t->v[B], &g)) > min_cell_size_sqr ||
+                    vNormSquared((const Vec3*)vSub(t->v[D], t->v[B], &g)) > min_cell_size_sqr ||
+                    vNormSquared((const Vec3*)vSub(t->v[D], t->v[C], &g)) > min_cell_size_sqr) {
 
                 skipped = 0;
 
                 vAdd(t->v[A], t->v[B], &g);
-                vAddI(&g, t->v[C]);
-                vAddI(&g, t->v[D]);
+                vAddI(&g, (const Vec3*)t->v[C]);
+                vAddI(&g, (const Vec3*)t->v[D]);
                 vScaleI(&g, 0.25);
 
                 arrDestroy(delInsert(del, &g));

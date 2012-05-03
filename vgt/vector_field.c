@@ -162,15 +162,15 @@ Vertex* vfValue(const VectorField const restrict field, Vertex* v, real x, real 
     Vertex v101; vCopy(cell, &v101); cell = vfRel(field, cell,-1, 0, 0);
     Vertex v001; vCopy(cell, &v001);
 
-    vAddI(vScaleI(&v000, 1-z), vScaleI(&v001, z));
-    vAddI(vScaleI(&v100, 1-z), vScaleI(&v101, z));
-    vAddI(vScaleI(&v010, 1-z), vScaleI(&v011, z));
-    vAddI(vScaleI(&v110, 1-z), vScaleI(&v111, z));
+    vAddI(vScaleI(&v000, 1-z), (const Vec3*)vScaleI(&v001, z));
+    vAddI(vScaleI(&v100, 1-z), (const Vec3*)vScaleI(&v101, z));
+    vAddI(vScaleI(&v010, 1-z), (const Vec3*)vScaleI(&v011, z));
+    vAddI(vScaleI(&v110, 1-z), (const Vec3*)vScaleI(&v111, z));
 
-    vAddI(vScaleI(&v000, 1-y), vScaleI(&v010, y));
-    vAddI(vScaleI(&v100, 1-y), vScaleI(&v110, y));
+    vAddI(vScaleI(&v000, 1-y), (const Vec3*)vScaleI(&v010, y));
+    vAddI(vScaleI(&v100, 1-y), (const Vec3*)vScaleI(&v110, y));
 
-    vAddI(vScaleI(&v000, 1-x), vScaleI(&v100, x));
+    vAddI(vScaleI(&v000, 1-x), (const Vec3*)vScaleI(&v100, x));
 
     return vCopy(&v000, v);
 }

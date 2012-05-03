@@ -407,3 +407,25 @@ real* sfMax(const ScalarField const restrict s_field)
     return m;
 }
 
+ScalarField sfVoxelOp(ScalarField restrict f, ScalarVoxelOperation op, ScalarField restrict g)
+{
+    uint64_t i, j, k;
+    for (i = 0; i < g->nz; i++) {
+        for (j = 0; j < g->ny; j++) {
+            for (k = 0; k <g->nx; k++) {
+                real* arg[8] = {
+                    sfAt(f, k, j, i),
+                    sfAt(f, k, j, i + 1),
+                    sfAt(f, k, j + 1, i),
+                    sfAt(f, k, j + 1, i + 1),
+                    sfAt(f, k + 1, j, i),
+                    sfAt(f, k + 1, j, i + 1),
+                    sfAt(f, k + 1, j + 1, i),
+                    sfAt(f, k + 1, j + 1, i + 1)
+                };
+                op(arg, sfAt(g, i, j, k));
+            }
+        }
+    }
+    return g;
+}

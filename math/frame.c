@@ -41,7 +41,7 @@ Frame frCompose(Frame restrict f, Frame restrict r, Frame restrict g)
 
     matMul(r1, r2, r3);
     matCross(r1, t2, t3);
-    vAddI(t3, t1);
+    vAddI(t3, (const Vec3*)t1);
 
     return g;
 }
@@ -49,14 +49,14 @@ Frame frCompose(Frame restrict f, Frame restrict r, Frame restrict g)
 Vertex* frTransform(Frame restrict f, Vertex* restrict p, Vertex* restrict t)
 {
     ignore matCross(&f->rot, p, t);
-    ignore vAddI(t, &f->trans);
+    ignore vAddI(t, (const Vec3*)&f->trans);
     return t;
 }
 
 Vertex* frTransformI(Frame restrict f, Vertex* restrict p)
 {
     ignore matCrossI(&f->rot, p);
-    ignore vAddI(p, &f->trans);
+    ignore vAddI(p, (const Vec3*)&f->trans);
     return p;
 }
 

@@ -87,9 +87,9 @@ void tetRenderCircumsphere(Tet t)
     // the sphere's centre
     Vertex c;
 
-    vScale(&cBC, vNormSquared(&rD), &r);
-    vAddI(&r, vScale(&cDB, vNormSquared(&rC), &c)); // using c as an auliliary variable for now
-    vAddI(&r, vScale(&cCD, vNormSquared(&rB), &c)); // using c as an auliliary variable for now
+    vScale((const Vertex*)&cBC, vNormSquared((const Vertex*)&rD), &r);
+    vAddI(&r, (const Vec3*)vScale((const Vertex*)&cDB, vNormSquared((const Vertex*)&rC), &c)); // using c as an auliliary variable for now
+    vAddI(&r, (const Vec3*)vScale((const Vertex*)&cCD, vNormSquared((const Vertex*)&rB), &c)); // using c as an auliliary variable for now
 
     vScaleI(&r, 0.5/vDot(&rB, &cCD));
     // now setting c
@@ -97,7 +97,7 @@ void tetRenderCircumsphere(Tet t)
 
     glPushMatrix();
     glTranslated(c[0], c[1], c[2]);
-    glutWireSphere(vNorm(&r), 100, 100);
+    glutWireSphere(vNorm((const Vertex*)&r), 100, 100);
     glPopMatrix();
 }
 

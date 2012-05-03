@@ -5,8 +5,6 @@
 #include <ads/types.h>
 
 /* Types */
-typedef Vertex Vec3;
-typedef Vertex Normal;
 
 /* Classes */
 

@@ -30,7 +30,7 @@ void vdClear(VolumetricData v);
 
    In case of error, the method returns 0, otherwise it returns 1.
 */
-bool vdRead(VolumetricData v, const char* filename);
+bool vdRead(VolumetricData v, FILE* fin, const char* filename);
 
 /*
    Clears the field and releases the allocated memory.

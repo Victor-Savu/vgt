@@ -88,4 +88,10 @@ real* sfMin(const ScalarField restrict s_field);
 */
 real* sfMax(const ScalarField restrict s_field);
 
+/*
+   Allows performing foxel operations
+*/
+typedef void (*ScalarVoxelOperation)(real* arg[8], real* v);
+ScalarField sfVoxelOp(ScalarField restrict f, ScalarVoxelOperation, ScalarField restrict g);
+
 #endif//VGT_SCALAR_FIELD_H

@@ -36,6 +36,7 @@ set(math_sources
         math/frame.c
         math/obj.c
         math/predicates.c
+        math/roots3and4.c
     )
 
 set(math_headers
@@ -47,6 +48,7 @@ set(math_headers
         math/frame_cls.h
         math/predicates.h
         math/algorithms.h
+        math/roots3and4.h
     )
 
 add_library(math ${libtype} ${math_sources})
@@ -131,7 +133,7 @@ install(FILES ${view_headers} DESTINATION "${INSTALL_INCLUDE_DIR}/view")
 
 install(TARGETS vgt math view ads DESTINATION ${INSTALL_LIB_DIR})
 
-#add_executable(test_volumetric_data test/test_volumetric_data.c)
+add_executable(test_volumetric_data test/test_volumetric_data.c)
 #add_executable(test_div test/test_div.c)
 #add_executable(test_scalar_field test/test_scalar_field.c)
 #add_executable(test_vector_field test/test_vector_field.c)
@@ -146,7 +148,7 @@ add_executable(test_array test/test_array.c)
 #add_executable(test_mtets test/test_marching_tets.c)
 add_executable(test_spectrum test/test_spectrum.c)
 
-#target_link_libraries(test_volumetric_data m vgt math)
+target_link_libraries(test_volumetric_data m vgt math)
 #target_link_libraries(test_div m vgt math)
 #target_link_libraries(test_scalar_field m vgt)
 #target_link_libraries(test_vector_field m vgt math)

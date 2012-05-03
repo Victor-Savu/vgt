@@ -5,6 +5,7 @@
 #include <math/obj.h>
 #include <math/vertex.h>
 #include <math/algorithms.h>
+#include <math/roots3and4.h>
 
 #include <ads/array.h>
 #include <ads/vector.h>
@@ -52,14 +53,14 @@ void snap_sample(Sample restrict s, VolumetricData restrict vol, real snap_iso, 
 
     Normal dn;
     while (algoAbs(d_iso) > snap_iso_thr) {
-        vScale(vfValue(vol->grad, &s->n, s->p[0], s->p[1], s->p[2]), d_iso, &dn);
-        vAddI(&dn, &s->p);
+        vScale((const Vec3*)vfValue(vol->grad, &s->n, s->p[0], s->p[1], s->p[2]), d_iso, &dn);
+        vAddI(&dn, (const Vec3*)&s->p);
         iso = sfValue(vol->scal, dn[0], dn[1], dn[2]);
         while (algoAbs(d_iso) <= algoAbs(snap_iso - iso)) {
             dn[0] = algoRandomDouble(-0.001, 0.001);
             dn[1] = algoRandomDouble(-0.001, 0.001);
             dn[2] = algoRandomDouble(-0.001, 0.001);
-            vAddI(&dn, &s->p);
+            vAddI(&dn, (const Vec3*)&s->p);
             iso = sfValue(vol->scal, dn[0], dn[1], dn[2]);
         }
         d_iso = snap_iso - iso;
@@ -297,7 +298,6 @@ int cmp_crit(const void* a, const void* b)
 Spectrum specCreate(const char* restrict conf)
 {
     call;
-    VolumetricData v = oCreate(sizeof (struct VolumetricData));
 
     usage(conf);
 
@@ -305,40 +305,12 @@ Spectrum specCreate(const char* restrict conf)
 
     conjecture(fin, "Error opening file.");
 
-    // temporary data
-    char raw_file_name[1024];
+    VolumetricData v = oCreate(sizeof (struct VolumetricData));
+    vdRead(v, fin, conf);
+
     char off_file_name[1024];
     float initial_isovalue = 0.0;
     char line[1024];
-
-    // read the .raw file name
-    do {
-        conjecture(fgets(line, 1024, fin), "Error reading the raw file name from configuration file.");
-        strip(line);
-    } while (sscanf(line, "%s", raw_file_name) != 1);
-
-    unsigned int nx, ny, nz;
-
-    // read the size of the data in the raw file
-    do {
-        conjecture(fgets(line, 1024, fin), "Error reading the size of the raw file data from configuration file.");
-        strip(line);
-    } while (sscanf(line, "%u %u %u", &nx, &ny, &nz) != 3);
-
-    float sx, sy, sz;
-
-    // read the voxel size in each dimension
-    do {
-        conjecture(fgets(line, 1024, fin), "Error reading the voxel size from configuration file.");
-        strip(line);
-    } while (sscanf(line, "%f %f %f", &sx, &sy, &sz) != 3);
-
-    v->scal = sfCreate(nx, ny, nz, sx, sy, sz);
-    sfReadRaw(v->scal, raw_file_name);
-
-    v->grad = sfGradient(v->scal);
-    //v->lapl = vfDivergence(v->grad);
-    v->lapl = sfLaplacian(v->scal);
 
     // read the name of the .off file with the initial mesh and the initial isovalue for which it was extracted
     do {
@@ -560,7 +532,7 @@ void interp_error(uint64_t i, Obj o, Obj d)
     Normal in; ignore vfValue(kit->sp->vol->grad, &in, s->p[0], s->p[1], s->p[2]);
 
     Normal c;
-    kit->nerror += vNorm(vCross(vNormalizeI(&n), vNormalizeI(&in), &c));
+    kit->nerror += vNorm((const Vec3*)vCross(vNormalizeI(&n), vNormalizeI(&in), &c));
 
 }
 
@@ -584,7 +556,7 @@ void interp_bar_error(uint64_t i, Obj o, Obj d)
     Sample sc = arrBack(c->samples);
     Vertex g;
     vAdd(&sa->p, &sb->p, &g);
-    vAddI(&g, &sc->p);
+    vAddI(&g, (const Vec3*)&sc->p);
     vScaleI(&g, 1./3.);
 
     real iso = (sa->iso + sb->iso + sc->iso)/3.;
@@ -633,8 +605,8 @@ void relax(uint64_t i, Obj o, Obj d)
     Sample s = arrBack((*t)->samples);
     Vec3* p = &s->p;
 
-    vAddI(p, &(*t)->force_t);
-    vAddI(p, &(*t)->force_n);
+    vAddI(p, (const Vec3*)&(*t)->force_t);
+    vAddI(p, (const Vec3*)&(*t)->force_n);
 
     vSet(&(*t)->force_t, 0, 0, 0);
     vSet(&(*t)->force_n, 0, 0, 0);
@@ -662,9 +634,9 @@ void compute_triangles(uint64_t i, Obj o, Obj d)
     Vertex* pc = &sc->p;
 
     struct Triangle tr = { .g = VERT_0, .r4 = 0, .AA16 = 0 };
-    vScaleI(vAddI(vAdd(pa, pb, &tr.g), pc), 1./3.);
+    vScaleI(vAddI(vAdd(pa, pb, &tr.g), (const Vec3*)pc), 1./3.);
     Vec3 ab, ac;
-    tr.AA16 = vNormSquared(vCrossI(vSub(pb, pa, &ab), vSub(pc, pa, &ac)));
+    tr.AA16 = vNormSquared((const Vec3*)vCrossI(vSub(pb, pa, &ab), vSub(pc, pa, &ac)));
 
 //    check(tr.AA16 > 1e-3);
 
@@ -731,17 +703,17 @@ void compute_idealizing_force(uint64_t i, Obj o, Obj d)
     vSubI(vScaleI(vAdd(pb, pa, &m), 0.5), pc);
     vNormalizeI(vSub(pb, pa, &l));
     vScaleI(&l, vDot(&m, &l)/2);
-    vAddI(fc, &l);  vScaleI(&l, 0.5);  vSubI(fa, &l); vSubI(fb, &l);
+    vAddI(fc, (const Vec3*)&l);  vScaleI(&l, 0.5);  vSubI(fa, &l); vSubI(fb, &l);
 
     vSubI(vScaleI(vAdd(pc, pb, &m), 0.5), pa);
     vNormalizeI(vSub(pc, pb, &l));
     vScaleI(&l, vDot(&m, &l)/2);
-    vAddI(fa, &l);  vScaleI(&l, 0.5);  vSubI(fb, &l); vSubI(fc, &l);
+    vAddI(fa, (const Vec3*)&l);  vScaleI(&l, 0.5);  vSubI(fb, &l); vSubI(fc, &l);
 
     vSubI(vScaleI(vAdd(pa, pc, &m), 0.5), pb);
     vNormalizeI(vSub(pa, pc, &l));
     vScaleI(&l, vDot(&m, &l)/2);
-    vAddI(fb, &l);  vScaleI(&l, 0.5);  vSubI(fc, &l); vSubI(fa, &l);
+    vAddI(fb, (const Vec3*)&l);  vScaleI(&l, 0.5);  vSubI(fc, &l); vSubI(fa, &l);
 
 /*
     // centripet force
@@ -765,11 +737,11 @@ void extract_tangent_force(uint64_t i, Obj o, Obj d)
     Sample s = &t->relaxed;
     Vec3 n;
 
-    if (vNormSquared(&s->n) == 0) {
+    if (vNormSquared((const Vec3*)&s->n) == 0) {
         Sample st = arrBack(t->samples);
         fprintf(stderr, "Has zero normal: relaxed:"); vPrint(&s->p, stderr); fprintf(stderr, " initial:"); vPrint(&st->p, stderr); fprintf(stderr, "\n"); fflush(stderr);
     }
-    vNormalize(&s->n, &n);
+    vNormalize((const Vec3*)&s->n, &n);
     vScaleI(&n, vDot(&n, &t->force_t));
     vSubI(&t->force_t, &n);
 }
@@ -783,7 +755,7 @@ void compute_stress(uint64_t i, Obj o, Obj d)
     check(t->active);
     Spectrum sp = d;
 
-    sp->current_stress += vNormSquared(&t->force_t);
+    sp->current_stress += vNormSquared((const Vec3*)&t->force_t);
     /*
        Sample s = &t->relaxed;
        real diso = algoAbs(s->iso - sfValue(sp->vol->scal, s->p[0], s->p[1], s->p[2]));
@@ -939,10 +911,10 @@ void simplify(uint64_t ind, Obj o, Obj d)
 
     // only collapse the shortest edge
     Vec3 ab, bc, ca;
-    real l_ab = vNorm(vSub(&sb->p, &sa->p, &ab));
-    real l_bc = vNorm(vSub(&sc->p, &sb->p, &bc));
+    real l_ab = vNorm((const Vec3*)vSub(&sb->p, &sa->p, &ab));
+    real l_bc = vNorm((const Vec3*)vSub(&sc->p, &sb->p, &bc));
     if (l_ab > l_bc) return;
-    real l_ca = vNorm(vSub(&sa->p, &sc->p, &ca));
+    real l_ca = vNorm((const Vec3*)vSub(&sa->p, &sc->p, &ca));
     if (l_ab > l_ca) return;
 
     // compute squared area, circumradius^2 and inradius^2
@@ -1606,19 +1578,102 @@ void specRefine(Spectrum restrict sp)
     }
 }
 
+real rayVoxelIntersection(const Vec3* orig, const Vec3* dir, real isoValue, unsigned int x, unsigned int y, unsigned int z, Vec3* res, ScalarField sf) {
+
+    int x0 = x, x1 = x + 1, y0 = y, y1 = y + 1, z0 = z, z1 = z + 1;
+    real p[8];
+
+    real* e = sfAt(sf, x, y, z); p[0] = *e;
+    e = sfRelX(sf, e,  1); p[1] = *e;
+    e = sfRelY(sf, e,  1); p[3] = *e;
+    e = sfRelX(sf, e, -1); p[2] = *e;
+    e = sfRelZ(sf, e,  1); p[6] = *e;
+    e = sfRelX(sf, e,  1); p[7] = *e;
+    e = sfRelY(sf, e, -1); p[5] = *e;
+    e = sfRelX(sf, e, -1); p[4] = *e;
+
+    real ua[2], va[2], wa[2];
+    real ub[2], vb[2], wb[2];
+
+    ua[0] = (x1 - (*orig)[0]);
+    va[0] = (y1 - (*orig)[1]);
+    wa[0] = (z1 - (*orig)[2]);
+
+    ub[0] = -(*dir)[0];
+    vb[0] = -(*dir)[1];
+    wb[0] = -(*dir)[2];
+
+    ua[1] = ((*orig)[0] - x0);
+    va[1] = ((*orig)[1] - y0);
+    wa[1] = ((*orig)[2] - z0);
+
+    ub[1] = (*dir)[0];
+    vb[1] = (*dir)[1];
+    wb[1] = (*dir)[2];
+
+
+    real A = 0.0f;
+    real B = 0.0f;
+    real C = 0.0f;
+    real D = 0.0f;
+
+    int i,j,k;
+    for (i = 0; i <= 1; i++) {
+        for (j = 0; j <= 1; j++) {
+            for (k = 0; k <= 1; k++) {
+                real pval = p[k * 4 + j * 2 + i];
+                A += ub[i] * vb[j] * wb[k] * pval;
+
+                B += (ua[i] * vb[j] * wb[k] + ub[i] * va[j] * wb[k] + ub[i] * vb[j] * wa[k]) * pval;
+
+                C += (ub[i] * va[j] * wa[k] + ua[i] * vb[j] * wa[k] + ua[i] * va[j] * wb[k]) * pval;
+
+                D += ua[i] * va[j] * wa[k] * pval;
+            }
+        }
+    }
+
+    D -= isoValue;
+
+    double c[4];
+    c[0] = D;
+    c[1] = C;
+    c[2] = B;
+    c[3] = A;
+
+    double s[3];
+
+    real tmin = 1e11;
+    //real eps = 1e-5;
+
+    int numRoots = SolveCubic(c, s);
+    int r_ind;
+    for (r_ind = 0; r_ind < numRoots; r_ind++) {
+        if (fabs(s[r_ind]) < fabs(tmin)) {
+            Vec3 tmp; vAddI(vScale(dir, s[r_ind], &tmp), (const Vec3*)orig);
+            if (tmp[0] >= x0 - eps && tmp[0] <= x1 + eps && tmp[1] >= y0 - eps && tmp[1] <= y1 + eps && tmp[2] >= z0 - eps && tmp[2] <= z1 + eps) {
+                vCopy(&tmp, res);
+                tmin = algoAbs(s[r_ind]);
+            }
+        }
+    }
+
+    return tmin;
+}
+
 inline static
 void project_sample(Sample s, VolumetricData vol, real iso)
 {
     // determine the cell in which the sample point is
-    int64_t i = s->p[0] / vol->sf->dx;
-    int64_t j = s->p[1] / vol->sf->dy;
-    int64_t k = s->p[2] / vol->sf->dz;
+    int64_t i = s->p[0] / vol->scal->dx;
+    int64_t j = s->p[1] / vol->scal->dy;
+    int64_t k = s->p[2] / vol->scal->dz;
     check(i > 0);
     check(j > 0);
     check(k > 0);
-    check(i < vol->sf->nx);
-    check(j < vol->sf->ny);
-    check(k < vol->sf->nz);
+    check(i < vol->scal->nx);
+    check(j < vol->scal->ny);
+    check(k < vol->scal->nz);
 }
 
 struct projection_kit { Spectrum sp; real iso;};
@@ -1628,13 +1683,145 @@ void project_thread(uint64_t i, Obj o, Obj d)
 {
     Thread* pt = o;
     Thread t = *pt;
-    Spectrum sp = d;
+    struct projection_kit* kit = d;
+    Spectrum sp = kit->sp;
     check(t->t == t);
 
     Sample s = arrBack(t->samples);
     s = arrPush(t->samples, s);
 
-    project_sample(s, sp->vol, kit->iso);
+   // project_sample(s, sp->vol, kit->iso);
+
+    Vec3i dimensions = {sp->vol->scal->nx, sp->vol->scal->ny, sp->vol->scal->nz};
+    Vec3 spacing = {sp->vol->scal->dx, sp->vol->scal->dy, sp->vol->scal->dz};
+
+    int steps = 0;
+    float dist = 1e11;
+    const int MAX_STEPS = 8;
+
+    Vec3 closestPoint; vCopy(&s->p, &closestPoint);
+    Vec3 tmp_res;
+
+    // initialization
+    Vec3i gridPosUp = {(uint) (s->p[0]), (uint) (s->p[1]), (uint) (s->p[2])};
+    Vec3i gridPosDown = {(uint) (s->p[0]), (uint) (s->p[1]), (uint) (s->p[2])};
+
+    Vec3i stepUp;
+    Vec3i stepDown;
+
+    Vec3 delta = {spacing[0] / algoAbs(s->n[0]), spacing[1] / algoAbs(s->n[1]), spacing[2] / algoAbs(s->n[2])};
+
+    Vec3 maxUp, maxDown;
+
+    for (i = 0; i < 3; i++) {
+        if (s->n[i] < 0) {
+            stepUp[i] = -1;
+            stepDown[i] = 1;
+
+            if (s->n[i] != 0) {
+                maxUp[i] = (gridPosUp[i] - s->p[i]) / s->n[i];
+                maxDown[i] = (gridPosDown[i] + 1 - s->p[i]) / (-s->n[i]);
+            } else {
+                maxUp[i] = 1e11;
+                maxDown[i] = 1e11;
+            }
+        } else {
+            stepUp[i] = 1;
+            stepDown[i] = -1;
+            if (s->n[i] != 0) {
+                maxUp[i] = (gridPosUp[i] + 1 - s->p[i]) / s->n[i];
+                maxDown[i] = (gridPosDown[i] - s->p[i]) / (-s->n[i]);
+            } else {
+                maxUp[i] = 1e11;
+                maxDown[i] = 1e11;
+            }
+        }
+    }
+
+
+    bool outOfBoundUp = false;
+    bool outOfBoundDown = false;
+
+    while (dist > 1e10 && steps < MAX_STEPS) {
+        real* min_val = sfAt(sp->vol->min, gridPosUp[0], gridPosUp[1], gridPosUp[2]);
+        real* max_val = sfAt(sp->vol->max, gridPosUp[0], gridPosUp[1], gridPosUp[2]);
+        if (!outOfBoundUp && *min_val <= kit->iso + eps && *max_val >= kit->iso - eps) {
+            float tmp_dist = rayVoxelIntersection((const Vec3*)&s->p, (const Vec3*)&s->n, kit->iso, gridPosUp[0], gridPosUp[1], gridPosUp[2], &tmp_res, sp->vol->scal);
+            if (tmp_dist < dist) { dist = tmp_dist; vCopy(&tmp_res, &closestPoint);}
+        }
+
+        min_val = sfAt(sp->vol->min, gridPosDown[0], gridPosDown[1], gridPosDown[2]);
+        max_val = sfAt(sp->vol->max, gridPosDown[0], gridPosDown[1], gridPosDown[2]);
+        if (!outOfBoundDown && *min_val <= kit->iso + eps && *max_val >= kit->iso - eps) {
+            Vec3 norm_tmp; vScale((const Vec3*)&s->n, -1, &norm_tmp);
+            float tmp_dist = rayVoxelIntersection((const Vec3*)&s->p, (const Vec3*)&norm_tmp, kit->iso, gridPosDown[0], gridPosDown[1], gridPosDown[2], &tmp_res, sp->vol->scal);
+            if (tmp_dist < dist) { dist = tmp_dist; vCopy(&tmp_res, &closestPoint);}
+        }
+
+        // step up
+
+        if (!outOfBoundUp) {
+            if (maxUp[0] < maxUp[1]) {
+                if (maxUp[0] < maxUp[2]) {
+                    gridPosUp[0] += stepUp[0];
+                    maxUp[0] += delta[0];
+                } else {
+                    gridPosUp[2] += stepUp[2];
+                    maxUp[2] += delta[2];
+                }
+            } else {
+                if (maxUp[1] < maxUp[2]) {
+                    gridPosUp[1] += stepUp[1];
+                    maxUp[1] += delta[1];
+                } else {
+                    gridPosUp[2] += stepUp[2];
+                    maxUp[2] += delta[2];
+                }
+            }
+        }
+
+
+        // step down
+        if (!outOfBoundDown) {
+            if (maxDown[0] < maxDown[1]) {
+                if (maxDown[0] < maxDown[2]) {
+                    gridPosDown[0] += stepDown[0];
+                    maxDown[0] += delta[0];
+                } else {
+                    gridPosDown[2] += stepDown[2];
+                    maxDown[2] += delta[2];
+                }
+            } else {
+                if (maxDown[1] < maxDown[2]) {
+                    gridPosDown[1] += stepDown[1];
+                    maxDown[1] += delta[1];
+                } else {
+                    gridPosDown[2] += stepDown[2];
+                    maxDown[2] += delta[2];
+                }
+            }
+        }
+
+        if (gridPosUp[0] < 0 || gridPosUp[0] >= (int) dimensions[0] - 1 ||
+                gridPosUp[1] < 0 || gridPosUp[1] >= (int) dimensions[1] - 1 ||
+                gridPosUp[2] < 0 || gridPosUp[2] >= (int) dimensions[2] - 1) {
+            outOfBoundUp = true;
+        }
+
+        if (gridPosDown[0] < 0 || gridPosDown[0] >= (int) dimensions[0] - 1 ||
+                gridPosDown[1] < 0 || gridPosDown[1] >= (int) dimensions[1] - 1 ||
+                gridPosDown[2] < 0 || gridPosDown[2] >= (int) dimensions[2] - 1) {
+            outOfBoundDown = true;
+        }
+
+        steps++;
+    }
+
+    if (dist > 1e10) {
+        vCopy(&s->p, &closestPoint);
+    }
+
+    vCopy(&closestPoint, &s->p);
 }
 
 
@@ -1654,13 +1841,13 @@ void specProject(Spectrum restrict sp)
         CriticalPoint end = cp + sp->vol->topology.size;
         while (++cp < end-1) // skip the global min and global max
             if (crt > cp->isovalue && next < cp->isovalue)
-                arrPush(criticalities, &cp->p);
+                arrPush(criticalities, &cp->pos);
     }
 
     // if it does not cross any critical value, project normally
     if (arrIsEmpty(criticalities)) {
         struct projection_kit kit = { .sp = sp, .iso = next };
-        arrForEach(sp->active_threads, project_thread, );
+        arrForEach(sp->active_threads, project_thread, &kit);
     } else {
         // otherwise:
         // compute the "border"
@@ -1696,15 +1883,15 @@ void display_edge(uint64_t i, Obj o, Obj d)
 
     Vec3 n;
 
-    vScale(&sa->n, -1, &n);
+    vScale((const Vec3*)&sa->n, -1, &n);
     glNormal3v(n);
 //  glNormal3v(sa->n);
     glVertex3v(sa->p);
-    vScale(&sb->n, -1, &n);
+    vScale((const Vec3*)&sb->n, -1, &n);
     glNormal3v(n);
 //  glNormal3v(sb->n);
     glVertex3v(sb->p);
-    vScale(&sc->n, -1, &n);
+    vScale((const Vec3*)&sc->n, -1, &n);
     glNormal3v(n);
 //  glNormal3v(sc->n);
     glVertex3v(sc->p);
@@ -1740,12 +1927,12 @@ void display_vert(uint64_t i, Obj o, Obj d)
         Vec3 n;
         glBegin(GL_LINES);
      //   real lapl = sfValue(sp->vol->lapl, s->p[0], s->p[1], s->p[2]);
-        vScale(&s->n, 25, &n);
-        vAddI(&n, &s->p);
+        vScale((const Vec3*)&s->n, 25, &n);
+        vAddI(&n, (const Vec3*)&s->p);
         glVertex3v(s->p);
         glVertex3v(n);
-        vScale(&s->n, -25, &n);
-        vAddI(&n, &s->p);
+        vScale((const Vec3*)&s->n, -25, &n);
+        vAddI(&n, (const Vec3*)&s->p);
         glVertex3v(s->p);
         glVertex3v(n);
         glEnd();

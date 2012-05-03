@@ -22,7 +22,10 @@ VolumetricData
 vdCreate(const char* filename)
 {
     VolumetricData v = oCreate(sizeof (struct VolumetricData));
-    if (!vdRead(v, filename)) {oDestroy(v); return 0;}
+    FILE* fin = fopen(filename, "r");
+    conjecture(fin, "Error opening file.");
+    if (!vdRead(v, fin, filename)) {oDestroy(v); return 0;}
+    fclose(fin);
     return v;
 }
 
@@ -30,39 +33,56 @@ VolumetricData vdCopy(VolumetricData v)
 {
     VolumetricData c = oCopy(v, sizeof(struct VolumetricData));
     c->scal = sfCopy(v->scal);
+    c->min = sfCopy(v->min);
+    c->max = sfCopy(v->max);
     c->grad = vfCopy(v->grad);
     c->lapl = sfCopy(v->lapl);
     return c;
 }
 
-bool
-vdRead(VolumetricData v, const char* filename)
+inline static
+real min_real(real x, real y) { return (x<y)?(x):(y); }
+inline static
+real max_real(real x, real y) { return (x<y)?(x):(y); }
+
+inline static
+void min_value(real* arg[8], real* v)
 {
-    /* TODO: check preconditions */
+    real min_tmp[4] = {
+        min_real(*arg[0], *arg[1]),
+        min_real(*arg[2], *arg[3]),
+        min_real(*arg[4], *arg[5]),
+        min_real(*arg[6], *arg[7])
+    };
+    min_tmp[0] = min_real(min_tmp[0], min_tmp[1]);
+    min_tmp[1] = min_real(min_tmp[2], min_tmp[3]);
+    *v = min_real(min_tmp[0], min_tmp[1]);
+}
 
-    if (!filename) return true;
+inline static
+void max_value(real* arg[8], real* v)
+{
+    real max_tmp[4] = {
+        max_real(*arg[0], *arg[1]),
+        max_real(*arg[2], *arg[3]),
+        max_real(*arg[4], *arg[5]),
+        max_real(*arg[6], *arg[7])
+    };
+    max_tmp[0] = max_real(max_tmp[0], max_tmp[1]);
+    max_tmp[1] = max_real(max_tmp[2], max_tmp[3]);
+    *v = max_real(max_tmp[0], max_tmp[1]);
+}
 
-    FILE* fin = fopen(filename, "r");
-
-    if (!fin) {
-        printf("Error opening file [%s].", filename);
-        return false;
-    }
-
+bool
+vdRead(VolumetricData v, FILE* fin, const char* filename)
+{
     // temporary data
     char raw_file_name[1024];
-    char off_file_name[1024];
-    float initial_isovalue = 0.0;
     char line[1024];
-
 
     // read the .raw file name
     do {
-        if (!fgets(line, 1024, fin)) {
-            fprintf(stderr, "Error reading the raw file name from configuration file [%s].", filename);
-            fclose(fin);
-            return false;
-        }
+        conjecture(fgets(line, 1024, fin), "Error reading the raw file name from configuration file.");
         strip(line);
     } while (sscanf(line, "%s", raw_file_name) != 1);
 
@@ -70,11 +90,7 @@ vdRead(VolumetricData v, const char* filename)
 
     // read the size of the data in the raw file
     do {
-        if (!fgets(line, 1024, fin)) {
-            fprintf(stderr, "Error reading the size of the raw file data from configuration file [%s].", filename);
-            fclose(fin);
-            return false;
-        }
+        conjecture(fgets(line, 1024, fin), "Error reading the size of the raw file data from configuration file.");
         strip(line);
     } while (sscanf(line, "%u %u %u", &nx, &ny, &nz) != 3);
 
@@ -82,75 +98,22 @@ vdRead(VolumetricData v, const char* filename)
 
     // read the voxel size in each dimension
     do {
-        if (!fgets(line, 1024, fin)) {
-            fprintf(stderr, "Error reading the voxel size from configuration file [%s].", filename);
-            fclose(fin);
-            return false;
-        }
+        conjecture(fgets(line, 1024, fin), "Error reading the voxel size from configuration file.");
         strip(line);
     } while (sscanf(line, "%f %f %f", &sx, &sy, &sz) != 3);
 
     v->scal = sfCreate(nx, ny, nz, sx, sy, sz);
     sfReadRaw(v->scal, raw_file_name);
 
+    v->min = sfCreate(nx-1, ny-1, nz-1, sx, sy, sz);
+    sfVoxelOp(v->scal, min_value, v->min);
+
+    v->max = sfCreate(nx-1, ny-1, nz-1, sx, sy, sz);
+    sfVoxelOp(v->scal, max_value, v->max);
+
     v->grad = sfGradient(v->scal);
     //v->lapl = vfDivergence(v->grad);
     v->lapl = sfLaplacian(v->scal);
-
-    // read the name of the .off file with the initial mesh and the initial isovalue for which it was extracted
-    do {
-        if (!fgets(line, 1024, fin)) {
-            fprintf(stderr, "Error reading the off file name and initial isovalue from configuration file [%s].", filename);
-            fclose(fin);
-            return false;
-        }
-        strip(line);
-    } while (sscanf(line, "%s %f", off_file_name, &initial_isovalue) != 2);
-    // scale down the initial isovalue
-    initial_isovalue /= 255.0f;
-
-
-    // read the number of critical points
-    do {
-        if (!fgets(line, 1024, fin)) {
-            fprintf(stderr, "Error reading the number of critical points from configuration file [%s].", filename);
-            vdClear(v);
-            fclose(fin);
-            return false;
-        }
-        strip(line);
-    } while (sscanf(line, "%lu", &v->topology.size) != 1);
-
-    CriticalPoint cp = v->topology.criticalities = malloc(v->topology.size * sizeof (struct CriticalPoint));
-
-    uint64_t cp_read = 0;
-    char crit_type[10];
-    float isovalue, x, y, z;
-
-    // for the rest of the file, read each criticality
-    while (fgets(line, 1024, fin) && (cp_read < v->topology.size)) {
-        strip(line);
-        if (sscanf(line, "%f %s %f %f %f", &isovalue, crit_type, &x, &y, &z)) {
-            cp->isovalue = isovalue / 255.0f;
-            cp->pos[0] = x; cp->pos[1] = y; cp->pos[2] = z;
-            if (!strncmp(crit_type, "min", 10)) cp->type = MINIMUM;
-            else if (!strncmp(crit_type, "max", 10)) cp->type = MAXIMUM;
-            else if (!strncmp(crit_type, "saddle", 10)) cp->type = SADDLE;
-            else continue;
-            cp_read++;
-            cp++;
-        }
-    }
-
-    // read the data from the off file
-    if (!freopen(off_file_name, "r", fin)) {
-        fprintf(stderr, "[x] File [%s]: %s\n", off_file_name, strerror(errno));
-        vdClear(v);
-        fclose(fin);
-        return false;
-    }
-
-    fclose(fin);
 
     return true;
 }
@@ -171,6 +134,8 @@ vdDestroy(VolumetricData v)
 {
     if (!v) return;
     sfDestroy(v->scal);
+    sfDestroy(v->max);
+    sfDestroy(v->min);
     vfDestroy(v->grad);
     sfDestroy(v->lapl);
     free(v->topology.criticalities);

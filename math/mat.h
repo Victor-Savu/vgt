@@ -5,7 +5,7 @@
 
 
 Mat* matCopy(Mat* restrict a, Mat* restrict b);
-Mat* matScale(Mat* restrict a, real s,  Mat* restrict b);
+Mat* matScale(const Mat* restrict a, real s,  Mat* restrict b);
 Mat* matTranspose(Mat* restrict a, Mat* restrict b);
 Mat* matMul(Mat* restrict a, Mat* restrict b, Mat* restrict c);
 Vertex* matCross(Mat* restrict a, Vertex* restrict b, Vertex* restrict c);
