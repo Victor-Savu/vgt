@@ -14,6 +14,7 @@
 #include <vgt/volumetric_data.h>
 #include <vgt/volumetric_data_cls.h>
 #include <vgt/scalar_field_cls.h>
+#include <vgt/topology.h>
 
 #include <GL/glut.h>
 #include <pthread.h>
@@ -129,8 +130,10 @@ Vector heOneRing(HalfEdge e)
     do {
         vecPush(v, &e->n);
         e = e->n->n->o;
+        check(e->o->o == e);
         safe(thr = e->t; while(thr->t != thr) thr = thr->t;);
-        check(id == thr->id);
+        if (id != thr->id)
+            check(id == thr->id);
         usage(vecSize(v) < 1000); // a vertex should not have >= 1000 incident triangles
     } while (e && e!=flag);
 
@@ -146,6 +149,13 @@ Vector heOneRing(HalfEdge e)
     }
 
     return v;
+}
+
+inline static
+void clear_edge_att(uint64_t i, Obj o, Obj d)
+{
+    HalfEdge e = o;
+    e->att = 0;
 }
 
 inline static
@@ -223,17 +233,39 @@ int cross_cmp(const HalfEdge a, const HalfEdge b) {
 inline static
 void remove_inactive_threads(uint64_t i, Obj o, Obj d)
 {
-    static int x = 0;
-    unused(i);
-
     do {
         Thread* t = o;
         if (!(*t)->active) {
             *t = *oCast(Thread*, arrBack(d));
             arrPop(d);
-            x++;
         } else break;
     } while (i < arrSize(d));
+}
+
+inline static
+void remove_marked_edges(uint64_t i, Obj o, Obj d)
+{
+    while (i < arrSize(d)) {
+        HalfEdge a = o;
+        HalfEdge bk = arrBack(d);
+        check(bk->o != bk);
+        check(bk->n != bk);
+        while (bk->att && i < arrSize(d)) {
+            arrPop(d);
+            bk = arrBack(d);
+        }
+        if (i < arrSize(d) && a->att) {
+
+            if (a!= bk) {
+                oCopyTo(a, bk, sizeof(struct HalfEdge));
+                memset(bk, 0, sizeof (struct HalfEdge));
+                if (a->o) a->o->o = a;
+                a->n->n->n = a;
+            }
+            arrPop(d);
+
+        } else break;
+    }
 }
 
 inline static
@@ -247,9 +279,20 @@ void snap_thread_endpoint(uint64_t i, Obj o, Obj d)
 inline
 void specSnap(Spectrum restrict sp)
 {
+    call;
     arrForEach(sp->active_threads, snap_thread_endpoint, sp);
 }
 
+inline static
+int cmp_crit(const void* a, const void* b)
+{
+    const struct CriticalPoint* c1 = a;
+    const struct CriticalPoint* c2 = b;
+
+    if (c1->isovalue < c2->isovalue) return -1;
+    if (c1->isovalue > c2->isovalue) return 1;
+    return 0;
+}
 
 Spectrum specCreate(const char* restrict conf)
 {
@@ -311,7 +354,7 @@ Spectrum specCreate(const char* restrict conf)
         strip(line);
     } while (sscanf(line, "%lu", &v->topology.size) != 1);
 
-    CriticalPoint cp = v->topology.criticalities = malloc(v->topology.size * sizeof (struct CriticalPoint));
+    CriticalPoint cp = v->topology.criticalities = oCreate(v->topology.size * sizeof (struct CriticalPoint));
 
     uint64_t cp_read = 0;
     char crit_type[10];
@@ -452,16 +495,47 @@ Spectrum specCreate(const char* restrict conf)
         .fringe = fringe,
         .vol = v,
         .active_threads = active_thr,
-        .active_triangles = 0,
         .snap_iso = initial_isovalue,
         .snap_iso_thr = 5e-3,
-        .ref_norm_thr = 0.9
+        .ref_norm_thr = 0.9,
+        .max_sampling_iso_distance = 4e-3, // slightly smaller than 1./255.
+        .min_crit_iso_distance = 8e-4, // about 5 times smaller than the maximum sampling iso distance
+        .isosamples = arrCreate(sizeof(real), 1),
     };
 
+    usage(v->topology.size > 1);
+
+    // computing the sampling isovalues
+    qsort(v->topology.criticalities, v->topology.size, sizeof(struct CriticalPoint), cmp_crit);
+
+    usage(v->topology.criticalities[0].isovalue < initial_isovalue);
+    usage(v->topology.criticalities[v->topology.size-1].isovalue > initial_isovalue);
+
+    // compute the samples
+    cp = v->topology.criticalities;
+    for (i=1; i < v->topology.size; i++) {
+        real d_iso = cp[i].isovalue - cp[i-1].isovalue;
+        if (d_iso > sp.min_crit_iso_distance) {
+            real crt = cp[i-1].isovalue;
+            uint64_t n_smpl = ceil(d_iso / sp.max_sampling_iso_distance);
+            d_iso = d_iso / n_smpl;
+            crt += d_iso/2;
+            while (n_smpl--) {
+                arrPush(sp.isosamples, &crt);
+                crt += d_iso;
+            }
+        }
+    }
+    arrPrint(sp.isosamples, stdout, oRealPrint);
+
+    fprintf(stderr, "Min: %u\n", oCast(unsigned int, *sfMin(v->scal) * 255u));
+    fprintf(stderr, "Max: %u\n", oCast(unsigned int, *sfMax(v->scal) * 255u));
 
     Spectrum ret = oCopy(&sp, sizeof (struct Spectrum));
 
     pthread_mutex_init(&ret->mutex, 0);
+
+
 
     return ret;
 }
@@ -499,6 +573,11 @@ void interp_bar_error(uint64_t i, Obj o, Obj d)
     Thread a = e->t; while (a != a->t) a = a->t;
     Thread b = e->n->t; while (b != b->t) b = b->t;
     Thread c = e->n->n->t; while (c != c->t) c = c->t;
+
+    if (e->o) {
+        Thread to = e->o->t; while (to != to->t) to = to->t;
+        check(to == b);
+    }
 
     Sample sa = arrBack(a->samples);
     Sample sb = arrBack(b->samples);
@@ -541,7 +620,6 @@ void specDestroy(Spectrum restrict sp)
     vdDestroy(sp->vol);
     arrDestroy(sp->fringe);
     arrDestroy(sp->active_threads);
-    arrDestroy(sp->active_triangles);
     pthread_mutex_destroy(&sp->mutex);
     oDestroy(sp);
 }
@@ -565,7 +643,6 @@ void relax(uint64_t i, Obj o, Obj d)
 inline static
 void compute_triangles(uint64_t i, Obj o, Obj d)
 {
-    Spectrum sp = d;
     HalfEdge ha = o;
     HalfEdge hb = ha->n;
     HalfEdge hc = hb->n;
@@ -624,7 +701,7 @@ void compute_triangles(uint64_t i, Obj o, Obj d)
     */
     tr.r4 = tr.AA16/27;
 
-    ha->att = hb->att = hc->att = arrPush(sp->active_triangles, &tr);
+    ha->att = hb->att = hc->att = arrPush(d, &tr);
 }
 
 inline static
@@ -666,6 +743,8 @@ void compute_idealizing_force(uint64_t i, Obj o, Obj d)
     vScaleI(&l, vDot(&m, &l)/2);
     vAddI(fb, &l);  vScaleI(&l, 0.5);  vSubI(fc, &l); vSubI(fa, &l);
 
+/*
+    // centripet force
     Triangle t = e->att;
     vNormalizeI(vCrossI(&m, &l)); // m is now parallel to the triangle's normal
     vAddI(vScaleI(&m, vDot(&m, vSub(pa, &t->g, &l))), &t->g); // m is the projection of e->g on the triangle
@@ -674,6 +753,7 @@ void compute_idealizing_force(uint64_t i, Obj o, Obj d)
     d2 = vNormSquared(vSub(pa, &m, &l)); vAddI(fa, vScaleI(&l, t->r4/d2 - d2));
     d2 = vNormSquared(vSub(pb, &m, &l)); vAddI(fb, vScaleI(&l, t->r4/d2 - d2));
     d2 = vNormSquared(vSub(pc, &m, &l)); vAddI(fc, vScaleI(&l, t->r4/d2 - d2));
+*/
 }
 
 inline static
@@ -702,11 +782,13 @@ void compute_stress(uint64_t i, Obj o, Obj d)
     check(t = t->t);
     check(t->active);
     Spectrum sp = d;
-    Sample s = &t->relaxed;
 
     sp->current_stress += vNormSquared(&t->force_t);
-    real diso = algoAbs(s->iso - sfValue(sp->vol->scal, s->p[0], s->p[1], s->p[2]));
-    sp->current_stress += vNormSquared(&s->n) * diso * diso;
+    /*
+       Sample s = &t->relaxed;
+       real diso = algoAbs(s->iso - sfValue(sp->vol->scal, s->p[0], s->p[1], s->p[2]));
+       sp->current_stress += vNormSquared(&s->n) * diso * diso;
+     */
 }
 
 
@@ -754,13 +836,12 @@ void specRelax(Spectrum restrict sp)
     sp->scale = 0.3;
     sp->scale_threshold = 1e-5;
 
-    arrDestroy(sp->active_triangles);
-    sp->active_triangles = arrCreate(sizeof(struct Triangle), 4);
+    Array active_triangles = arrCreate(sizeof(struct Triangle), 4);
 
 
     // pre-compute the barycenter and the radius of the ideal triangle
     // debug(fprintf(stderr, "Precomputing barycenter.\n"); fflush(stderr););
-    arrForEach(sp->fringe, compute_triangles, sp);
+    arrForEach(sp->fringe, compute_triangles, active_triangles);
 
     // set the "relaxed" point to be the current point
     // debug(fprintf(stderr, "Setting relaxed point to current.\n"); fflush(stderr););
@@ -828,15 +909,22 @@ void specRelax(Spectrum restrict sp)
 
     }
 
+    arrForEach(sp->fringe, clear_edge_att, 0);
+    arrDestroy(active_triangles);
 }
 
 inline static
 void simplify(uint64_t ind, Obj o, Obj d)
 {
-    unused(ind);
     HalfEdge a = o;  check(a);
+    if (a->att) {
+    //    fprintf(stderr, "Skip\n");
+        return;
+    }
     HalfEdge b = a->n; check(b);
+    if (b->att) check(0);
     HalfEdge c = b->n; check(c);
+    if (c->att) check(0);
 
     Thread ta = a->t;
     while (ta != ta->t) ta = ta->t;
@@ -870,7 +958,7 @@ void simplify(uint64_t ind, Obj o, Obj d)
     Spectrum sp = d;
     if (area_sqr > sp->area_sqr && irad/crad > sp->lambda) return;
 
-    // TODO: simplifying this triangle is desirable if manifold prezervation is possible
+    // simplifying this triangle is desirable if manifold prezervation is possible
 
     if (a->o) {
         Vector oa = vecSort(heOneRing(a), algoComparePtr);
@@ -913,6 +1001,53 @@ void simplify(uint64_t ind, Obj o, Obj d)
 
     pthread_mutex_lock(&sp->mutex);
 
+
+    //alternate begin
+
+    // store the collapse of ta->id and tb->id
+    if (ta->depth > tb->depth) {
+        // tb -> ta
+        tb->t = ta;
+        tb->iso = sb->iso;
+        tb->active = false;
+    } else  {
+        // ta -> tb
+        ta->t = tb;
+        if (tb->depth == ta->depth) tb->depth ++;
+        ta->iso = sa->iso;
+        ta->active = false;
+    }
+
+    // store the triangloid with the initial ids
+    {
+        struct Triangloid tria = {
+            .iso = { a->iso , sa->iso},
+            .t_ids = {a->t->id, b->t->id, c->t->id}
+        };
+        arrPush(sp->tri, &tria);
+    }
+
+    if (b->o) b->o->o = c->o;
+    if (c->o) c->o->o = b->o;
+    b->o = c->o = 0;
+    a->att = b->att = c->att = oCast(Obj, 1);
+    if (a->o) {
+        a = a->o;
+        a->o->o = 0;
+        a->o = 0;
+
+        b = a->n; c = b->n;
+        if (b->o) b->o->o = c->o;
+        if (c->o) c->o->o = b->o;
+        b->o = c->o = 0;
+        a->att = b->att = c->att = oCast(Obj, 1);
+    }
+    pthread_mutex_unlock(&sp->mutex);
+    return;
+
+    check(0);
+    //alternate end
+/*
     // save a pointer to the opposite edge
     HalfEdge opp = a->o; opp->o = opp;
     if (b->o) b->o->o = c->o;
@@ -1047,13 +1182,13 @@ void simplify(uint64_t ind, Obj o, Obj d)
     }
 
     pthread_mutex_unlock(&sp->mutex);
-
+*/
 }
 
 void specSimplify(Spectrum restrict sp)
 {
     call;
-    sp->area_sqr = 0.02;
+    sp->area_sqr = 0.01;
     sp->lambda = 0.04;
     uint64_t before = 0;
     uint64_t after = arrSize(sp->fringe);
@@ -1062,9 +1197,10 @@ void specSimplify(Spectrum restrict sp)
         before = after;
         after = 0;
         arrForEach(sp->fringe, simplify, sp);
-        fprintf(stderr, "Loop!\n"); fflush(stderr);
+        //fprintf(stderr, "Loop!\n"); fflush(stderr);
 
         pthread_mutex_lock(&sp->mutex);
+        arrForEach(sp->fringe, remove_marked_edges, sp->fringe);
         arrForEach(sp->active_threads, remove_inactive_threads, sp->active_threads);
         pthread_mutex_unlock(&sp->mutex);
 
@@ -1470,13 +1606,47 @@ void specRefine(Spectrum restrict sp)
     }
 }
 
+//struct projection_kit { Spectrum sp; };
+/*
 void project_thread(uint64_t i, Obj o, Obj d)
 {
+    Thread* pt = o;
+    Thread t = *pt;
+    Spectrum sp = d;
+    check(t->t == t);
+
+    Sample s = arrBack(t->samples);
+
+    CriticalPoint cp = sp->vol->topology.criticalities;
+    CriticalPoint end = sp->vol->topology.criticalities + sp->vol->topology.size;
+    while (cp < end) {
+        if (inBetween(cp->isovalue, s->iso, sp->proj_iso))
+        cp++;
+    }
+
+    s = arrPush(t->samples, s);
+    project_sample(s, sp->vol, sp->proj_iso);
 }
+*/
+
 
 void specProject(Spectrum restrict sp)
 {
-    arrForEach(sp->active_threads, project_thread, sp);
+    specSnap(sp);
+
+    // find the next isovalue to project to
+
+    // if it does not cross any critical value, project normally
+
+    // otherwise:
+    // compute the "border"
+    // do a partial projection and create a delaunay tetrahedrization containing:
+    //  > the unprojected samples
+    //  > the projections of samples whose triangle neighbors have not been projected
+    //  > the critical points crossed
+
+
+    //struct projection_kit kit = { .sp = sp};
 }
 
 void specSample(Spectrum restrict sp)
@@ -1502,20 +1672,20 @@ void display_edge(uint64_t i, Obj o, Obj d)
     Sample sb = arrBack(tb->samples);
     Sample sc = arrBack(tc->samples);
 
-//  Vec3 n;
+    Vec3 n;
 
-//  vScale(&sa->n, -1, &n);
-//  glNormal3v(n);
-    glNormal3v(sa->n);
+    vScale(&sa->n, -1, &n);
+    glNormal3v(n);
+//  glNormal3v(sa->n);
     glVertex3v(sa->p);
-//  vScale(&sc->n, -1, &n);
-//  glNormal3v(n);
-    glNormal3v(sc->n);
-    glVertex3v(sc->p);
-//  vScale(&sb->n, -1, &n);
-//  glNormal3v(n);
-    glNormal3v(sb->n);
+    vScale(&sb->n, -1, &n);
+    glNormal3v(n);
+//  glNormal3v(sb->n);
     glVertex3v(sb->p);
+    vScale(&sc->n, -1, &n);
+    glNormal3v(n);
+//  glNormal3v(sc->n);
+    glVertex3v(sc->p);
 }
 
 void display_sample(uint64_t i, Obj o, Obj d)
@@ -1535,14 +1705,28 @@ void display_sample(uint64_t i, Obj o, Obj d)
 void display_vert(uint64_t i, Obj o, Obj d)
 {
     unused(i);
-    unused(d);
+   // Spectrum sp = d;
     Thread* t = o;
     Sample s = arrBack((*t)->samples);
     if (vIsZero(&s->n)) {
         glPushMatrix();
-        glTranslatef(s->p[0], s->p[1], s->p[2]);
+        glTranslated(s->p[0], s->p[1], s->p[2]);
         glutSolidSphere(0.1, 5, 5);
         glPopMatrix();
+    } else {
+        //fprintf(stderr, "%lf\n", vNorm(&s->n));
+        Vec3 n;
+        glBegin(GL_LINES);
+     //   real lapl = sfValue(sp->vol->lapl, s->p[0], s->p[1], s->p[2]);
+        vScale(&s->n, 25, &n);
+        vAddI(&n, &s->p);
+        glVertex3v(s->p);
+        glVertex3v(n);
+        vScale(&s->n, -25, &n);
+        vAddI(&n, &s->p);
+        glVertex3v(s->p);
+        glVertex3v(n);
+        glEnd();
     }
 }
 
@@ -1590,6 +1774,7 @@ void specDisplay(Spectrum restrict sp)
 
     glDisable(GL_LIGHTING);
     //glLineWidth(2.0);
+
     glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
     glColor3f(0.0, 1.0, 1.0);
     glBegin(GL_TRIANGLES);
@@ -1598,12 +1783,9 @@ void specDisplay(Spectrum restrict sp)
     glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 
     glColor3f(1.0, 0.0, 0.0);
-    glBegin(GL_POINTS);
-    arrForEach(sp->active_threads, display_vert, 0);
-
+    arrForEach(sp->active_threads, display_vert, sp);
     pthread_mutex_unlock(&sp->mutex);
 
-    glEnd();
 
     glEnable(GL_LIGHTING);
     glDisable(GL_COLOR_MATERIAL);

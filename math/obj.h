@@ -14,6 +14,7 @@ void oUintPrint(Obj i, FILE* f);
 void oUlongPrint(Obj i, FILE* f);
 void oFloatPrint(Obj i, FILE* f);
 void oDoublePrint(Obj i, FILE* f);
+void oRealPrint(Obj i, FILE* f);
 void oLongDoublePrint(Obj i, FILE* f);
 
 

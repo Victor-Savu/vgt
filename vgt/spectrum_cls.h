@@ -18,7 +18,6 @@ struct Spectrum {
     VolumetricData vol;
 
     Array active_threads;
-    Array active_triangles;
     
     pthread_mutex_t mutex;
     uint64_t observers;
@@ -39,6 +38,11 @@ struct Spectrum {
 
     // refinement parameters
     real ref_norm_thr;
+
+    // projection parameters
+    real min_crit_iso_distance;
+    real max_sampling_iso_distance;
+    Array isosamples;
 };
 
 #endif//VGT_SPECTRUM_CLS_H

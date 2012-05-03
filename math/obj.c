@@ -52,6 +52,12 @@ void oDoublePrint(Obj i, FILE* f)
     safe(fflush(f););
 }
 
+void oRealPrint(Obj i, FILE* f)
+{
+    fprintf(f, "%lf", (double) *oCast(real*, i));
+    safe(fflush(f););
+}
+
 void oLongDoublePrint(Obj i, FILE* f)
 {
     fprintf(f, "%Lf", *oCast(long double*, i));
