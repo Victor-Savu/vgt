@@ -81,17 +81,18 @@ int main(int argc, char* argv[])
         fprintf(stderr, "\n");
         specStats(sp);
         fprintf(stderr, "\n");
-/*
-        rWaitKey(r, &key);
 
-        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
-        specProject(sp);
-        clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
-        printf("Projecting  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
-        printf("\n");
-        specStats(sp);
-        printf("\n");
-*/
+        while (1) {
+            rWaitKey(r, &key);
+
+            clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
+            specProject(sp);
+            clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
+            printf("Projecting  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+            printf("\n");
+            specStats(sp);
+            printf("\n");
+        }
 
         rWait(r);
         rDestroy(r);

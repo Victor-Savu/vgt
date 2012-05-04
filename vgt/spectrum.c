@@ -52,19 +52,26 @@ void snap_sample(Sample restrict s, VolumetricData restrict vol, real snap_iso, 
     real d_iso = snap_iso - iso;
 
     Normal dn;
+    Vertex new_p;
     while (algoAbs(d_iso) > snap_iso_thr) {
-        vScale((const Vec3*)vfValue(vol->grad, &s->n, s->p[0], s->p[1], s->p[2]), d_iso, &dn);
-        vAddI(&dn, (const Vec3*)&s->p);
-        iso = sfValue(vol->scal, dn[0], dn[1], dn[2]);
+        vScale((const Vec3*)vfValue(vol->grad, &s->n, s->p[0], s->p[1], s->p[2]), 10 * d_iso, &dn);
+        vAdd(&dn, &s->p, &new_p);
+        iso = sfValue(vol->scal, new_p[0], new_p[1], new_p[2]);
+        int32_t iterations = 5;
+        while (algoAbs(d_iso) <= algoAbs(snap_iso - iso) && iterations--) {
+            vScaleI(&dn, 0.5);
+            vAdd(&dn, &s->p, &new_p);
+            iso = sfValue(vol->scal, new_p[0], new_p[1], new_p[2]);
+        }
         while (algoAbs(d_iso) <= algoAbs(snap_iso - iso)) {
             dn[0] = algoRandomDouble(-0.001, 0.001);
             dn[1] = algoRandomDouble(-0.001, 0.001);
             dn[2] = algoRandomDouble(-0.001, 0.001);
-            vAddI(&dn, (const Vec3*)&s->p);
-            iso = sfValue(vol->scal, dn[0], dn[1], dn[2]);
+            vAdd(&dn, &s->p, &new_p);
+            iso = sfValue(vol->scal, new_p[0], new_p[1], new_p[2]);
         }
         d_iso = snap_iso - iso;
-        vCopy(&dn, &s->p);
+        vCopy(&new_p, &s->p);
         s->iso = iso;
     }
 }
@@ -576,6 +583,7 @@ void specStats(Spectrum restrict s)
     fprintf(stderr, "Samples: %lu\n", arrSize(s->active_threads));
     fprintf(stderr, "Triangles: %lu\n", arrSize(s->fringe)/3);
     fprintf(stderr, "Interp error: %lf\n", oCast(double, kit.ierror)/(arrSize(s->active_threads)+arrSize(s->fringe)/3));
+    fprintf(stderr, "Snap isovalue: %lf\n", oCast(double, s->snap_iso) * 255);
 }
 
 inline static
@@ -1660,7 +1668,7 @@ real rayVoxelIntersection(const Vec3* orig, const Vec3* dir, real isoValue, unsi
 
     return tmin;
 }
-
+/*
 inline static
 void project_sample(Sample s, VolumetricData vol, real iso)
 {
@@ -1823,10 +1831,28 @@ void project_thread(uint64_t i, Obj o, Obj d)
 
     vCopy(&closestPoint, &s->p);
 }
+*/
 
+struct projection_kit { Spectrum sp; real iso;};
+
+inline static
+void project_thread(uint64_t i, Obj o, Obj d)
+{
+    Thread* pt = o;
+    Thread t = *pt;
+    struct projection_kit* kit = d;
+    Spectrum sp = kit->sp;
+    check(t->t == t);
+
+    Sample s = arrBack(t->samples);
+    s = arrPush(t->samples, s);
+
+    snap_sample(s, sp->vol, kit->iso, sp->snap_iso_thr);
+}
 
 void specProject(Spectrum restrict sp)
 {
+    call;
     specSnap(sp);
 
     // find the next isovalue to project to
@@ -1849,6 +1875,7 @@ void specProject(Spectrum restrict sp)
         struct projection_kit kit = { .sp = sp, .iso = next };
         arrForEach(sp->active_threads, project_thread, &kit);
     } else {
+        conjecture(0, "Not yet implemented.");
         // otherwise:
         // compute the "border"
         // do a partial projection and create a delaunay tetrahedrization containing:
@@ -1856,6 +1883,8 @@ void specProject(Spectrum restrict sp)
         //  > the projections of samples whose triangle neighbors have not been projected
         //  > the critical points crossed
     }
+
+    sp->snap_iso = next;
 }
 
 void specSample(Spectrum restrict sp)
@@ -1922,11 +1951,9 @@ void display_vert(uint64_t i, Obj o, Obj d)
         glTranslated(s->p[0], s->p[1], s->p[2]);
         glutSolidSphere(0.1, 5, 5);
         glPopMatrix();
-    } else {
-        //fprintf(stderr, "%lf\n", vNorm(&s->n));
+    } /*else {
         Vec3 n;
         glBegin(GL_LINES);
-     //   real lapl = sfValue(sp->vol->lapl, s->p[0], s->p[1], s->p[2]);
         vScale((const Vec3*)&s->n, 25, &n);
         vAddI(&n, (const Vec3*)&s->p);
         glVertex3v(s->p);
@@ -1936,7 +1963,7 @@ void display_vert(uint64_t i, Obj o, Obj d)
         glVertex3v(s->p);
         glVertex3v(n);
         glEnd();
-    }
+    }*/
 }
 
 void display_thread(uint64_t i, Obj o, Obj d)
