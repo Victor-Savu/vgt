@@ -25,11 +25,11 @@
 #define unused(x) (void)(x)
 #define ignore    (void)
 
-//#define restrict __restrict__
-#define restrict
+#define restrict __restrict__
+//#define restrict
 
-//#define SAFE_MODE           1
-//#define SAFE_MODE_VERBOSE   1
+#define SAFE_MODE           1
+#define SAFE_MODE_VERBOSE   1
 
 #define conjecture(x, fail_message)  do { if (!(x)) { fprintf(stderr, "[x] %s:%s:%d: %s\n", __FILE__, __func__, __LINE__, (fail_message)); fflush(stderr); exit(EXIT_FAILURE); } } while (0)
 # define usage(x)    conjecture(x, "Invalid usage.")
@@ -62,13 +62,13 @@
 
 /*
 typedef float           real;
-#define glNormal3v       glNormal3fv
-#define glVertex3v       glVertex3fv
-*/
+#define glNormal3v      glNormal3fv
+#define glVertex3v      glVertex3fv
+ */
 
-typedef double           real;
-#define glNormal3v       glNormal3dv
-#define glVertex3v       glVertex3dv
+typedef double          real;
+#define glNormal3v      glNormal3dv
+#define glVertex3v      glVertex3dv
 
 typedef real            Vertex[3];
 typedef int64_t         Vec3l[3];

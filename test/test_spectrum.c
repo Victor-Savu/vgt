@@ -40,9 +40,9 @@ int main(int argc, char* argv[])
     fprintf(stderr, "\n");
 
     while (1) {
-        //rWaitKey(r, &key);
+        rWaitKey(r, &key);
         //usleep(300000);
-/*
+
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
         specRelax(sp);
         clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
@@ -50,8 +50,8 @@ int main(int argc, char* argv[])
         fprintf(stderr, "\n");
         specStats(sp);
         fprintf(stderr, "\n");
-*/
-        //rWaitKey(r, &key);
+
+        rWaitKey(r, &key);
 
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
         specRefine(sp);
@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
         specStats(sp);
         fprintf(stderr, "\n");
 
-        //rWaitKey(r, &key);
+        rWaitKey(r, &key);
 
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
         specSimplify(sp);
@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
         specStats(sp);
         fprintf(stderr, "\n");
 
-        //rWaitKey(r, &key);
+        rWaitKey(r, &key);
 /*
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
         specRefine(sp);
@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
         specStats(sp);
         fprintf(stderr, "\n");
 */
-        //rWaitKey(r, &key);
+        rWaitKey(r, &key);
 
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
         bool ret = specProject(sp);

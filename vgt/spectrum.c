@@ -42,10 +42,19 @@ struct Sample {
     float iso;
 };
 
+inline static
+void print_sample(const Sample restrict s, FILE* f)
+{
+    fprintf(f, "p="); vPrint(&s->p, f);
+    fprintf(f, " n="); vPrint(&s->n, f);
+    fprintf(f, " iso=%lf", (double)s->iso);
+}
 
 inline static
 void snap_sample(Sample restrict s, VolumetricData restrict vol, real snap_iso, real snap_iso_thr)
 {
+   // call;
+    check(sfInside(vol->scal, s->p[0], s->p[1], s->p[2]));
     // the real isovalue
     real iso = sfValue(vol->scal, s->p[0], s->p[1], s->p[2]);
     // the distance to the isosurface (in normalized isovalue space)
@@ -53,27 +62,34 @@ void snap_sample(Sample restrict s, VolumetricData restrict vol, real snap_iso, 
 
     Normal dn;
     Vertex new_p;
+    vScale((const Vec3*)vfValue(vol->grad, &s->n, s->p[0], s->p[1], s->p[2]), d_iso, &dn);
     while (algoAbs(d_iso) > snap_iso_thr) {
-        vScale((const Vec3*)vfValue(vol->grad, &s->n, s->p[0], s->p[1], s->p[2]), 10 * d_iso, &dn);
         vAdd(&dn, &s->p, &new_p);
-        iso = sfValue(vol->scal, new_p[0], new_p[1], new_p[2]);
+        if (sfInside(vol->scal, new_p[0], new_p[1], new_p[2])) iso = sfValue(vol->scal, new_p[0], new_p[1], new_p[2]);
         int32_t iterations = 5;
-        while (algoAbs(d_iso) <= algoAbs(snap_iso - iso) && iterations--) {
+        while (!sfInside(vol->scal, new_p[0], new_p[1], new_p[2]) || (algoAbs(d_iso) <= algoAbs(snap_iso - iso) && iterations--)) {
             vScaleI(&dn, 0.5);
             vAdd(&dn, &s->p, &new_p);
-            iso = sfValue(vol->scal, new_p[0], new_p[1], new_p[2]);
+            if (sfInside(vol->scal, new_p[0], new_p[1], new_p[2])) iso = sfValue(vol->scal, new_p[0], new_p[1], new_p[2]);
         }
-        while (algoAbs(d_iso) <= algoAbs(snap_iso - iso)) {
-            dn[0] = algoRandomDouble(-0.001, 0.001);
-            dn[1] = algoRandomDouble(-0.001, 0.001);
-            dn[2] = algoRandomDouble(-0.001, 0.001);
+        iterations = 100;
+        while (algoAbs(d_iso) <= algoAbs(snap_iso - iso) && --iterations) {
+            dn[0] = algoRandomDouble(-0.5 / iterations, 0.5 / iterations);
+            dn[1] = algoRandomDouble(-0.5 / iterations, 0.5 / iterations);
+            dn[2] = algoRandomDouble(-0.5 / iterations, 0.5 / iterations);
             vAdd(&dn, &s->p, &new_p);
-            iso = sfValue(vol->scal, new_p[0], new_p[1], new_p[2]);
+            if (sfInside(vol->scal, new_p[0], new_p[1], new_p[2])) iso = sfValue(vol->scal, new_p[0], new_p[1], new_p[2]);
         }
         d_iso = snap_iso - iso;
         vCopy(&new_p, &s->p);
         s->iso = iso;
+        if (iterations <= 0) {
+            fprintf(stderr, "Not snapped: "); print_sample(s, stderr); fprintf(stderr, "\n");
+            check(0);
+        }
+        vScale((const Vec3*)vfValue(vol->grad, &s->n, s->p[0], s->p[1], s->p[2]), d_iso, &dn);
     }
+    //usleep(5000000);
 }
 
 // a string of sample points of increaasing isovalues
@@ -538,8 +554,15 @@ void interp_error(uint64_t i, Obj o, Obj d)
     Normal in; ignore vfValue(kit->sp->vol->grad, &in, s->p[0], s->p[1], s->p[2]);
 
     Normal c;
-    kit->nerror += vNorm((const Vec3*)vCross(vNormalizeI(&n), vNormalizeI(&in), &c));
-
+    //kit->nerror += vNorm((const Vec3*)vCross(vNormalizeI(&n), vNormalizeI(&in), &c));
+    kit->nerror += vNorm((const Vec3*)vCross(&n, &in, &c));
+/*
+    if (vNormSquared((const Normal*)&s->n) > 0.05) {
+        fprintf(stderr, "%lu:", i);
+        print_sample(s, stderr);
+        fprintf(stderr, "\n");
+    }
+*/
 }
 
 inline static
@@ -578,7 +601,19 @@ void specStats(Spectrum restrict s)
     struct interp_kit kit = { .ierror = 0.0, .nerror = 0.0, .sp = s };
     arrForEach(s->active_threads, interp_error, &kit);
     arrForEach(s->fringe, interp_bar_error, &kit);
-
+    /*
+    Normal n;
+    fprintf(stderr, "Weird: "); vPrint(vfValue(s->vol->grad, &n, 103.421, 66.270, 89.500), stderr); fprintf(stderr, "\n");
+    fprintf(stderr, "Weird: "); vPrint(vfValue(s->vol->grad, &n, 103.421, 66.270, 89.501), stderr); fprintf(stderr, "\n");
+    fprintf(stderr, "Weird: "); vPrint(vfValue(s->vol->grad, &n, 103.421, 66.271, 89.500), stderr); fprintf(stderr, "\n");
+    fprintf(stderr, "Weird: "); vPrint(vfValue(s->vol->grad, &n, 103.421, 66.271, 89.501), stderr); fprintf(stderr, "\n");
+    fprintf(stderr, "Weird: "); vPrint(vfValue(s->vol->grad, &n, 103.422, 66.270, 89.500), stderr); fprintf(stderr, "\n");
+    fprintf(stderr, "Weird: "); vPrint(vfValue(s->vol->grad, &n, 103.422, 66.270, 89.501), stderr); fprintf(stderr, "\n");
+    fprintf(stderr, "Weird: "); vPrint(vfValue(s->vol->grad, &n, 103.422, 66.271, 89.500), stderr); fprintf(stderr, "\n");
+    fprintf(stderr, "Weird: "); vPrint(vfValue(s->vol->grad, &n, 103.422, 66.271, 89.501), stderr); fprintf(stderr, "\n");
+    */
+    fprintf(stderr, "Bounding box size: <%lf, %lf, %lf>\n", s->vol->scal->nx * s->vol->scal->dx, s->vol->scal->ny * s->vol->scal->dy, s->vol->scal->nz * s->vol->scal->dz);
+    fprintf(stderr, "Min/Max values: <%lf, %lf>\n", (double)*sfMin(s->vol->scal), (double)*sfMax(s->vol->scal));
     fprintf(stderr, "Samples: %lu\n", arrSize(s->active_threads));
     fprintf(stderr, "Triangles: %lu\n", arrSize(s->fringe)/3);
     fprintf(stderr, "Interp error: %lf\n", oCast(double, kit.ierror)/(arrSize(s->active_threads)+arrSize(s->fringe)/3));
@@ -1222,8 +1257,18 @@ void stage1(uint64_t i, Obj o, Obj d)
         Sample s = arrBack(t->samples);
         Sample sn = arrBack(tn->samples);
 
-        // compute midpoint sample
+        // check if the edge is long enough to be split
         struct Sample sm;
+        if (vNormSquared((const Vec3*) vSub(&s->p, &sn->p, &sm.p)) < 0.04) {
+            // it does not have to be split
+            e->att = 0;
+            HalfEdge* bk = arrBack(ref->q);
+            if (bk != pe) oCopyTo(pe, bk, sizeof (HalfEdge));
+            arrPop(ref->q);
+            continue;
+        }
+
+        // compute midpoint sample
         vScaleI(vAdd(&s->p, &sn->p, &sm.p), .5);
         vNormalizeI(vScaleI(vAdd(&s->n, &sn->n, &sm.n), .5));
         sm.iso = (s->iso + sn->iso)/2;
@@ -1247,7 +1292,16 @@ void stage1(uint64_t i, Obj o, Obj d)
             //  fprintf(stderr, "Split %lu: <%lf, %lf> <%lf, %lf>\n", i, (double) algoAbs(iso - sm.iso), (double) ref->sp->snap_iso_thr, (double) vDot(&n, &sm.n), (double) ref->sp->ref_norm_thr);
 
             snap_sample(&sm, ref->sp->vol, ref->sp->snap_iso, 0.5 * ref->sp->snap_iso_thr);
-
+/*
+            if (vNormSquared((const Normal*)&sm.n) > 0.05) {
+                Normal n;
+                fprintf(stderr, "Freshman %lu: ", arrSize(ref->sp->thr));
+                print_sample(&sm, stderr);
+                fprintf(stderr, "Real normal: ");
+                vPrint(vfValue(ref->sp->vol->grad, &n, sm.p[0], sm.p[1], sm.p[2]), stderr);
+                fprintf(stderr, "\n");
+            }
+*/
             struct Thread thr = {
                 .samples = arrCreate(sizeof(struct Sample), 1),
                 .id = arrSize(ref->sp->thr),
@@ -1274,9 +1328,6 @@ void stage23(uint64_t i, Obj o, Obj d)
     HalfEdge* pe = o;
     HalfEdge e = *pe;
     struct refinement_kit* ref = d;
-
-    if (e->t->id == 711 && e->n->t->id == 712)
-        check(e->att);
 
     if ((e->n->att) && (!e->n->n->att)) e = e->n->n;
     else if ((!e->n->att) && (e->n->n->att)) e = e->n;
@@ -1585,6 +1636,7 @@ void specRefine(Spectrum restrict sp)
     }
 }
 
+/*
 real rayVoxelIntersection(const Vec3* orig, const Vec3* dir, real isoValue, unsigned int x, unsigned int y, unsigned int z, Vec3* res, ScalarField sf) {
 
     int x0 = x, x1 = x + 1, y0 = y, y1 = y + 1, z0 = z, z1 = z + 1;
@@ -1667,7 +1719,7 @@ real rayVoxelIntersection(const Vec3* orig, const Vec3* dir, real isoValue, unsi
 
     return tmin;
 }
-/*
+
 inline static
 void project_sample(Sample s, VolumetricData vol, real iso)
 {
@@ -1846,15 +1898,15 @@ void project_thread(uint64_t i, Obj o, Obj d)
     Sample s = arrBack(t->samples);
     s = arrPush(t->samples, s);
 
-    snap_sample(s, sp->vol, kit->iso, sp->snap_iso_thr);
+    snap_sample(s, sp->vol, kit->iso, 0.5 * sp->snap_iso_thr);
 }
 
 bool specProject(Spectrum restrict sp)
 {
     call;
-    specSnap(sp);
 
     // find the next isovalue to project to
+    fprintf(stderr, "Finding next isovalue.\n");
     real crt = sp->snap_iso;
     while (!arrIsEmpty(sp->isosamples) && crt <= *oCast(real*, arrBack(sp->isosamples))) arrPop(sp->isosamples);
     if (arrIsEmpty(sp->isosamples)) return false;
@@ -1871,6 +1923,7 @@ bool specProject(Spectrum restrict sp)
 
     // if it does not cross any critical value, project normally
     if (arrIsEmpty(criticalities)) {
+        fprintf(stderr, "Projecting normally.\n");
         struct projection_kit kit = { .sp = sp, .iso = next };
         arrForEach(sp->active_threads, project_thread, &kit);
     } else {
@@ -1916,14 +1969,14 @@ void display_edge(uint64_t i, Obj o, Obj d)
     glNormal3v(n);
 //  glNormal3v(sa->n);
     glVertex3v(sa->p);
-    vScale((const Vec3*)&sb->n, -1, &n);
-    glNormal3v(n);
-//  glNormal3v(sb->n);
-    glVertex3v(sb->p);
     vScale((const Vec3*)&sc->n, -1, &n);
     glNormal3v(n);
 //  glNormal3v(sc->n);
     glVertex3v(sc->p);
+    vScale((const Vec3*)&sb->n, -1, &n);
+    glNormal3v(n);
+//  glNormal3v(sb->n);
+    glVertex3v(sb->p);
 }
 
 void display_sample(uint64_t i, Obj o, Obj d)
@@ -1951,19 +2004,19 @@ void display_vert(uint64_t i, Obj o, Obj d)
         glTranslated(s->p[0], s->p[1], s->p[2]);
         glutSolidSphere(0.1, 5, 5);
         glPopMatrix();
-    } /*else {
+    } else {
         Vec3 n;
         glBegin(GL_LINES);
-        vScale((const Vec3*)&s->n, 25, &n);
+        vScale((const Vec3*)&s->n, 5, &n);
         vAddI(&n, (const Vec3*)&s->p);
         glVertex3v(s->p);
         glVertex3v(n);
-        vScale((const Vec3*)&s->n, -25, &n);
+        vScale((const Vec3*)&s->n, -5, &n);
         vAddI(&n, (const Vec3*)&s->p);
         glVertex3v(s->p);
         glVertex3v(n);
         glEnd();
-    }*/
+    }
 }
 
 void display_thread(uint64_t i, Obj o, Obj d)
@@ -1985,6 +2038,12 @@ void display_thread(uint64_t i, Obj o, Obj d)
 
 void specDisplay(Spectrum restrict sp)
 {
+    glTranslatef(
+            sp->vol->scal->nx * sp->vol->scal->dx * -0.5,
+            sp->vol->scal->ny * sp->vol->scal->dy * -0.5,
+            sp->vol->scal->nz * sp->vol->scal->dz * -0.5
+            );
+
     glLineWidth(1.0);
 
     glEnable(GL_COLOR_MATERIAL);
