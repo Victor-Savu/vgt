@@ -23,7 +23,7 @@ void specSimplify(Spectrum restrict sp);
 void specRefine(Spectrum restrict sp);
 
 // Projects the front mesh onto the next isosurface, where possible
-void specProject(Spectrum restrict sp);
+bool specProject(Spectrum restrict sp);
 
 // Runs marching tets on the volume
 // where the projection could not occur

@@ -1,21 +1,19 @@
 #include <view/renderer.h>
 #include <view/renderer_cls.h>
 
-#include <math/obj.h>
 #include <string.h>
 #include <stdio.h>
+#include <sys/unistd.h>
 
 #include <math/obj.h>
+
 #include <vgt/mesh.h>
 #include <vgt/delaunay.h>
-
+#include <vgt/delaunay_cls.h>
 #include <vgt/spectrum.h>
 
 #include <view/camera.h>
 #include <view/graphics.h>
-
-#include <vgt/delaunay_cls.h>
-
 
 #include <GL/glut.h>
 
@@ -272,6 +270,7 @@ void cb_idle(void)
     if (old_m) mDestroy(old_m);
     if (old_d) delDestroy(old_d);
     if (old_s) specDestroy(old_s);
+    usleep(5000);
 }
 
 void* init_rendering(void* arg)

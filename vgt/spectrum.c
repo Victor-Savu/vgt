@@ -478,7 +478,7 @@ Spectrum specCreate(const char* restrict conf)
         .snap_iso_thr = 5e-3,
         .ref_norm_thr = 0.9,
         .max_sampling_iso_distance = 4e-3, // slightly smaller than 1./255.
-        .min_crit_iso_distance = 8e-4, // about 5 times smaller than the maximum sampling iso distance
+        .min_crit_iso_distance = 8e-4, // 5 times smaller than the maximum sampling iso distance
         .isosamples = arrCreate(sizeof(real), 1),
     };
 
@@ -505,16 +505,15 @@ Spectrum specCreate(const char* restrict conf)
             }
         }
     }
+/*
     arrPrint(sp.isosamples, stdout, oRealPrint);
 
     fprintf(stderr, "Min: %u\n", oCast(unsigned int, *sfMin(v->scal) * 255u));
     fprintf(stderr, "Max: %u\n", oCast(unsigned int, *sfMax(v->scal) * 255u));
-
+*/
     Spectrum ret = oCopy(&sp, sizeof (struct Spectrum));
 
     pthread_mutex_init(&ret->mutex, 0);
-
-
 
     return ret;
 }
@@ -1850,7 +1849,7 @@ void project_thread(uint64_t i, Obj o, Obj d)
     snap_sample(s, sp->vol, kit->iso, sp->snap_iso_thr);
 }
 
-void specProject(Spectrum restrict sp)
+bool specProject(Spectrum restrict sp)
 {
     call;
     specSnap(sp);
@@ -1858,7 +1857,7 @@ void specProject(Spectrum restrict sp)
     // find the next isovalue to project to
     real crt = sp->snap_iso;
     while (!arrIsEmpty(sp->isosamples) && crt <= *oCast(real*, arrBack(sp->isosamples))) arrPop(sp->isosamples);
-    if (arrIsEmpty(sp->isosamples)) return;
+    if (arrIsEmpty(sp->isosamples)) return false;
 
     real next = *oCast(real*, arrBack(sp->isosamples));
     Array criticalities = arrCreate(sizeof (Vertex), 1);
@@ -1875,7 +1874,7 @@ void specProject(Spectrum restrict sp)
         struct projection_kit kit = { .sp = sp, .iso = next };
         arrForEach(sp->active_threads, project_thread, &kit);
     } else {
-        conjecture(0, "Not yet implemented.");
+        return false;
         // otherwise:
         // compute the "border"
         // do a partial projection and create a delaunay tetrahedrization containing:
@@ -1885,6 +1884,7 @@ void specProject(Spectrum restrict sp)
     }
 
     sp->snap_iso = next;
+    return true;
 }
 
 void specSample(Spectrum restrict sp)
