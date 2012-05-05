@@ -34,7 +34,7 @@ void specMerge(Spectrum restrict sp);
 
 void specDisplay(Spectrum restrict sp);
 
-void specStats(Spectrum restrict s);
+void specStats(Spectrum restrict s, FILE* f);
 
 #endif//VGT_SPECTRUM_H
 

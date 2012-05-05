@@ -270,7 +270,7 @@ void cb_idle(void)
     if (old_m) mDestroy(old_m);
     if (old_d) delDestroy(old_d);
     if (old_s) specDestroy(old_s);
-    usleep(5000);
+    glutPostRedisplay();
 }
 
 void* init_rendering(void* arg)

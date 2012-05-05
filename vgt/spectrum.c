@@ -62,7 +62,8 @@ void snap_sample(Sample restrict s, VolumetricData restrict vol, real snap_iso, 
 
     Normal dn;
     Vertex new_p;
-    vScale((const Vec3*)vfValue(vol->grad, &s->n, s->p[0], s->p[1], s->p[2]), d_iso, &dn);
+    ignore vfValue(vol->grad, &s->n, s->p[0], s->p[1], s->p[2]);
+    vScale((const Vec3*)&s->n, d_iso/vNormSquared((const Vec3*)&s->n), &dn);
     while (algoAbs(d_iso) > snap_iso_thr) {
         vAdd(&dn, &s->p, &new_p);
         if (sfInside(vol->scal, new_p[0], new_p[1], new_p[2])) iso = sfValue(vol->scal, new_p[0], new_p[1], new_p[2]);
@@ -80,14 +81,16 @@ void snap_sample(Sample restrict s, VolumetricData restrict vol, real snap_iso, 
             vAdd(&dn, &s->p, &new_p);
             if (sfInside(vol->scal, new_p[0], new_p[1], new_p[2])) iso = sfValue(vol->scal, new_p[0], new_p[1], new_p[2]);
         }
+        if (iterations <= 0) {
+            fprintf(stderr, "Not snapped: "); print_sample(s, stderr); fprintf(stderr, "\n");
+            break;
+            check(0);
+        }
         d_iso = snap_iso - iso;
         vCopy(&new_p, &s->p);
         s->iso = iso;
-        if (iterations <= 0) {
-            fprintf(stderr, "Not snapped: "); print_sample(s, stderr); fprintf(stderr, "\n");
-            check(0);
-        }
-        vScale((const Vec3*)vfValue(vol->grad, &s->n, s->p[0], s->p[1], s->p[2]), d_iso, &dn);
+        ignore vfValue(vol->grad, &s->n, s->p[0], s->p[1], s->p[2]);
+        vScale((const Vec3*)&s->n, d_iso/vNormSquared((const Vec3*)&s->n), &dn);
     }
     //usleep(5000000);
 }
@@ -492,8 +495,10 @@ Spectrum specCreate(const char* restrict conf)
         .active_threads = active_thr,
         .snap_iso = initial_isovalue,
         .snap_iso_thr = 5e-3,
-        .ref_norm_thr = 0.9,
-        .max_sampling_iso_distance = 4e-3, // slightly smaller than 1./255.
+        .area_sqr = 1e-4,
+        .lambda = 0.04,
+        .ref_norm_thr = 0.8,
+        .max_sampling_iso_distance = 4e-3, // slightly smaller than 2./255.
         .min_crit_iso_distance = 8e-4, // 5 times smaller than the maximum sampling iso distance
         .isosamples = arrCreate(sizeof(real), 1),
     };
@@ -538,6 +543,7 @@ struct interp_kit {
     real ierror;
     real nerror;
     Spectrum sp;
+    uint32_t maxdepth;
 };
 
 inline static
@@ -546,6 +552,8 @@ void interp_error(uint64_t i, Obj o, Obj d)
     struct interp_kit* kit = d;
     Thread* t = o;
     conjecture ((*t)->t == *t, "Not the representing thread.");
+
+    if (kit->maxdepth < (*t)->depth) kit->maxdepth = (*t)->depth;
 
     Sample s = arrBack((*t)->samples);
 
@@ -595,7 +603,7 @@ void interp_bar_error(uint64_t i, Obj o, Obj d)
 }
 
 inline
-void specStats(Spectrum restrict s)
+void specStats(Spectrum restrict s, FILE* f)
 {
     call;
     struct interp_kit kit = { .ierror = 0.0, .nerror = 0.0, .sp = s };
@@ -612,12 +620,14 @@ void specStats(Spectrum restrict s)
     fprintf(stderr, "Weird: "); vPrint(vfValue(s->vol->grad, &n, 103.422, 66.271, 89.500), stderr); fprintf(stderr, "\n");
     fprintf(stderr, "Weird: "); vPrint(vfValue(s->vol->grad, &n, 103.422, 66.271, 89.501), stderr); fprintf(stderr, "\n");
     */
-    fprintf(stderr, "Bounding box size: <%lf, %lf, %lf>\n", s->vol->scal->nx * s->vol->scal->dx, s->vol->scal->ny * s->vol->scal->dy, s->vol->scal->nz * s->vol->scal->dz);
-    fprintf(stderr, "Min/Max values: <%lf, %lf>\n", (double)*sfMin(s->vol->scal), (double)*sfMax(s->vol->scal));
-    fprintf(stderr, "Samples: %lu\n", arrSize(s->active_threads));
-    fprintf(stderr, "Triangles: %lu\n", arrSize(s->fringe)/3);
-    fprintf(stderr, "Interp error: %lf\n", oCast(double, kit.ierror)/(arrSize(s->active_threads)+arrSize(s->fringe)/3));
-    fprintf(stderr, "Snap isovalue: %lf\n", oCast(double, s->snap_iso) * 255);
+    fprintf(f, "Bounding box size: <%lf, %lf, %lf>\n", s->vol->scal->nx * s->vol->scal->dx, s->vol->scal->ny * s->vol->scal->dy, s->vol->scal->nz * s->vol->scal->dz);
+    fprintf(f, "Min/Max values: <%lf, %lf>\n", (double)*sfMin(s->vol->scal) * 255, (double)*sfMax(s->vol->scal) * 255);
+    fprintf(f, "Samples: %lu\n", arrSize(s->active_threads));
+    fprintf(f, "Triangles: %lu\n", arrSize(s->fringe)/3);
+    fprintf(f, "Interp error: %lf\n", oCast(double, kit.ierror)/(arrSize(s->active_threads)+arrSize(s->fringe)/3));
+    fprintf(f, "Snap isovalue: %lf\n", oCast(double, s->snap_iso) * 255);
+    fprintf(f, "Triangloids: %lu\n", arrSize(s->tri));
+    fprintf(f, "Max thread depth: %u\n", kit.maxdepth);
 }
 
 inline static
@@ -653,7 +663,7 @@ void relax(uint64_t i, Obj o, Obj d)
     vSet(&(*t)->force_t, 0, 0, 0);
     vSet(&(*t)->force_n, 0, 0, 0);
 }
-
+/*
 inline static
 void compute_triangles(uint64_t i, Obj o, Obj d)
 {
@@ -682,7 +692,6 @@ void compute_triangles(uint64_t i, Obj o, Obj d)
 
 //    check(tr.AA16 > 1e-3);
 
-    /*
     Vertex tmp;
     real ab2 = vNormSquared(vSub(b, a, &tmp));
     real bc2 = vNormSquared(vSub(c, b, &tmp));
@@ -712,11 +721,12 @@ void compute_triangles(uint64_t i, Obj o, Obj d)
                 x = ca2; y = bc2; z = ab2;
 
     tr.AA16 = (x-y)*(x-y) - z(4*sqrt(x*y)+z);
-    */
+
     tr.r4 = tr.AA16/27;
 
     ha->att = hb->att = hc->att = arrPush(d, &tr);
 }
+    */
 
 inline static
 void compute_idealizing_force(uint64_t i, Obj o, Obj d)
@@ -725,7 +735,27 @@ void compute_idealizing_force(uint64_t i, Obj o, Obj d)
     unused(i);
     HalfEdge e = o;
 
-    if (e > e->n || e > e->n->n) return;
+    //if (e > e->n || e > e->n->n) return;
+
+    Thread t = e->t; while (t != t->t) t = t->t;
+    Thread tn = e->n->t; while (tn != tn->t) tn = tn->t;
+
+    if (t->id < tn->id) return;
+
+    Vec3 aux; vSub(&tn->relaxed.p, &t->relaxed.p, &aux);
+
+    vAddI(&t->force_t, (const Vec3*)&aux);
+    vSubI(&tn->force_t, &aux);
+}
+/*
+inline static
+void compute_idealizing_force(uint64_t i, Obj o, Obj d)
+{
+    unused(d);
+    unused(i);
+    HalfEdge e = o;
+
+    //if (e > e->n || e > e->n->n) return;
 
     Thread a = e->t; while (a != a->t) a = a->t;
     Thread b = e->n->t; while (b != b->t) b = b->t;
@@ -757,7 +787,6 @@ void compute_idealizing_force(uint64_t i, Obj o, Obj d)
     vScaleI(&l, vDot(&m, &l)/2);
     vAddI(fb, (const Vec3*)&l);  vScaleI(&l, 0.5);  vSubI(fc, &l); vSubI(fa, &l);
 
-/*
     // centripet force
     Triangle t = e->att;
     vNormalizeI(vCrossI(&m, &l)); // m is now parallel to the triangle's normal
@@ -767,8 +796,8 @@ void compute_idealizing_force(uint64_t i, Obj o, Obj d)
     d2 = vNormSquared(vSub(pa, &m, &l)); vAddI(fa, vScaleI(&l, t->r4/d2 - d2));
     d2 = vNormSquared(vSub(pb, &m, &l)); vAddI(fb, vScaleI(&l, t->r4/d2 - d2));
     d2 = vNormSquared(vSub(pc, &m, &l)); vAddI(fc, vScaleI(&l, t->r4/d2 - d2));
-*/
 }
+*/
 
 inline static
 void extract_tangent_force(uint64_t i, Obj o, Obj d)
@@ -847,15 +876,15 @@ void specRelax(Spectrum restrict sp)
 {
     call;
 
-    sp->scale = 0.3;
-    sp->scale_threshold = 1e-5;
+    sp->scale = 1;
+    sp->scale_threshold = 1e-2;
 
-    Array active_triangles = arrCreate(sizeof(struct Triangle), 4);
+    //Array active_triangles = arrCreate(sizeof(struct Triangle), 4);
 
 
     // pre-compute the barycenter and the radius of the ideal triangle
     // debug(fprintf(stderr, "Precomputing barycenter.\n"); fflush(stderr););
-    arrForEach(sp->fringe, compute_triangles, active_triangles);
+    //arrForEach(sp->fringe, compute_triangles, active_triangles);
 
     // set the "relaxed" point to be the current point
     // debug(fprintf(stderr, "Setting relaxed point to current.\n"); fflush(stderr););
@@ -916,15 +945,15 @@ void specRelax(Spectrum restrict sp)
             pthread_mutex_lock(&sp->mutex);
             arrForEach(sp->active_threads, set_current_to_relaxed, 0);
             pthread_mutex_unlock(&sp->mutex);
-            sp->scale *= 2.5;
+            sp->scale *= 1.1;
         } else {
             relaxing = false;
         }
 
     }
 
-    arrForEach(sp->fringe, clear_edge_att, 0);
-    arrDestroy(active_triangles);
+    //arrForEach(sp->fringe, clear_edge_att, 0);
+    //arrDestroy(active_triangles);
 }
 
 inline static
@@ -1038,7 +1067,7 @@ void simplify(uint64_t ind, Obj o, Obj d)
             .iso = { a->iso , sa->iso},
             .t_ids = {a->t->id, b->t->id, c->t->id}
         };
-        arrPush(sp->tri, &tria);
+        if (algoAbs(tria.iso[0] - tria.iso[1]) > eps) arrPush(sp->tri, &tria);
     }
 
     if (b->o) b->o->o = c->o;
@@ -1202,8 +1231,6 @@ void simplify(uint64_t ind, Obj o, Obj d)
 void specSimplify(Spectrum restrict sp)
 {
     call;
-    sp->area_sqr = 0.01;
-    sp->lambda = 0.04;
     uint64_t before = 0;
     uint64_t after = arrSize(sp->fringe);
 
@@ -1277,7 +1304,7 @@ void stage1(uint64_t i, Obj o, Obj d)
         Normal n; vNormalizeI(vfValue(ref->sp->vol->grad, &n, sm.p[0], sm.p[1], sm.p[2]));
         real iso = sfValue(ref->sp->vol->scal, sm.p[0], sm.p[1], sm.p[2]);
 
-        if (    (algoAbs(iso - sm.iso) < ref->sp->snap_iso_thr) &&
+        if (    (algoAbs(iso - sm.iso) < 1.5 * ref->sp->snap_iso_thr) &&
                 vDot(&n, &sm.n) > ref->sp->ref_norm_thr ) {
             // it does not have to be split
             e->att = 0;
@@ -1394,7 +1421,7 @@ void split_match(HalfEdge a)
 }
 
 inline static
-Triangloid storeTriangloid(HalfEdge a, Array tri)
+Triangloid storeTriangloid(HalfEdge a, Spectrum sp)
 {
     // compute the final isovalue for each thread
     Thread ta = a->t; while (ta!=ta->t) ta = ta->t;
@@ -1413,24 +1440,27 @@ Triangloid storeTriangloid(HalfEdge a, Array tri)
         .iso = { a->iso , iso},
         .t_ids = {a->t->id, a->n->t->id, a->n->n->t->id}
     };
-    return arrPush(tri, &tria);
+    if (algoAbs(tria.iso[0] - tria.iso[1]) > sp->snap_iso_thr)
+        return arrPush(sp->tri, &tria);
+    else
+        return 0;
 }
 
 inline static
 void split_case_1(HalfEdge a, struct refinement_kit* ref)
 {
-    Triangloid t = storeTriangloid(a, ref->sp->tri);
+    ignore storeTriangloid(a, ref->sp);
     HalfEdge a1, a2, a3;
     {
-        struct HalfEdge tmp = { .t = a->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        struct HalfEdge tmp = { .t = a->att, .n = 0, .o = 0, .iso = ref->sp->snap_iso, .att = 0 };
         a1 = arrPush(ref->sp->fringe, &tmp);
     }
     {
-        struct HalfEdge tmp = { .t = a->n->n->t, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        struct HalfEdge tmp = { .t = a->n->n->t, .n = 0, .o = 0, .iso = ref->sp->snap_iso, .att = 0 };
         a2 = arrPush(ref->sp->fringe, &tmp);
     }
     {
-        struct HalfEdge tmp = { .t = a->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        struct HalfEdge tmp = { .t = a->att, .n = 0, .o = 0, .iso = ref->sp->snap_iso, .att = 0 };
         a3 = arrPush(ref->sp->fringe, &tmp);
     }
     a1->n = a->n->n; a1->o = a2;
@@ -1447,46 +1477,46 @@ void split_case_2(HalfEdge a, struct refinement_kit* ref)
     HalfEdge b = a->n;
     HalfEdge c = b->n;
 
-    Triangloid t = storeTriangloid(a, ref->sp->tri);
+    ignore storeTriangloid(a, ref->sp);
     HalfEdge a1, a2, a3;
     {
-        struct HalfEdge tmp = { .t = a->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        struct HalfEdge tmp = { .t = a->att, .n = 0, .o = 0, .iso = ref->sp->snap_iso, .att = 0 };
         a1 = arrPush(ref->sp->fringe, &tmp);
     }
     {
-        struct HalfEdge tmp = { .t = c->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        struct HalfEdge tmp = { .t = c->att, .n = 0, .o = 0, .iso = ref->sp->snap_iso, .att = 0 };
         a2 = arrPush(ref->sp->fringe, &tmp);
     }
     {
-        struct HalfEdge tmp = { .t = a->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        struct HalfEdge tmp = { .t = a->att, .n = 0, .o = 0, .iso = ref->sp->snap_iso, .att = 0 };
         a3 = arrPush(ref->sp->fringe, &tmp);
     }
 
     HalfEdge b1, b2, b3;
     {
-        struct HalfEdge tmp = { .t = b->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        struct HalfEdge tmp = { .t = b->att, .n = 0, .o = 0, .iso = ref->sp->snap_iso, .att = 0 };
         b1 = arrPush(ref->sp->fringe, &tmp);
     }
     {
-        struct HalfEdge tmp = { .t = a->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        struct HalfEdge tmp = { .t = a->att, .n = 0, .o = 0, .iso = ref->sp->snap_iso, .att = 0 };
         b2 = arrPush(ref->sp->fringe, &tmp);
     }
     {
-        struct HalfEdge tmp = { .t = b->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        struct HalfEdge tmp = { .t = b->att, .n = 0, .o = 0, .iso = ref->sp->snap_iso, .att = 0 };
         b3 = arrPush(ref->sp->fringe, &tmp);
     }
 
     HalfEdge c1, c2, c3;
     {
-        struct HalfEdge tmp = { .t = c->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        struct HalfEdge tmp = { .t = c->att, .n = 0, .o = 0, .iso = ref->sp->snap_iso, .att = 0 };
         c1 = arrPush(ref->sp->fringe, &tmp);
     }
     {
-        struct HalfEdge tmp = { .t = b->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        struct HalfEdge tmp = { .t = b->att, .n = 0, .o = 0, .iso = ref->sp->snap_iso, .att = 0 };
         c2 = arrPush(ref->sp->fringe, &tmp);
     }
     {
-        struct HalfEdge tmp = { .t = c->att, .n = 0, .o = 0, .iso = t->iso[1], .att = 0 };
+        struct HalfEdge tmp = { .t = c->att, .n = 0, .o = 0, .iso = ref->sp->snap_iso, .att = 0 };
         c3 = arrPush(ref->sp->fringe, &tmp);
     }
 
@@ -1906,7 +1936,7 @@ bool specProject(Spectrum restrict sp)
     call;
 
     // find the next isovalue to project to
-    fprintf(stderr, "Finding next isovalue.\n");
+    debug(fprintf(stderr, "Finding next isovalue.\n"););
     real crt = sp->snap_iso;
     while (!arrIsEmpty(sp->isosamples) && crt <= *oCast(real*, arrBack(sp->isosamples))) arrPop(sp->isosamples);
     if (arrIsEmpty(sp->isosamples)) return false;
@@ -1923,10 +1953,11 @@ bool specProject(Spectrum restrict sp)
 
     // if it does not cross any critical value, project normally
     if (arrIsEmpty(criticalities)) {
-        fprintf(stderr, "Projecting normally.\n");
+        debug(fprintf(stderr, "Projecting normally.\n"););
         struct projection_kit kit = { .sp = sp, .iso = next };
         arrForEach(sp->active_threads, project_thread, &kit);
     } else {
+        arrDestroy(criticalities);
         return false;
         // otherwise:
         // compute the "border"
@@ -1969,14 +2000,14 @@ void display_edge(uint64_t i, Obj o, Obj d)
     glNormal3v(n);
 //  glNormal3v(sa->n);
     glVertex3v(sa->p);
-    vScale((const Vec3*)&sc->n, -1, &n);
-    glNormal3v(n);
-//  glNormal3v(sc->n);
-    glVertex3v(sc->p);
     vScale((const Vec3*)&sb->n, -1, &n);
     glNormal3v(n);
 //  glNormal3v(sb->n);
     glVertex3v(sb->p);
+    vScale((const Vec3*)&sc->n, -1, &n);
+    glNormal3v(n);
+//  glNormal3v(sc->n);
+    glVertex3v(sc->p);
 }
 
 void display_sample(uint64_t i, Obj o, Obj d)
@@ -1988,7 +2019,7 @@ void display_sample(uint64_t i, Obj o, Obj d)
     else {
         glPushMatrix();
         glTranslatef(s->p[0], s->p[1], s->p[2]);
-        glutSolidSphere(0.1, 5, 5);
+        glutSolidSphere(0.025, 3, 3);
         glPopMatrix();
     }
 }
@@ -2007,11 +2038,11 @@ void display_vert(uint64_t i, Obj o, Obj d)
     } else {
         Vec3 n;
         glBegin(GL_LINES);
-        vScale((const Vec3*)&s->n, 5, &n);
+        vScale((const Vec3*)&s->n, 1/(255*vNormSquared((const Vec3*)&s->n)), &n);
         vAddI(&n, (const Vec3*)&s->p);
         glVertex3v(s->p);
         glVertex3v(n);
-        vScale((const Vec3*)&s->n, -5, &n);
+        vScale((const Vec3*)&s->n, 1/(255*vNormSquared((const Vec3*)&s->n)), &n);
         vAddI(&n, (const Vec3*)&s->p);
         glVertex3v(s->p);
         glVertex3v(n);
@@ -2029,10 +2060,10 @@ void display_thread(uint64_t i, Obj o, Obj d)
 
     glLineWidth(1.0);
     glBegin(GL_LINE_STRIP);
-    arrForEach(t->samples, display_sample, oCast(Obj, 1));
+    arrForEach(t->samples, display_sample, pt);
     glEnd();
 
-    arrForEach(t->samples, display_sample, 0);
+    arrForEach(t->samples, display_sample, pt);
 }
 
 

@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
     (void) fprintf(stderr, "Created!\n"); fflush(stderr);
 
     usage(sp);
-    specStats(sp);
+    specStats(sp, stdout);
     printf("\n");
 
     Renderer r = rCreate("Test spectrum.");
@@ -36,69 +36,119 @@ int main(int argc, char* argv[])
     clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
     fprintf(stderr, "Snapping  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
     fprintf(stderr, "\n");
-    specStats(sp);
+   // specStats(sp, stdout);
     fprintf(stderr, "\n");
 
     while (1) {
-        rWaitKey(r, &key);
-        //usleep(300000);
-
-        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
-        specRelax(sp);
-        clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
-        fprintf(stderr, "Relaxing  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
-        fprintf(stderr, "\n");
-        specStats(sp);
-        fprintf(stderr, "\n");
-
-        rWaitKey(r, &key);
-
-        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
-        specRefine(sp);
-        clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
-        fprintf(stderr, "Refining  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
-        fprintf(stderr, "\n");
-        specStats(sp);
-        fprintf(stderr, "\n");
-
-        rWaitKey(r, &key);
+//        rWaitKey(r, &key);
 
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
         specSimplify(sp);
         clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
         fprintf(stderr, "Simplifying  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
         fprintf(stderr, "\n");
-        specStats(sp);
+    //    specStats(sp, stdout);
         fprintf(stderr, "\n");
 
-        rWaitKey(r, &key);
-/*
+    //    rWaitKey(r, &key);
+
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
         specRefine(sp);
         clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
         fprintf(stderr, "Refining  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
         fprintf(stderr, "\n");
-        specStats(sp);
+   //     specStats(sp, stdout);
         fprintf(stderr, "\n");
-*/
-        rWaitKey(r, &key);
+
+      //  rWaitKey(r, &key);
+
+        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
+        specRelax(sp);
+        clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
+        fprintf(stderr, "Relaxing  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        fprintf(stderr, "\n");
+   //     specStats(sp, stdout);
+        fprintf(stderr, "\n");
+
+//        rWaitKey(r, &key);
+
+        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
+        specSimplify(sp);
+        clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
+        fprintf(stderr, "Simplifying  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        fprintf(stderr, "\n");
+    //    specStats(sp, stdout);
+        fprintf(stderr, "\n");
+
+    //    rWaitKey(r, &key);
+
+        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
+        specRefine(sp);
+        clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
+        fprintf(stderr, "Refining  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        fprintf(stderr, "\n");
+   //     specStats(sp, stdout);
+        fprintf(stderr, "\n");
+
+      //  rWaitKey(r, &key);
+
+        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
+        specRelax(sp);
+        clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
+        fprintf(stderr, "Relaxing  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        fprintf(stderr, "\n");
+   //     specStats(sp, stdout);
+        fprintf(stderr, "\n");
+
+//        rWaitKey(r, &key);
+
+        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
+        specSimplify(sp);
+        clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
+        fprintf(stderr, "Simplifying  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        fprintf(stderr, "\n");
+    //    specStats(sp, stdout);
+        fprintf(stderr, "\n");
+
+    //    rWaitKey(r, &key);
+
+        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
+        specRefine(sp);
+        clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
+        fprintf(stderr, "Refining  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        fprintf(stderr, "\n");
+   //     specStats(sp, stdout);
+        fprintf(stderr, "\n");
+
+      //  rWaitKey(r, &key);
+
+        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
+        specRelax(sp);
+        clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
+        fprintf(stderr, "Relaxing  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        fprintf(stderr, "\n");
+   //     specStats(sp, stdout);
+        fprintf(stderr, "\n");
+
+       // rWaitKey(r, &key);
 
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
         bool ret = specProject(sp);
         clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
-        printf("Projecting  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
-        printf("\n");
-        specStats(sp);
-        printf("\n");
+        fprintf(stderr, "Projecting  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        fprintf(stderr, "\n");
+   //     specStats(sp, stdout);
+        fprintf(stderr, "\n");
 
         if (!ret) break;
     }
+    (void) fprintf(stdout, "Success!\n"); fflush(stdout);
 
     rWait(r);
     rDestroy(r);
 
+    specStats(sp, stdout);
     specDestroy(sp);
-    (void) fprintf(stderr, "Success!\n"); fflush(stderr);
     sp = 0;
 
 
