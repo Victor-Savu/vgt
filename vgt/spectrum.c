@@ -1914,7 +1914,14 @@ void project_thread(uint64_t i, Obj o, Obj d)
 }
 */
 
-struct projection_kit { Spectrum sp; real iso;};
+struct projection_kit {
+    Spectrum sp;
+    real iso;    // the next isovalue to project onto
+    real r;     // the radius of a sphere around a critical point
+    Array crit; // critical points crossed suringthe projection
+    Array unproj; // the threads which were not projected
+    Array created; // the threads creted by marching tets
+};
 
 inline static
 void project_thread(uint64_t i, Obj o, Obj d)
@@ -1926,9 +1933,34 @@ void project_thread(uint64_t i, Obj o, Obj d)
     check(t->t == t);
 
     Sample s = arrBack(t->samples);
+    Vertex* before = &s->p;
     s = arrPush(t->samples, s);
 
+
     snap_sample(s, sp->vol, kit->iso, 0.5 * sp->snap_iso_thr);
+
+    // check if we might be dealing with critical regions
+    if (kit->crit) {
+        Vec3 b; vSub(&s->p, before, &b);
+
+        // check if the sample might get projected inside the sphere of radius r around a criticality
+        uint64_t sz = arrSize(kit->crit);
+        Vertex* cp; // position of the critical point
+        bool intersects = false;
+        for (i=0; i < sz && !intersects; i++) {
+            cp = arrGet(kit->crit, i);
+            Vec3 a; vSub(cp, before, &a);
+            real proj = vDot(&a, &b);
+            if (proj > 0 && proj*proj < vNormSquared((const Vec3*)&b)) {
+                intersects = true;
+                // project the vertex onto the critical isosurface
+                vCopy(before, &s->p);
+                snap_sample(s, sp->vol, sfValue(sp->vol->scal, (*cp)[0], (*cp)[1], (*cp)[2]), 0.5*sp->snap_iso_thr);
+                arrPush(kit->unproj, pt);
+            }
+        }
+    }
+
 }
 
 bool specProject(Spectrum restrict sp)
@@ -1954,19 +1986,29 @@ bool specProject(Spectrum restrict sp)
     // if it does not cross any critical value, project normally
     if (arrIsEmpty(criticalities)) {
         debug(fprintf(stderr, "Projecting normally.\n"););
-        struct projection_kit kit = { .sp = sp, .iso = next };
+        struct projection_kit kit = { .sp = sp, .iso = next, .crit = 0, .unproj = 0, .created = 0, };
         arrForEach(sp->active_threads, project_thread, &kit);
     } else {
-        arrDestroy(criticalities);
-        return false;
+        debug(fprintf(stderr, "Projecting across critical area.\n"););
+        struct projection_kit kit = {
+            .sp = sp, .iso = next,
+            .crit = criticalities,
+            .unproj = arrCreate(sizeof (Thread), 1),
+            .created = arrCreate(sizeof (Thread), 1),
+        };
+        arrForEach(sp->active_threads, project_thread, &kit);
+
+        stub;
         // otherwise:
         // compute the "border"
         // do a partial projection and create a delaunay tetrahedrization containing:
         //  > the unprojected samples
         //  > the projections of samples whose triangle neighbors have not been projected
         //  > the critical points crossed
+        return false;
     }
 
+    arrDestroy(criticalities);
     sp->snap_iso = next;
     return true;
 }
@@ -2086,6 +2128,7 @@ void specDisplay(Spectrum restrict sp)
 
     arrForEach(sp->active_threads, display_thread, 0);
 
+/*
     glEnable(GL_LIGHTING);
 
     glEnable(GL_POLYGON_OFFSET_FILL);
@@ -2099,7 +2142,7 @@ void specDisplay(Spectrum restrict sp)
     glDisable(GL_POLYGON_OFFSET_FILL);
 
     glDisable(GL_LIGHTING);
-    //glLineWidth(2.0);
+*/
 
     glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
     glColor3f(0.0, 1.0, 1.0);

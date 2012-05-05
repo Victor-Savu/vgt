@@ -25,7 +25,9 @@ Frame frRotate(Frame restrict f, Mat* restrict r, Frame restrict g)
 Frame frTranslate(Frame restrict f, Vertex* restrict p, Frame restrict g)
 {
     matCopy(&f->rot, &g->rot);
-    vAdd(&f->trans, p, &g->trans);
+    Vec3 tmp;
+    matCross(&f->rot, p, &tmp);
+    vAdd(&tmp, p, &g->trans);
     return g;
 }
 

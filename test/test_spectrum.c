@@ -25,10 +25,10 @@ int main(int argc, char* argv[])
     specStats(sp, stdout);
     printf("\n");
 
+
     Renderer r = rCreate("Test spectrum.");
     rDisplaySpectrum(r, sp);
     char key = 13;
-
     rWaitKey(r, &key);
 
     clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
@@ -50,6 +50,16 @@ int main(int argc, char* argv[])
     //    specStats(sp, stdout);
         fprintf(stderr, "\n");
 
+      //  rWaitKey(r, &key);
+
+        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
+        specRelax(sp);
+        clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
+        fprintf(stderr, "Relaxing  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        fprintf(stderr, "\n");
+   //     specStats(sp, stdout);
+        fprintf(stderr, "\n");
+
     //    rWaitKey(r, &key);
 
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
@@ -80,6 +90,16 @@ int main(int argc, char* argv[])
     //    specStats(sp, stdout);
         fprintf(stderr, "\n");
 
+      //  rWaitKey(r, &key);
+
+        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
+        specRelax(sp);
+        clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
+        fprintf(stderr, "Relaxing  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        fprintf(stderr, "\n");
+   //     specStats(sp, stdout);
+        fprintf(stderr, "\n");
+
     //    rWaitKey(r, &key);
 
         clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
@@ -108,6 +128,16 @@ int main(int argc, char* argv[])
         fprintf(stderr, "Simplifying  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
         fprintf(stderr, "\n");
     //    specStats(sp, stdout);
+        fprintf(stderr, "\n");
+
+      //  rWaitKey(r, &key);
+
+        clock_gettime( CLOCK_PROCESS_CPUTIME_ID,  &tick);
+        specRelax(sp);
+        clock_gettime ( CLOCK_PROCESS_CPUTIME_ID, &tock);
+        fprintf(stderr, "Relaxing  : %10.6lf\n", (((double)tock.tv_sec - tick.tv_sec) + ((double)tock.tv_nsec - tick.tv_nsec)/1e9) );
+        fprintf(stderr, "\n");
+   //     specStats(sp, stdout);
         fprintf(stderr, "\n");
 
     //    rWaitKey(r, &key);

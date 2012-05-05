@@ -20,9 +20,12 @@ void camPan(Camera c, real x, real y)
     c->frame.trans[0] -= x * (cp * st) * (ct + st) + y * sp * ct;
     c->frame.trans[1] += st * (y - x * cp * sp * (ct-sp));
     c->frame.trans[2] += x * sp * (ct * ct + st * st) - y * cp * st;
+
+
 */
-    c->frame.trans[0] += x;
-    c->frame.trans[1] += y;
+    Vec3 p = {x, y, 0};
+    matCrossI(&c->frame.rot, &p);
+    vAddI(&c->frame.trans, (const Vec3*)&p);
 
 }
 
