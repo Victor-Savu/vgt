@@ -3,10 +3,11 @@
 
 #include <vgt/types.h>
 
-Mesh isoMarchingTets(   const ScalarField const restrict data,
-                        Array restrict border,
+Delaunay isoSample(   const ScalarField const restrict data,
+                        Array restrict crit,
                         Array restrict samples,
-                        real isoValue
+                        real isoValue,
+                        real readius
                         );
 
 #endif//VGT_ISO_H

@@ -27,7 +27,7 @@ bool specProject(Spectrum restrict sp);
 
 // Runs marching tets on the volume
 // where the projection could not occur
-void specSample(Spectrum restrict sp);
+void specProcessFringe(Spectrum restrict sp);
 
 // Merges the results of the projection and of the the sampling
 void specMerge(Spectrum restrict sp);

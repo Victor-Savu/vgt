@@ -4,15 +4,19 @@
 #include <vgt/tet.h>
 #include <math/obj.h>
 
+typedef struct HalfEdge* HalfEdge;
+
 struct Tet {
     Vertex* v[4];
     Tet n[4];
     // a map. Each neighbor of this tet sees it as either opposite to a (00), b (01), c (10), or d (11).
     byte m;
+    HalfEdge edges[4];
 };
 
 inline static
 Tet tetCopy(Tet dest, Tet src) {
+    if (dest == src) return dest;
     oCopyTo(dest, src, sizeof(struct Tet));
     tetConnect(dest, A, dest->n[A], tetReadMap(dest->m, A));
     tetConnect(dest, B, dest->n[B], tetReadMap(dest->m, B));

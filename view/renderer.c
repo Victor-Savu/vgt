@@ -186,10 +186,10 @@ void cb_keyboard(unsigned char key, int x, int y)
         pthread_cond_signal(&instance.key_pressed);
         pthread_exit(0);
     case '-': // zoom out
-        camZoom(&instance.camera, 1.005);
+        camZoom(&instance.camera, 1.01);
         break;
     case '+': // zoom in
-        camZoom(&instance.camera,1/1.005);
+        camZoom(&instance.camera,1/1.01);
         break;
     case '.': // next widget
         instance.widget++;
@@ -223,16 +223,16 @@ void cb_special_key(int key, int x, int y)
 {
     switch (key) {
     case GLUT_KEY_UP:
-        camRotate(&instance.camera, 0.01, 0);
+        camRotate(&instance.camera, 0.03, 0);
         break;
     case GLUT_KEY_DOWN:
-        camRotate(&instance.camera, -0.01, 0);
+        camRotate(&instance.camera, -0.03, 0);
         break;
     case GLUT_KEY_RIGHT:
-        camRotate(&instance.camera, 0.0, 0.01);
+        camRotate(&instance.camera, 0.0, 0.03);
         break;
     case GLUT_KEY_LEFT:
-        camRotate(&instance.camera, 0.0, -0.01);
+        camRotate(&instance.camera, 0.0, -0.03);
         break;
     default:
         break;

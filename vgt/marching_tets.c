@@ -65,33 +65,53 @@ void count_triangles(uint64_t i, Obj o, Obj d)
 }
 
     inline static
-void get_triangles(uint64_t i, Obj o, Obj d)
+void ins_sample(uint64_t i, Obj o, Obj d)
 {
+    arrDestroy(delInsert(d, o));
+//    fprintf(stderr, "Inserted sample #%lu: ", i); vPrint(o, stderr); fprintf(stderr, "\n");
 }
 
     inline static
-void bounding_box(Array restrict border, Array restrict samples, Vertex* restrict pos, Vertex* restrict size)
+void bounding_box(Array restrict crit, Array restrict samples, Vertex* restrict pos, Vertex* restrict size)
 {
-    Vertex* aux = arrFront(border);
+    Vertex* aux = arrFront(crit);
     Vertex bb[2] = {
         { (*aux)[0], (*aux)[1], (*aux)[2] },
         { (*aux)[0], (*aux)[1], (*aux)[2] }
     };
 
-    arrForEach(border, find_bounding, &bb);
+    arrForEach(crit, find_bounding, &bb);
     arrForEach(samples, find_bounding, &bb);
 
     vCopy(&bb[0], pos);
     vSub(&bb[1], &bb[0], size);
 }
 
-Mesh isoMarchingTets(const ScalarField const restrict data, Array restrict border, Array restrict samples, real isoValue)
+struct proximity_kit {
+    bool in_proximity;
+    real dist_squared;
+    Tet t;
+};
+
+inline static
+void check_proximity(uint64_t i, Obj o, Obj d)
 {
-    if ( ( border && ((!samples && arrSize(border) < 4) || (samples && arrSize(border) + arrSize(samples) < 4)) ) || (samples && arrSize(samples)<4) ) {
+    struct proximity_kit* kit = d;
+    TetVertex v;
+    for (v = A; v <= D; ++v) {
+        Vec3 displ;
+        kit->in_proximity |= (vNormSquared((const Vec3*) vSub(o, kit->t->v[v], &displ)) < kit->dist_squared);
+    }
+}
 
-        fprintf(stderr, "[x] Not enough sampling/border points.\n"); fflush(stderr);
-        exit(EXIT_FAILURE);
-
+Delaunay isoSample(const ScalarField const restrict data, Array restrict crit, Array restrict samples, real isoValue, real radius)
+{
+    call;
+    usage(crit);
+    usage(samples);
+    if ( arrSize(crit) + arrSize(samples) < 4) {
+        fprintf(stderr, "#crit: %lu\n#samples: %lu\n", arrSize(crit), arrSize(samples));
+        usage( arrSize(crit) + arrSize(samples) >= 4);
     }
 
     // Manually create a delaunay tetrahedrization to encompass
@@ -100,7 +120,7 @@ Mesh isoMarchingTets(const ScalarField const restrict data, Array restrict borde
     Vertex pos;
     Vertex size;
 
-    bounding_box(border, samples, &pos, &size);
+    bounding_box(crit, samples, &pos, &size);
 
     real a = size[0];
     real b = size[1];
@@ -114,7 +134,7 @@ Mesh isoMarchingTets(const ScalarField const restrict data, Array restrict borde
     real min_cell_size_sqr = (data->dx<data->dy)?(data->dx):(data->dy);
     min_cell_size_sqr = (min_cell_size_sqr<data->dy)?(min_cell_size_sqr):(data->dy);
     min_cell_size_sqr *= min_cell_size_sqr;
-
+/*
     Vertex vert[8] = {
         { b, c, 0 },
         { 0, 0, 0 },
@@ -125,11 +145,11 @@ Mesh isoMarchingTets(const ScalarField const restrict data, Array restrict borde
         { 0, 0, a },
         { b, c, a }
     };
-
+*/
     const real sqrt3 = sqrt(3);
     const real sqrt2 = sqrt(2);
 
-    real s = 1.25;
+    real s = 3;
     a*=s; b*=s, c*=s;
     Vertex bound[4] = {
         {0.5*a/sqrt3 + b/3          ,   a*sqrt2/sqrt3+2*b*sqrt2/3 + c   ,   0.5 * a                         },
@@ -153,8 +173,12 @@ Mesh isoMarchingTets(const ScalarField const restrict data, Array restrict borde
 
     Delaunay del = delCreate(&bound);
 
+    arrForEach(crit, ins_sample, del);
+    arrForEach(samples, ins_sample, del);
 
-    uint64_t i = 0;
+
+  uint64_t i = 0;
+/*
 //    char key=13;
     Vertex aux;
     for (i=0; i<8; i++) {
@@ -164,13 +188,19 @@ Mesh isoMarchingTets(const ScalarField const restrict data, Array restrict borde
         arrDestroy(delInsert(del, &aux));
 //      printf("%s Delaunay tetrahedrization after inserting vertex #%ld.\n", (delCheck(del))?("Correct"):("Incorrect"), i); fflush(stdout);
     }
+*/
 
     uint64_t skipped = 0;
     i = 0;
     while (skipped<arrSize(del->t)) {
         Tet t = arrGet(del->t, i);
 
-        if (delIsBounding(del, t)) {
+        // check if at least one of the tet's vertices is in the proximity of a critical point
+        struct proximity_kit p_kit = { .in_proximity = false, .dist_squared = radius*radius*4, .t = t };
+        arrForEach(crit, check_proximity, &p_kit);
+        //p_kit.in_proximity = true;
+
+        if (delIsBounding(del, t) || !p_kit.in_proximity) {
             skipped++;
         } else {
             Vertex g;
@@ -218,8 +248,8 @@ Mesh isoMarchingTets(const ScalarField const restrict data, Array restrict borde
 
     fprintf(stdout, "Triangles: %lu\n", dat.ntriangles);
 
-    delDestroy(del);
+ //   delDestroy(del);
 
     stub;
-    return 0;
+    return del;
 }

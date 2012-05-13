@@ -41,8 +41,12 @@ struct Spectrum {
 
     // projection parameters
     real min_crit_iso_distance;
-    real max_sampling_iso_distance;
+    real min_sampling_iso_distance;
     Array isosamples;
+    Delaunay del;
+
+    Array extracted_edges;
+    Array extracted_threads;
 };
 
 #endif//VGT_SPECTRUM_CLS_H

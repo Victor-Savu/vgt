@@ -16,6 +16,11 @@
 #include <vgt/volumetric_data_cls.h>
 #include <vgt/scalar_field_cls.h>
 #include <vgt/topology.h>
+#include <vgt/iso.h>
+#include <vgt/delaunay.h>
+#include <vgt/delaunay_cls.h>
+#include <vgt/tet.h>
+#include <vgt/tet_cls.h>
 
 #include <GL/glut.h>
 #include <pthread.h>
@@ -63,7 +68,7 @@ void snap_sample(Sample restrict s, VolumetricData restrict vol, real snap_iso, 
     Normal dn;
     Vertex new_p;
     ignore vfValue(vol->grad, &s->n, s->p[0], s->p[1], s->p[2]);
-    vScale((const Vec3*)&s->n, d_iso/vNormSquared((const Vec3*)&s->n), &dn);
+    vScale((const Vec3*)&s->n, 0.1 * d_iso/vNormSquared((const Vec3*)&s->n), &dn);
     while (algoAbs(d_iso) > snap_iso_thr) {
         vAdd(&dn, &s->p, &new_p);
         if (sfInside(vol->scal, new_p[0], new_p[1], new_p[2])) iso = sfValue(vol->scal, new_p[0], new_p[1], new_p[2]);
@@ -75,9 +80,9 @@ void snap_sample(Sample restrict s, VolumetricData restrict vol, real snap_iso, 
         }
         iterations = 100;
         while (algoAbs(d_iso) <= algoAbs(snap_iso - iso) && --iterations) {
-            dn[0] = algoRandomDouble(-0.5 / iterations, 0.5 / iterations);
-            dn[1] = algoRandomDouble(-0.5 / iterations, 0.5 / iterations);
-            dn[2] = algoRandomDouble(-0.5 / iterations, 0.5 / iterations);
+            dn[0] = algoRandomDouble(-0.05 / iterations, 0.05 / iterations);
+            dn[1] = algoRandomDouble(-0.05 / iterations, 0.05 / iterations);
+            dn[2] = algoRandomDouble(-0.05 / iterations, 0.05 / iterations);
             vAdd(&dn, &s->p, &new_p);
             if (sfInside(vol->scal, new_p[0], new_p[1], new_p[2])) iso = sfValue(vol->scal, new_p[0], new_p[1], new_p[2]);
         }
@@ -90,7 +95,7 @@ void snap_sample(Sample restrict s, VolumetricData restrict vol, real snap_iso, 
         vCopy(&new_p, &s->p);
         s->iso = iso;
         ignore vfValue(vol->grad, &s->n, s->p[0], s->p[1], s->p[2]);
-        vScale((const Vec3*)&s->n, d_iso/vNormSquared((const Vec3*)&s->n), &dn);
+        vScale((const Vec3*)&s->n, 0.1 * d_iso/vNormSquared((const Vec3*)&s->n), &dn);
     }
     //usleep(5000000);
 }
@@ -494,11 +499,12 @@ Spectrum specCreate(const char* restrict conf)
         .vol = v,
         .active_threads = active_thr,
         .snap_iso = initial_isovalue,
-        .snap_iso_thr = 5e-3,
-        .area_sqr = 1e-4,
+        .snap_iso_thr = 5e-4,
+        .area_sqr = 0.04,
         .lambda = 0.04,
         .ref_norm_thr = 0.8,
-        .max_sampling_iso_distance = 4e-3, // slightly smaller than 2./255.
+        .min_sampling_iso_distance = 4e-3, // slightly smaller than 2./255.
+      //  .min_sampling_iso_distance = 1e-3, // slightly smaller than 0.25/255.
         .min_crit_iso_distance = 8e-4, // 5 times smaller than the maximum sampling iso distance
         .isosamples = arrCreate(sizeof(real), 1),
     };
@@ -517,7 +523,7 @@ Spectrum specCreate(const char* restrict conf)
         real d_iso = cp[i].isovalue - cp[i-1].isovalue;
         if (d_iso > sp.min_crit_iso_distance) {
             real crt = cp[i-1].isovalue;
-            uint64_t n_smpl = ceil(d_iso / sp.max_sampling_iso_distance);
+            uint64_t n_smpl = floor(d_iso / sp.min_sampling_iso_distance);
             d_iso = d_iso / n_smpl;
             crt += d_iso/2;
             while (n_smpl--) {
@@ -605,7 +611,7 @@ void interp_bar_error(uint64_t i, Obj o, Obj d)
 inline
 void specStats(Spectrum restrict s, FILE* f)
 {
-    call;
+    //call;
     struct interp_kit kit = { .ierror = 0.0, .nerror = 0.0, .sp = s };
     arrForEach(s->active_threads, interp_error, &kit);
     arrForEach(s->fringe, interp_bar_error, &kit);
@@ -644,6 +650,13 @@ void specDestroy(Spectrum restrict sp)
     vdDestroy(sp->vol);
     arrDestroy(sp->fringe);
     arrDestroy(sp->active_threads);
+    arrDestroy(sp->isosamples);
+    delDestroy(sp->del);
+
+
+    arrDestroy(sp->extracted_edges);
+    arrDestroy(sp->extracted_threads);
+
     pthread_mutex_destroy(&sp->mutex);
     oDestroy(sp);
 }
@@ -874,7 +887,7 @@ void set_current_to_relaxed(uint64_t i, Obj o, Obj d)
 
 void specRelax(Spectrum restrict sp)
 {
-    call;
+    //call;
 
     sp->scale = 1;
     sp->scale_threshold = 1e-2;
@@ -910,7 +923,7 @@ void specRelax(Spectrum restrict sp)
 
         bool scaling = true;
         while (scaling) {
-            sp->scale *= 0.5;
+            sp->scale *= 0.8;
             if (sp->scale < sp->scale_threshold) break;
 
             // compute the normal component of the force
@@ -930,7 +943,7 @@ void specRelax(Spectrum restrict sp)
             arrForEach(sp->active_threads, compute_stress, sp);
 
             // debug(fprintf(stderr, "<prev, crt> : <%10.4lf, %10.4lf>\n", sp->previous_stress, sp->current_stress);fflush(stderr););
-            if (sp->current_stress > sp->previous_stress)
+            if (sp->current_stress > algoRandomDouble(0.8, 1.1) * sp->previous_stress)
                 // set the "relaxed" point to be the current point
                 arrForEach(sp->active_threads, set_relaxed_to_current, sp);
             else
@@ -1230,7 +1243,7 @@ void simplify(uint64_t ind, Obj o, Obj d)
 
 void specSimplify(Spectrum restrict sp)
 {
-    call;
+    //call;
     uint64_t before = 0;
     uint64_t after = arrSize(sp->fringe);
 
@@ -1286,7 +1299,8 @@ void stage1(uint64_t i, Obj o, Obj d)
 
         // check if the edge is long enough to be split
         struct Sample sm;
-        if (vNormSquared((const Vec3*) vSub(&s->p, &sn->p, &sm.p)) < 0.04) {
+        real l = vNormSquared((const Vec3*) vSub(&s->p, &sn->p, &sm.p));
+        if ( l < 0.04) {
             // it does not have to be split
             e->att = 0;
             HalfEdge* bk = arrBack(ref->q);
@@ -1297,15 +1311,20 @@ void stage1(uint64_t i, Obj o, Obj d)
 
         // compute midpoint sample
         vScaleI(vAdd(&s->p, &sn->p, &sm.p), .5);
-        vNormalizeI(vScaleI(vAdd(&s->n, &sn->n, &sm.n), .5));
+        vScaleI(vAdd(&s->n, &sn->n, &sm.n), .5);
         sm.iso = (s->iso + sn->iso)/2;
 
         // get the real midpoint values
-        Normal n; vNormalizeI(vfValue(ref->sp->vol->grad, &n, sm.p[0], sm.p[1], sm.p[2]));
+        Normal n; vfValue(ref->sp->vol->grad, &n, sm.p[0], sm.p[1], sm.p[2]);
         real iso = sfValue(ref->sp->vol->scal, sm.p[0], sm.p[1], sm.p[2]);
 
-        if (    (algoAbs(iso - sm.iso) < 1.5 * ref->sp->snap_iso_thr) &&
-                vDot(&n, &sm.n) > ref->sp->ref_norm_thr ) {
+        //
+        real d_n = vDot(&n, &sm.n); d_n *= algoAbs(d_n)/vNormSquared((const Normal*)&n)/vNormSquared((const Normal*)&s->n);
+        real d_iso = sm.iso - iso; d_iso *= d_iso;
+
+        //if (    (algoAbs(iso - sm.iso) < 1.5 * ref->sp->snap_iso_thr) &&
+        if (    (d_iso / l / vNormSquared((const Normal*)&n) < 4e-2) &&
+                 d_n > ref->sp->ref_norm_thr ) {
             // it does not have to be split
             e->att = 0;
             HalfEdge* bk = arrBack(ref->q);
@@ -1617,7 +1636,7 @@ void check_stage_1(uint64_t i, Obj o, Obj d)
 
 void specRefine(Spectrum restrict sp)
 {
-    call;
+    //call;
     struct refinement_kit ref_kit = {
         .sp = sp,
         .q = 0,
@@ -1625,7 +1644,9 @@ void specRefine(Spectrum restrict sp)
 
     Array q1 = arrRefsArr(sp->fringe);
 
-    while (!arrIsEmpty(q1)) {
+    uint64_t iterations = 10;
+
+    while (!arrIsEmpty(q1) && iterations--) {
         //fprintf(stderr, "Spuff %lu!\n", arrSize(q1)); fflush(stderr);
         // stage #1
         ref_kit.q = q1;
@@ -1664,6 +1685,8 @@ void specRefine(Spectrum restrict sp)
         q1 = q3;
         arrDestroy(q2);
     }
+
+    arrDestroy(q1);
 }
 
 /*
@@ -1920,7 +1943,10 @@ struct projection_kit {
     real r;     // the radius of a sphere around a critical point
     Array crit; // critical points crossed suringthe projection
     Array unproj; // the threads which were not projected
-    Array created; // the threads creted by marching tets
+    Array samples; // the samples from which the delaunay tetrahedrization should be created
+    Array threads; // the threads created by marching tets
+    Array edges; // the edges created by marching tets
+    Array border; // the edges fron the fringe bordering the sampled area
 };
 
 inline static
@@ -1951,24 +1977,324 @@ void project_thread(uint64_t i, Obj o, Obj d)
             cp = arrGet(kit->crit, i);
             Vec3 a; vSub(cp, before, &a);
             real proj = vDot(&a, &b);
-            if (proj > 0 && proj*proj < vNormSquared((const Vec3*)&b)) {
+
+            if (proj <= 0) vCopy(before, &a);
+            else if (proj >= vNormSquared((const Vec3*)&b)) vCopy(&s->p, &a);
+            else {
+                vScale((const Vec3*)&b, proj/vNormSquared((const Vec3*)&b), &a);
+                vAddI(&a, (const Vec3*)before);
+            }
+            vSubI(&a, cp);
+
+            // if it intersects
+            if (vNormSquared((const Vec3*)&a) <= kit->r * kit->r) {
                 intersects = true;
+                /*
                 // project the vertex onto the critical isosurface
                 vCopy(before, &s->p);
                 snap_sample(s, sp->vol, sfValue(sp->vol->scal, (*cp)[0], (*cp)[1], (*cp)[2]), 0.5*sp->snap_iso_thr);
+*/
+                arrPop(t->samples);
+                s = arrBack(t->samples);
+                vSet(&s->n, 0, 0, 0);
                 arrPush(kit->unproj, pt);
+                arrPush(kit->samples, before);
             }
+
         }
     }
 
 }
 
+inline static
+void find_border(uint64_t i, Obj o, Obj d)
+{
+    HalfEdge a = o;
+    HalfEdge b = a->n;
+    HalfEdge c = b->n;
+
+    // only check for one edge of the triangle
+    if (a > b || a > c) return;
+
+    struct projection_kit* kit = d;
+
+    Thread ta = a->t; while (ta != ta->t) ta = ta->t;
+    Thread tb = b->t; while (tb != tb->t) tb = tb->t;
+    Thread tc = c->t; while (tc != tc->t) tc = tc->t;
+
+    Sample sa = arrBack(ta->samples);
+    Sample sb = arrBack(tb->samples);
+    Sample sc = arrBack(tc->samples);
+
+    bool proj[3] = {
+        algoAbs(sa->iso - kit->iso) < 2 * algoAbs(kit->sp->snap_iso_thr),
+        algoAbs(sb->iso - kit->iso) < 2 * algoAbs(kit->sp->snap_iso_thr),
+        algoAbs(sc->iso - kit->iso) < 2 * algoAbs(kit->sp->snap_iso_thr),
+    };
+
+    if (proj[0] && proj[1] && !proj[2]) { arrPush(kit->border, &a); a->att = a; arrPush(kit->samples, &sa->p); arrPush(kit->samples, &sb->p);}
+    if (proj[0] && !proj[1] && proj[2]) { arrPush(kit->border, &c); c->att = c; arrPush(kit->samples, &sc->p); arrPush(kit->samples, &sa->p);}
+    if (!proj[0] && proj[1] && proj[2]) { arrPush(kit->border, &b); b->att = b; arrPush(kit->samples, &sb->p); arrPush(kit->samples, &sc->p);}
+}
+
+inline static
+void sample_crit(uint64_t i, Obj o, Obj d)
+{
+    Vertex* c = o;
+    struct projection_kit* kit = d;
+    arrPush(kit->samples, c);
+}
+
+struct sample_kit {
+    real r;
+    uint64_t n;
+    Array s;
+};
+
+    inline static
+void ball_sample(uint64_t i, Obj o, Obj d)
+{
+    struct sample_kit* kit = d;
+    uint64_t samples = 0;
+
+    while (samples < kit->n) {
+        Vec3 displ = {
+            algoRandomDouble(-kit->r, kit->r),
+            algoRandomDouble(-kit->r, kit->r),
+            algoRandomDouble(-kit->r, kit->r)
+        };
+        if (vNormSquared((const Vec3*)&displ) < kit->r * kit->r) {
+            ++samples;
+            arrPush(kit->s, vAddI(&displ, o));
+        }
+    }
+
+}
+
+inline static
+void snap_mt_threads(uint64_t i, Obj o, Obj d)
+{
+    struct projection_kit* kit = d;
+    Thread t = o;
+    while (t->t != t) t = t->t;
+    Sample s = &t->relaxed;
+    snap_sample(s, kit->sp->vol, kit->iso, kit->sp->snap_iso_thr);
+}
+
+inline static
+Thread thread_collapse_mt(Thread t1, Thread t2)
+{
+    usage(t1);
+    usage(t2);
+
+    while (t1->t != t1) t1 = t1->t;
+    while (t2->t != t2) t2 = t2->t;
+
+    if (t1==t2) return t1;
+
+    if (t1->depth > t2->depth) {
+        t2->t = t1;
+        return t1;
+    } else if (t1->depth < t2->depth) {
+        t1->t = t2;
+        return t2;
+    } else {
+        ++t1->depth;
+        t2->t = t1;
+        return t1;
+    }
+}
+
+inline static
+void march_tets(uint64_t i, Obj o, Obj d)
+{
+    Tet t = o;
+    struct projection_kit* kit = d;
+
+    // clear the half-edge data
+    t->edges[0] = t->edges[1] = t->edges[2] = t->edges[3] = 0;
+
+    // get vertex values
+    real val[4];
+    bool geq[4];
+    int cnt = 0;
+    TetVertex vert;
+    for (vert = A; vert <= D; ++vert) {
+        Vertex* vv = t->v[vert];
+        val[vert-A] = sfValue(kit->sp->vol->scal, (*vv)[0], (*vv)[1], (*vv)[2]);
+        geq[vert-A] = (val[vert-A] >= kit->iso);
+        cnt += geq[vert-A];
+    }
+
+    struct HalfEdge edge_tmp = { .t = 0, .n = 0, .o = 0, .iso = kit->iso, .att = 0 };
+    struct Thread thread_tmp = {
+        .samples = 0,
+        .id = 0,
+        .t = 0,
+        .depth = 0,
+        .iso = 0,
+        .force_t = VERT_0,
+        .force_n = VERT_0,
+        .relaxed = {
+            .p = VERT_0,
+            .n = VERT_0,
+            .iso = kit->iso
+        }
+    };
+
+    // check which case we are in
+    if (cnt & 1) { // Frank or Hank
+        // find the single vertex which is greater than or equal to the isovalue
+        int frank = (cnt==1);
+        for (vert=A; vert<=D && (frank)?(!geq[vert-A]):(geq[vert-A]); ++vert);
+        check(vert <= D);
+
+        int dir = ((!frank) ^ (vert&1)) * -2 + 1;
+
+        TetVertex v[3] = { (vert+ 4 + 1 * dir)&3, (vert+ 4 + 2 * dir)&3, (vert+ 4 + 3 * dir)&3 };
+
+        // create the half-edges
+        t->edges[v[0]] = arrPush(kit->edges, &edge_tmp);
+        t->edges[v[1]] = arrPush(kit->edges, &edge_tmp);
+        t->edges[v[2]] = arrPush(kit->edges, &edge_tmp);
+        // create the threads
+        t->edges[v[0]]->t = arrPush(kit->threads, &thread_tmp);
+        t->edges[v[1]]->t = arrPush(kit->threads, &thread_tmp);
+        t->edges[v[2]]->t = arrPush(kit->threads, &thread_tmp);
+        t->edges[v[0]]->t->t = t->edges[v[0]]->t;
+        t->edges[v[1]]->t->t = t->edges[v[1]]->t;
+        t->edges[v[2]]->t->t = t->edges[v[2]]->t;
+        // set the sample positions
+        Vec3 v1, v2;
+        vScale((const Vec3*)t->v[vert], (kit->iso - val[v[0]])/(val[vert]- val[v[0]]), &v1);
+        vScale((const Vec3*)t->v[v[0]], (val[vert] - kit->iso)/(val[vert]- val[v[0]]), &v2);
+        vAdd(&v1, &v2, &t->edges[v[2]]->t->relaxed.p);
+
+        vScale((const Vec3*)t->v[vert], (kit->iso - val[v[1]])/(val[vert]- val[v[1]]), &v1);
+        vScale((const Vec3*)t->v[v[1]], (val[vert] - kit->iso)/(val[vert]- val[v[1]]), &v2);
+        vAdd(&v1, &v2, &t->edges[v[0]]->t->relaxed.p);
+
+        vScale((const Vec3*)t->v[vert], (kit->iso - val[v[2]])/(val[vert]- val[v[2]]), &v1);
+        vScale((const Vec3*)t->v[v[2]], (val[vert] - kit->iso)/(val[vert]- val[v[2]]), &v2);
+        vAdd(&v1, &v2, &t->edges[v[1]]->t->relaxed.p);
+
+        t->edges[v[0]]->n = t->edges[v[1]];
+        t->edges[v[1]]->n = t->edges[v[2]];
+        t->edges[v[2]]->n = t->edges[v[0]];
+
+        // check if there are opposing edges to hook up with
+        uint8_t j;
+        for (j=0; j<3; j++) {
+            if (t->n[v[j]]) {
+                HalfEdge opp = t->edges[v[j]]->o = t->n[v[j]]->edges[tetReadMap(t->m, v[j])];
+                if (opp) {
+                    opp->o = t->edges[v[j]];
+                    thread_collapse_mt(opp->t, opp->o->n->t);
+                    thread_collapse_mt(opp->o->t, opp->n->t);
+                }
+            }
+        }
+
+    } else if (cnt == 2) { // Gabrielle
+        TetVertex v[3];
+        // looking for the vertex which is on the same side as A
+        for (v[0] = B; v[0]<=D && geq[v[0]]!=geq[A]; ++v[0]);
+        check(geq[v[0]] == geq[A]);
+        // The side of vertex A determines the direction.
+        if (geq[A]) {
+            v[1] = (v[0]+1+(v[0]==D))&3;
+            v[2] = (v[1]+1+(v[1]==D))&3;
+        } else {
+            v[1] = (v[0]+4-1-(v[0]==B))&3;
+            v[2] = (v[1]+4-1-(v[1]==B))&3;
+        }
+
+        // create the half-edges
+        t->edges[A] = arrPush(kit->edges, &edge_tmp);
+        t->edges[v[0]] = arrPush(kit->edges, &edge_tmp);
+        t->edges[v[1]] = arrPush(kit->edges, &edge_tmp);
+        t->edges[v[2]] = arrPush(kit->edges, &edge_tmp);
+
+        // create the threads
+        t->edges[A]->t = arrPush(kit->threads, &thread_tmp);
+        t->edges[v[0]]->t = arrPush(kit->threads, &thread_tmp);
+        t->edges[v[1]]->t = arrPush(kit->threads, &thread_tmp);
+        t->edges[v[2]]->t = arrPush(kit->threads, &thread_tmp);
+
+        t->edges[A]->t->t = t->edges[A]->t;
+        t->edges[v[0]]->t->t = t->edges[v[0]]->t;
+        t->edges[v[1]]->t->t = t->edges[v[1]]->t;
+        t->edges[v[2]]->t->t = t->edges[v[2]]->t;
+
+        // set the sample positions
+        Vec3 v1, v2;
+
+        vScale((const Vec3*)t->v[v[0]], (kit->iso - val[v[2]])/(val[v[0]]- val[v[2]]), &v1);
+        vScale((const Vec3*)t->v[v[2]], (val[v[0]] - kit->iso)/(val[v[0]]- val[v[2]]), &v2);
+        vAdd(&v1, &v2, &t->edges[A]->t->relaxed.p);
+
+        vScale((const Vec3*)t->v[A], (kit->iso - val[v[1]])/(val[A]- val[v[1]]), &v1);
+        vScale((const Vec3*)t->v[v[1]], (val[A] - kit->iso)/(val[A]- val[v[1]]), &v2);
+        vAdd(&v1, &v2, &t->edges[v[0]]->t->relaxed.p);
+
+        vScale((const Vec3*)t->v[A], (kit->iso - val[v[2]])/(val[A]- val[v[2]]), &v1);
+        vScale((const Vec3*)t->v[v[2]], (val[A] - kit->iso)/(val[A]- val[v[2]]), &v2);
+        vAdd(&v1, &v2, &t->edges[v[1]]->t->relaxed.p);
+
+        vScale((const Vec3*)t->v[v[0]], (kit->iso - val[v[1]])/(val[v[0]]- val[v[1]]), &v1);
+        vScale((const Vec3*)t->v[v[1]], (val[v[0]] - kit->iso)/(val[v[0]]- val[v[1]]), &v2);
+        vAdd(&v1, &v2, &t->edges[v[2]]->t->relaxed.p);
+
+        t->edges[A]->n = t->edges[v[2]];
+        t->edges[v[2]]->n = t->edges[v[0]];
+        t->edges[v[0]]->n = t->edges[v[1]];
+        t->edges[v[1]]->n = t->edges[A];
+
+        // create the diagonal half-edges
+        HalfEdge e1 = arrPush(kit->edges, &edge_tmp);
+        HalfEdge e2 = arrPush(kit->edges, &edge_tmp);
+        e1->o = e2; e2->o = e1;
+
+        // check which diagonal is best suited to be split
+        vSub(&t->edges[A]->t->relaxed.p, &t->edges[v[0]]->t->relaxed.p, &v1);
+        vSub(&t->edges[v[1]]->t->relaxed.p, &t->edges[v[2]]->t->relaxed.p, &v2);
+        if (vNormSquared((const Vec3*)&v1) < vNormSquared((const Vec3*)&v2)) {
+            // split along v1
+            e1->t = t->edges[A]->t; e1->n = t->edges[v[0]]; t->edges[v[1]]->n = e1;
+            e2->t = t->edges[v[0]]->t; e2->n = t->edges[A]; t->edges[v[2]]->n = e2;
+        } else {
+            e1->t = t->edges[v[1]]->t; e1->n = t->edges[v[2]]; t->edges[v[0]]->n = e1;
+            e2->t = t->edges[v[2]]->t; e2->n = t->edges[v[1]]; t->edges[A]->n = e2;
+            // split along v2
+        }
+
+        // check if there are opposing edges to hook up with
+        uint8_t j;
+        for (j=0; j<4; j++) {
+            if (t->n[j]) {
+                HalfEdge opp = t->edges[j]->o = t->n[j]->edges[tetReadMap(t->m, j)];
+                if (opp) {
+                    opp->o = t->edges[j];
+                    thread_collapse_mt(opp->t, opp->o->n->t);
+                    thread_collapse_mt(opp->o->t, opp->n->t);
+                }
+            }
+        }
+
+    } else {
+        // no edges are creted. the isosurface does not intersect this tet
+    }
+
+}
+
+
+
 bool specProject(Spectrum restrict sp)
 {
-    call;
+    //call;
 
     // find the next isovalue to project to
-    debug(fprintf(stderr, "Finding next isovalue.\n"););
+    //debug(fprintf(stderr, "Finding next isovalue.\n"););
     real crt = sp->snap_iso;
     while (!arrIsEmpty(sp->isosamples) && crt <= *oCast(real*, arrBack(sp->isosamples))) arrPop(sp->isosamples);
     if (arrIsEmpty(sp->isosamples)) return false;
@@ -1983,28 +2309,85 @@ bool specProject(Spectrum restrict sp)
                 arrPush(criticalities, &cp->pos);
     }
 
-    // if it does not cross any critical value, project normally
+    // if it does not cross any critical value
     if (arrIsEmpty(criticalities)) {
-        debug(fprintf(stderr, "Projecting normally.\n"););
-        struct projection_kit kit = { .sp = sp, .iso = next, .crit = 0, .unproj = 0, .created = 0, };
+        // project normally
+        //debug(fprintf(stderr, "Projecting normally.\n"););
+        struct projection_kit kit = { .sp = sp, .iso = next, .crit = 0, .unproj = 0, .samples = 0, .threads = 0, .edges=0, .border=0};
         arrForEach(sp->active_threads, project_thread, &kit);
-    } else {
-        debug(fprintf(stderr, "Projecting across critical area.\n"););
+    } else {// otherwise:
+
+        specProcessFringe(sp);
+        specSimplify(sp);
+        specRelax(sp);
+
+        // project across the critical area
+        //debug(fprintf(stderr, "Projecting across critical area.\n"););
+
+        // do a partial projection and create a delaunay tetrahedrization containing:
         struct projection_kit kit = {
-            .sp = sp, .iso = next,
+            .sp = sp, .iso = next, .r = 3,
             .crit = criticalities,
             .unproj = arrCreate(sizeof (Thread), 1),
-            .created = arrCreate(sizeof (Thread), 1),
+            .threads = arrCreate(sizeof (struct Thread), 1),
+            .edges = arrCreate(sizeof (struct HalfEdge), 1),
+            .border = arrCreate(sizeof (HalfEdge), 1),
+            .samples = arrCreate(sizeof (Vertex), 1),
         };
-        arrForEach(sp->active_threads, project_thread, &kit);
-
-        stub;
-        // otherwise:
-        // compute the "border"
-        // do a partial projection and create a delaunay tetrahedrization containing:
         //  > the unprojected samples
+        arrForEach(sp->active_threads, project_thread, &kit);
+        fprintf(stderr, "Unprojected: %lu threads.\n", arrSize(kit.unproj));
+
         //  > the projections of samples whose triangle neighbors have not been projected
+        // compute the "border"
+        arrForEach(sp->fringe, find_border, &kit);
+        fprintf(stderr, "Bordering: %lu edges.\n", arrSize(kit.border));
+
         //  > the critical points crossed
+        // sample criticalities
+        arrForEach(criticalities, sample_crit, &kit);
+        //add some random samples inside the half-radius ball around each critical point
+        struct sample_kit s_kit = { .r = kit.r , .n = 10, .s = kit.samples };
+        arrForEach(kit.crit, ball_sample, &s_kit);
+
+        fprintf(stderr, "Samples: %lu.\n", arrSize(kit.samples));
+
+        sp->del = isoSample(sp->vol->scal, kit.crit, kit.samples, kit.iso, kit.r);
+
+        arrForEach(sp->del->t, march_tets, &kit);
+        fprintf(stderr, "Edges: %lu.\n", arrSize(kit.edges));
+        fprintf(stderr, "Threads: %lu.\n", arrSize(kit.threads));
+
+       arrForEach(kit.threads, snap_mt_threads, &kit);
+/*
+        // stitch to the border
+        arrForEach(kit.border, stitch_border, &kit);
+
+        // mark the edges which were clipped out during the stitching process
+        // by making their o, and n fields point to themselves
+        arrForEach(kit.border, mark_clipped_edges, &kit);
+
+        // create real counterparts for the edges which were not clipped out
+        arrForEach(kit.edges, create_real_edges, &kit);
+
+        // propagate the connectivity information to the fringe
+        arrForEach(kit.edges, propagate_connectivity, &kit);
+
+        // clear the att fields of the fringe
+        arrForEach(sp->fringe, clear_att, 0);
+
+        fprintf(stderr, "Edges: %lu.\n", arrSize(kit.edges));
+        fprintf(stderr, "Threads: %lu.\n", arrSize(kit.threads));
+*/
+
+        arrDestroy(kit.unproj);
+        arrDestroy(kit.samples);
+    //    arrDestroy(kit.threads);
+        sp->extracted_threads = kit.threads;
+    //    arrDestroy(kit.edges);
+        sp->extracted_edges = kit.edges;
+        arrDestroy(kit.border);
+        stub;
         return false;
     }
 
@@ -2013,12 +2396,34 @@ bool specProject(Spectrum restrict sp)
     return true;
 }
 
-void specSample(Spectrum restrict sp)
+void specProcessFringe(Spectrum restrict sp)
 {
+    specRefine(sp);
+    specRelax(sp);
+    specSimplify(sp);
+    specRelax(sp);
 }
 
 void specMerge(Spectrum restrict sp)
 {
+}
+
+void display_marked_edges(uint64_t i, Obj o, Obj d)
+{
+    unused(i);
+    unused(d);
+
+    HalfEdge e = o;
+    if (!e->att) return;
+
+    Thread ta = e->t; while (ta!=ta->t) ta = ta->t;
+    Thread tb = e->n->t; while (tb!=tb->t) tb = tb->t;
+
+    Sample sa = arrBack(ta->samples);
+    Sample sb = arrBack(tb->samples);
+    glVertex3v(sa->p);
+    glVertex3v(sb->p);
+
 }
 
 void display_edge(uint64_t i, Obj o, Obj d)
@@ -2038,18 +2443,56 @@ void display_edge(uint64_t i, Obj o, Obj d)
 
     Vec3 n;
 
+//    glColor3f((e->att || e->n->n->att), (!(e->att || e->n->n->att)), 0);
     vScale((const Vec3*)&sa->n, -1, &n);
     glNormal3v(n);
 //  glNormal3v(sa->n);
     glVertex3v(sa->p);
+//    glColor3f((e->att || e->n->att), (!(e->att || e->n->att)), 0);
     vScale((const Vec3*)&sb->n, -1, &n);
     glNormal3v(n);
 //  glNormal3v(sb->n);
     glVertex3v(sb->p);
+//    glColor3f((e->n->att || e->n->n->att), (!(e->n->att || e->n->n->att)), 0);
     vScale((const Vec3*)&sc->n, -1, &n);
     glNormal3v(n);
 //  glNormal3v(sc->n);
     glVertex3v(sc->p);
+}
+
+
+void display_extracted_edge(uint64_t i, Obj o, Obj d)
+{
+    unused(i);
+    unused(d);
+
+    HalfEdge e = o;
+    if ((e->t > e->n->t) || (e->t > e->n->n->t)) return;
+    Thread ta = e->t; while (ta!=ta->t) ta = ta->t;
+    Thread tb = e->n->t; while (tb!=tb->t) tb = tb->t;
+    Thread tc = e->n->n->t; while (tc!=tc->t) tc = tc->t;
+
+    Sample sa = &ta->relaxed;
+    Sample sb = &tb->relaxed;
+    Sample sc = &tc->relaxed;
+
+    Vec3 n;
+
+//    glColor3f((e->att || e->n->n->att), (!(e->att || e->n->n->att)), 0);
+    vScale((const Vec3*)&sa->n, -1, &n);
+    glNormal3v(n);
+//  glNormal3v(sa->n);
+    glVertex3v(sa->p);
+//    glColor3f((e->n->att || e->n->n->att), (!(e->n->att || e->n->n->att)), 0);
+    vScale((const Vec3*)&sc->n, -1, &n);
+    glNormal3v(n);
+//  glNormal3v(sc->n);
+    glVertex3v(sc->p);
+//    glColor3f((e->att || e->n->att), (!(e->att || e->n->att)), 0);
+    vScale((const Vec3*)&sb->n, -1, &n);
+    glNormal3v(n);
+//  glNormal3v(sb->n);
+    glVertex3v(sb->p);
 }
 
 void display_sample(uint64_t i, Obj o, Obj d)
@@ -2061,7 +2504,7 @@ void display_sample(uint64_t i, Obj o, Obj d)
     else {
         glPushMatrix();
         glTranslatef(s->p[0], s->p[1], s->p[2]);
-        glutSolidSphere(0.025, 3, 3);
+        glutSolidSphere(0.05, 3, 3);
         glPopMatrix();
     }
 }
@@ -2075,7 +2518,7 @@ void display_vert(uint64_t i, Obj o, Obj d)
     if (vIsZero(&s->n)) {
         glPushMatrix();
         glTranslated(s->p[0], s->p[1], s->p[2]);
-        glutSolidSphere(0.1, 5, 5);
+        glutSolidSphere(0.05, 3, 3);
         glPopMatrix();
     } else {
         Vec3 n;
@@ -2111,11 +2554,23 @@ void display_thread(uint64_t i, Obj o, Obj d)
 
 void specDisplay(Spectrum restrict sp)
 {
+    /*
     glTranslatef(
             sp->vol->scal->nx * sp->vol->scal->dx * -0.5,
             sp->vol->scal->ny * sp->vol->scal->dy * -0.5,
             sp->vol->scal->nz * sp->vol->scal->dz * -0.5
             );
+*/
+
+    // nucleon
+    //glTranslatef(-19, -20, -26);
+
+    // hydro-200
+    //glScalef(0.25, 1.0, 1.0);
+    glTranslatef(-62, -63, -63);
+
+    // hydro-15
+    //glTranslatef(-53.7646, -63, -63);
 
     glLineWidth(1.0);
 
@@ -2126,9 +2581,8 @@ void specDisplay(Spectrum restrict sp)
 
     pthread_mutex_lock(&sp->mutex);
 
-    arrForEach(sp->active_threads, display_thread, 0);
+   // arrForEach(sp->active_threads, display_thread, 0);
 
-/*
     glEnable(GL_LIGHTING);
 
     glEnable(GL_POLYGON_OFFSET_FILL);
@@ -2142,7 +2596,7 @@ void specDisplay(Spectrum restrict sp)
     glDisable(GL_POLYGON_OFFSET_FILL);
 
     glDisable(GL_LIGHTING);
-*/
+
 
     glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
     glColor3f(0.0, 1.0, 1.0);
@@ -2151,6 +2605,46 @@ void specDisplay(Spectrum restrict sp)
     glEnd();
     glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 
+
+   // if (sp->del) delDisplay(sp->del, 0);
+
+
+    if (sp->extracted_edges) {
+        glEnable(GL_LIGHTING);
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(1.0, 1.0);
+        glColor3f(1.0, 1.0, 0.0);
+        glBegin(GL_TRIANGLES);
+        arrForEach(sp->extracted_edges, display_extracted_edge, 0);
+        glEnd();
+        glDisable(GL_POLYGON_OFFSET_FILL);
+        glDisable(GL_LIGHTING);
+
+        glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+        glColor3f(1.0, 1.0, 0.0);
+        glBegin(GL_TRIANGLES);
+        arrForEach(sp->extracted_edges, display_extracted_edge, 0);
+        glEnd();
+        glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+    }
+
+
+    // the marked edges
+    glLineWidth(3.0);
+    glColor3f(1.0, 0.0, 0.0);
+    glBegin(GL_LINES);
+    arrForEach(sp->fringe, display_marked_edges, 0);
+    glEnd();
+    glLineWidth(1.0);
+
+/*
+    // the critical point
+    glPushMatrix();
+    glTranslatef(19, 20, 26);
+    glColor3f(1.0, 1.0, 0.0);
+    glutSolidSphere(0.075, 5, 5);
+    glPopMatrix();
+*/
     glColor3f(1.0, 0.0, 0.0);
     arrForEach(sp->active_threads, display_vert, sp);
     pthread_mutex_unlock(&sp->mutex);
@@ -2158,6 +2652,7 @@ void specDisplay(Spectrum restrict sp)
 
     glEnable(GL_LIGHTING);
     glDisable(GL_COLOR_MATERIAL);
+
 }
 
 void specObserve(Spectrum restrict sp)

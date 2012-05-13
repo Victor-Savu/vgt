@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include <math/predicates.h>
+#include <math/algorithms.h>
 
 #include <GL/glut.h>
 #include <unistd.h>
@@ -13,7 +14,7 @@
 static
 Array ins3(Delaunay del, Tet t, Vertex* p)
 {
-    call;
+    //call;
     pthread_mutex_lock(&del->mutex);
     p = arrPush(del->v, p);
     pthread_mutex_unlock(&del->mutex);
@@ -72,14 +73,14 @@ Array ins3(Delaunay del, Tet t, Vertex* p)
         if (d->n[n]) check(d->n[n]->v[A] == p);
     }
 
-    stub;
+    //stub;
     return stack;
 }
 
 static
 Array ins2(Delaunay del, Tet t, Vertex* p, enum TetFacet f)
 {
-    call;
+    //call;
     pthread_mutex_lock(&del->mutex);
     p = arrPush(del->v, p);
 
@@ -225,7 +226,7 @@ Array ins2(Delaunay del, Tet t, Vertex* p, enum TetFacet f)
     check(tetIsLegit(x));
     check(tetIsLegit(y));
 
-    stub;
+    //stub;
     return stack;
 }
 
@@ -233,8 +234,12 @@ Array ins2(Delaunay del, Tet t, Vertex* p, enum TetFacet f)
 static
 Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
 {
-    call;
+    //call;
     const Tet flag = t;
+
+    //Vertex* va;
+    //Vertex* vb;
+    //bool once = false;
 
     pthread_mutex_lock(&del->mutex);
     do {
@@ -261,9 +266,17 @@ Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
             tetRot(t, B);
         }
 
+        check(tetIsLegit(t));
+
         Vertex* a = t->v[A];
         Vertex* b = t->v[B];
-
+/*
+        if (!once) va = a, vb=b, once = true;
+        else {
+            check(va == a);
+            check(vb == b);
+        }
+*/
         t = t->n[D];
         TetVertex lblA = tetVertexLabel(t, a);
         TetVertex lblB = tetVertexLabel(t, b);
@@ -277,7 +290,8 @@ Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
             e = AC;
             break;
         case 3:
-            e = AD + 2 * (lblA && lblB);
+            e = AD + 3 * (lblA && lblB);
+            fprintf(stderr, "Here!\n");
             break;
         case 4:
             e = BD;
@@ -288,12 +302,15 @@ Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
         default:
             check(0);
         }
+    } while (t && flag != t);
 
-    } while (flag != t);
+    check(t);
+
+    fprintf(stderr, "Out of the first wile loop.\n");
 
     Vertex AP;  vNormalizeI(vSub(p, t->v[A], &AP));
     Vertex BP;  vNormalizeI(vSub(p, t->v[B], &BP));
-    check(fabs(vDot(&AP, &BP)) == 1);
+    check(algoAbs(vDot(&AP, &BP)) > 1-eps);
 
     Array stack = arrCreate(sizeof (Tet), 1);
 
@@ -309,11 +326,13 @@ Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
 
         t = t->n[D];
     } while (flag != t);
+    fprintf(stderr, "Out of the second wile loop.\n");
 
     do {
         tetConnect(t->n[B], C, t->n[D]->n[B], D);
         t = t->n[D];
     } while (flag != t);
+    fprintf(stderr, "Out of the third wile loop.\n");
 
     pthread_mutex_unlock(&del->mutex);
     do {
@@ -321,10 +340,12 @@ Array ins1(Delaunay del, Tet t, Vertex* p, enum TetEdge e)
         check(tetIsLegit(t->n[oB]));
         t = t->n[D];
     } while (flag != t);
+    fprintf(stderr, "Out of the fourth wile loop.\n");
 
-    stub;
+ //   stub;
     return stack;
 }
+
 /*
 static
 bool flip21(Delaunay del, Tet t, TetVertex X, Array stack)
@@ -350,18 +371,17 @@ bool flip21(Delaunay del, Tet t, TetVertex X, Array stack)
 
 }
 */
+
 static
 bool flip23(Delaunay del, Tet t, Array stack)
 {
-    call;
+    //call;
 
     check(tetIsLegit(t));
 
     //
     check(t->n[oA]);
     Tet o = t->n[oA];
-
-
 
     pthread_mutex_lock(&del->mutex);
     if (tetReadMap(t->m, oA) == oA) tetRot(o, D);
@@ -413,7 +433,7 @@ bool flip23(Delaunay del, Tet t, Array stack)
     check(tetIsLegit(o));
     check(tetIsLegit(s));
 
-    stub;
+    //stub;
     return true;
 }
 
@@ -431,7 +451,7 @@ void update_stack(uint64_t i, Obj o, Obj d) {
 static
 bool flip32(Delaunay del, Tet t, TetFace f, Array stack)
 {
-    call;
+    //call;
     Tet o = t->n[oA];
     Tet s = t->n[f];
 
@@ -441,13 +461,13 @@ bool flip32(Delaunay del, Tet t, TetFace f, Array stack)
 
     if (!o) {
         arrPush(stack, &t);
-        stub;
+        //stub;
         return false;
     }
 
     if (s->n[oA] != o) {
         arrPush(stack, &t);
-        stub;
+        //stub;
         return false;
     }
 
@@ -465,12 +485,12 @@ bool flip32(Delaunay del, Tet t, TetFace f, Array stack)
 
     if (orient3d(*t->v[A], *t->v[F], *t->v[G], *s->v[X]) < 0) {
         arrPush(stack, &t);
-        stub;
+        //stub;
         return false;
     }
     if (orient3d(*t->v[A], *t->v[H], *t->v[F], *s->v[X]) < 0) {
         arrPush(stack, &t);
-        stub;
+        //stub;
         return false;
     }
 
@@ -512,19 +532,19 @@ bool flip32(Delaunay del, Tet t, TetFace f, Array stack)
     arrPush(stack, &t);
     arrPush(stack, &s);
 
-    stub;
+    //stub;
     return true;
 }
 
 static
 bool flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
 {
-    call;
+    //call;
     Tet tb = t->n[tV];
     if (!tb) {
         fprintf(stderr, "[!] No tb.\n"); fflush(stderr);
         arrPush(stack, &t);
-        stub;
+        //stub;
         return false;
     }
 
@@ -532,7 +552,7 @@ bool flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
     if (!tc) {
         fprintf(stderr, "[!] No tc.\n"); fflush(stderr);
         arrPush(stack, &t);
-        stub;
+        //stub;
         return false;
     }
 
@@ -541,7 +561,7 @@ bool flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
     if (tc != ta->n[tetVertexLabel(ta, t->v[tV])]) {
      //   fprintf(stderr, "[!] tc and ta are not neighbors.\n"); fflush(stderr);
         arrPush(stack, &t);
-        stub;
+        //stub;
         return false;
     }
 
@@ -577,7 +597,7 @@ bool flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
         check(0);
       //  fprintf(stderr, "[!] Concave.\n"); fflush(stderr);
         arrPush(stack, &t);
-        stub;
+        //stub;
         return false;
     } else {
         check(orient3d(*U, *Y, *V, *X) != 0);
@@ -587,7 +607,7 @@ bool flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
         check(0);
        // fprintf(stderr, "[!] Concave.\n"); fflush(stderr);
         arrPush(stack, &t);
-        stub;
+        //stub;
         return false;
     } else {
         check(orient3d(*U, *Z, *Y, *X) != 0);
@@ -651,14 +671,14 @@ bool flip44(Delaunay del, Tet t, TetVertex tV, Array stack)
     check(tetIsLegit(tb));
     check(tetIsLegit(tc));
 
-    stub;
+    //stub;
     return true;
 }
 
 static
 Array flip(Delaunay del, Array stack)
 {
-    call;
+    //call;
     Array ret = arrCreate(sizeof(Tet), 1);
 
     while (!arrIsEmpty(stack)) {
@@ -747,14 +767,14 @@ Array flip(Delaunay del, Array stack)
 
     arrDestroy(stack);
 
-    stub;
+    //stub;
 
     return ret;
 }
 
 Array delInsert(Delaunay d, Vertex* p)
 {
-    call;
+    //call;
     Tet t = arrFront(d->t);
     Tet ot = t;
 
@@ -990,7 +1010,7 @@ void delDisplay(Delaunay d, int tet)
         }
     }
 
-
+/*
     glPointSize(10.0);
     glBegin(GL_POINTS);
 
@@ -1001,14 +1021,14 @@ void delDisplay(Delaunay d, int tet)
     }
 
     glEnd();
-
+*/
     if (d->rendering & DELAUNAY_RENDER_CIRCUMSPHERE) {
         glColor4f(0.0, 1.0, 1.0, 1.0);
         tetRenderCircumsphere(t_sel);
         glColor4f(1.0, 0.0, 0.0, 1.0);
     }
     glEnable(GL_LIGHTING);
-    tetRenderSolid(t_sel);
+//    tetRenderSolid(t_sel);
 
     pthread_mutex_unlock(&d->mutex);
 
@@ -1032,7 +1052,7 @@ Delaunay delCreate(Vertex (*hull)[4])
     d->B = t.v[B];
     d->C = t.v[C];
     d->D = t.v[D];
-    d->rendering = DELAUNAY_RENDER_BOUNDING_TET;
+    //d->rendering = DELAUNAY_RENDER_BOUNDING_TET;
 
     arrPush(d->t, &t);
 
@@ -1073,7 +1093,8 @@ void drop_tet(uint64_t i, Obj o, Obj d)
         tetConnect(t->n[oB], tetReadMap(t->m, oB), 0, 0);
         tetConnect(t->n[oC], tetReadMap(t->m, oC), 0, 0);
         tetConnect(t->n[oD], tetReadMap(t->m, oD), 0, 0);
-        oCopyTo(t, arrBack(tets), sizeof (struct Tet));
+     //   oCopyTo(t, arrBack(tets), sizeof (struct Tet));
+        tetCopy(t, arrBack(tets));
         arrPop(tets);
     }
 }

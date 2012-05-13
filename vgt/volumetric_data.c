@@ -33,13 +33,13 @@ VolumetricData vdCopy(VolumetricData v)
 {
     VolumetricData c = oCopy(v, sizeof(struct VolumetricData));
     c->scal = sfCopy(v->scal);
-    c->min = sfCopy(v->min);
-    c->max = sfCopy(v->max);
+//    c->min = sfCopy(v->min);
+//    c->max = sfCopy(v->max);
     c->grad = vfCopy(v->grad);
     c->lapl = sfCopy(v->lapl);
     return c;
 }
-
+/*
 inline static
 real min_real(real x, real y) { return (x<y)?(x):(y); }
 inline static
@@ -72,7 +72,7 @@ void max_value(real* arg[8], real* v)
     max_tmp[1] = max_real(max_tmp[2], max_tmp[3]);
     *v = max_real(max_tmp[0], max_tmp[1]);
 }
-
+*/
 bool
 vdRead(VolumetricData v, FILE* fin, const char* filename)
 {
@@ -105,11 +105,11 @@ vdRead(VolumetricData v, FILE* fin, const char* filename)
     v->scal = sfCreate(nx, ny, nz, sx, sy, sz);
     sfReadRaw(v->scal, raw_file_name);
 
-    v->min = sfCreate(nx-1, ny-1, nz-1, sx, sy, sz);
-    sfVoxelOp(v->scal, min_value, v->min);
+//    v->min = sfCreate(nx-1, ny-1, nz-1, sx, sy, sz);
+//    sfVoxelOp(v->scal, min_value, v->min);
 
-    v->max = sfCreate(nx-1, ny-1, nz-1, sx, sy, sz);
-    sfVoxelOp(v->scal, max_value, v->max);
+//    v->max = sfCreate(nx-1, ny-1, nz-1, sx, sy, sz);
+//    sfVoxelOp(v->scal, max_value, v->max);
 
     v->grad = sfGradient(v->scal);
     //v->lapl = vfDivergence(v->grad);
@@ -123,6 +123,8 @@ vdClear(VolumetricData v)
 {
     if (!v) return;
     sfClear(v->scal);
+//    sfClear(v->max);
+//    sfClear(v->min);
     vfClear(v->grad);
     sfClear(v->lapl);
     free(v->topology.criticalities);
@@ -134,8 +136,8 @@ vdDestroy(VolumetricData v)
 {
     if (!v) return;
     sfDestroy(v->scal);
-    sfDestroy(v->max);
-    sfDestroy(v->min);
+//    sfDestroy(v->max);
+//    sfDestroy(v->min);
     vfDestroy(v->grad);
     sfDestroy(v->lapl);
     free(v->topology.criticalities);

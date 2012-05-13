@@ -387,7 +387,8 @@ Obj arrBack(Array restrict arr)
         exit(EXIT_FAILURE);
     }
     //return oCast(char*, arr->begin[arr->d-1 - arr->empty_db]) + arr->segment_size * (arr->od-1) + arr->element_size * (arr->oseg-1);
-    check( (arr->begin[arr->d-1] != arr->end[arr->d-1]) );
+    if (arr->begin[arr->d-1] == arr->end[arr->d-1])
+        check( (arr->begin[arr->d-1] != arr->end[arr->d-1]) );
     return oCast(char*, arr->end[arr->d-1]) - arr->element_size;
 }
 
