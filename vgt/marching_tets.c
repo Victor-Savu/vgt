@@ -104,6 +104,8 @@ void check_proximity(uint64_t i, Obj o, Obj d)
     }
 }
 
+
+
 Delaunay isoSample(const ScalarField const restrict data, Array restrict crit, Array restrict samples, real isoValue, real radius)
 {
     call;
@@ -189,6 +191,7 @@ Delaunay isoSample(const ScalarField const restrict data, Array restrict crit, A
 //      printf("%s Delaunay tetrahedrization after inserting vertex #%ld.\n", (delCheck(del))?("Correct"):("Incorrect"), i); fflush(stdout);
     }
 */
+  printf("%s Delaunay tetrahedrization.\n", (delCheck(del))?("Correct"):("Incorrect")); fflush(stdout);
 
     uint64_t skipped = 0;
     i = 0;
@@ -196,7 +199,7 @@ Delaunay isoSample(const ScalarField const restrict data, Array restrict crit, A
         Tet t = arrGet(del->t, i);
 
         // check if at least one of the tet's vertices is in the proximity of a critical point
-        struct proximity_kit p_kit = { .in_proximity = false, .dist_squared = radius*radius*4, .t = t };
+        struct proximity_kit p_kit = { .in_proximity = false, .dist_squared = radius*radius, .t = t };
         arrForEach(crit, check_proximity, &p_kit);
         //p_kit.in_proximity = true;
 
@@ -238,6 +241,26 @@ Delaunay isoSample(const ScalarField const restrict data, Array restrict crit, A
 //  rWaitKey(r, &key);
 
     delDropBoundary(del);
+
+    i = 0;
+    while (i < arrSize(del->t)) {
+        Tet t = arrGet(del->t, i);
+
+        // check if at least one of the tet's vertices is in the proximity of a critical point
+        struct proximity_kit p_kit = { .in_proximity = false, .dist_squared = radius*radius, .t = t };
+        arrForEach(crit, check_proximity, &p_kit);
+
+        if (p_kit.in_proximity) {
+            i++;
+        } else {
+            tetConnect(t->n[oA], tetReadMap(t->m, oA), 0, 0);
+            tetConnect(t->n[oB], tetReadMap(t->m, oB), 0, 0);
+            tetConnect(t->n[oC], tetReadMap(t->m, oC), 0, 0);
+            tetConnect(t->n[oD], tetReadMap(t->m, oD), 0, 0);
+            tetCopy(t, arrBack(del->t));
+            arrPop(del->t);
+        }
+    }
 
 //  rWait(r);
 //  rDestroy(r);

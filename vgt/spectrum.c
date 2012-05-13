@@ -68,7 +68,7 @@ void snap_sample(Sample restrict s, VolumetricData restrict vol, real snap_iso, 
     Normal dn;
     Vertex new_p;
     ignore vfValue(vol->grad, &s->n, s->p[0], s->p[1], s->p[2]);
-    vScale((const Vec3*)&s->n, 0.1 * d_iso/vNormSquared((const Vec3*)&s->n), &dn);
+    vScale((const Vec3*)&s->n, 0.01 * d_iso/vNormSquared((const Vec3*)&s->n), &dn);
     while (algoAbs(d_iso) > snap_iso_thr) {
         vAdd(&dn, &s->p, &new_p);
         if (sfInside(vol->scal, new_p[0], new_p[1], new_p[2])) iso = sfValue(vol->scal, new_p[0], new_p[1], new_p[2]);
@@ -95,7 +95,7 @@ void snap_sample(Sample restrict s, VolumetricData restrict vol, real snap_iso, 
         vCopy(&new_p, &s->p);
         s->iso = iso;
         ignore vfValue(vol->grad, &s->n, s->p[0], s->p[1], s->p[2]);
-        vScale((const Vec3*)&s->n, 0.1 * d_iso/vNormSquared((const Vec3*)&s->n), &dn);
+        vScale((const Vec3*)&s->n, 0.01 * d_iso/vNormSquared((const Vec3*)&s->n), &dn);
     }
     //usleep(5000000);
 }
@@ -500,11 +500,11 @@ Spectrum specCreate(const char* restrict conf)
         .active_threads = active_thr,
         .snap_iso = initial_isovalue,
         .snap_iso_thr = 5e-5,
-        .area_sqr = 1e-8,
+        .area_sqr = 1e-4,
         .lambda = 0.04,
         .ref_norm_thr = 0.8,
-      //  .min_sampling_iso_distance = 4e-3, // slightly smaller than 2./255.
-        .min_sampling_iso_distance = 1e-3, // slightly smaller than 0.25/255.
+        .min_sampling_iso_distance = 4e-3, // slightly smaller than 1./255.
+      //  .min_sampling_iso_distance = 1e-3, // slightly smaller than 0.25/255.
         .min_crit_iso_distance = 8e-4, // 5 times smaller than the maximum sampling iso distance
         .isosamples = arrCreate(sizeof(real), 1),
     };
@@ -1300,7 +1300,7 @@ void stage1(uint64_t i, Obj o, Obj d)
         // check if the edge is long enough to be split
         struct Sample sm;
         real l = vNormSquared((const Vec3*) vSub(&s->p, &sn->p, &sm.p));
-        if ( l < 0.04) {
+        if ( l*l < ref->sp->area_sqr) {
             // it does not have to be split
             e->att = 0;
             HalfEdge* bk = arrBack(ref->q);
@@ -2046,7 +2046,8 @@ void sample_crit(uint64_t i, Obj o, Obj d)
 }
 
 struct sample_kit {
-    real r;
+    real min_r;
+    real max_r;
     uint64_t n;
     Array s;
 };
@@ -2059,11 +2060,12 @@ void ball_sample(uint64_t i, Obj o, Obj d)
 
     while (samples < kit->n) {
         Vec3 displ = {
-            algoRandomDouble(-kit->r, kit->r),
-            algoRandomDouble(-kit->r, kit->r),
-            algoRandomDouble(-kit->r, kit->r)
+            algoRandomDouble(-kit->max_r, kit->max_r),
+            algoRandomDouble(-kit->max_r, kit->max_r),
+            algoRandomDouble(-kit->max_r, kit->max_r)
         };
-        if (vNormSquared((const Vec3*)&displ) < kit->r * kit->r) {
+        real dist = vNormSquared((const Vec3*)&displ);
+        if (dist < kit->max_r * kit->max_r && dist > kit->min_r * kit->min_r) {
             ++samples;
             arrPush(kit->s, vAddI(&displ, o));
         }
@@ -2288,6 +2290,44 @@ void march_tets(uint64_t i, Obj o, Obj d)
 }
 
 
+inline static
+void create_real_threads(uint64_t i, Obj o, Obj d)
+{
+    struct projection_kit* kit = d;
+    Thread t = o;
+    if (t->t != t) return;
+    t->id = arrSize(kit->sp->thr);
+    t->t = arrPush(kit->sp->thr, t);
+    t = t->t;
+    t->t = t;
+    arrPush(kit->sp->active_threads, &t);
+    t->active = true;
+    t->samples = arrCreate(sizeof (struct Sample), 1);
+    arrPush(t->samples, &t->relaxed);
+}
+
+inline static
+void create_real_edges(uint64_t i, Obj o, Obj d)
+{
+    HalfEdge e = o;
+    struct projection_kit* kit = d;
+    Thread t = e->t; while (t != t->t) t = t->t;
+
+    e->att = arrPush(kit->sp->fringe, e);
+    e = e->att;
+
+    e->t = t; e->n = 0; e->o = 0; e->att = 0;
+}
+
+inline static
+void propagate_connectivity(uint64_t i, Obj o, Obj d)
+{
+    HalfEdge e = o;
+
+    HalfEdge ea = e->att;
+    ea->n = e->n->att;
+    if (e->o) ea->o = e->o->att; else ea->o = 0;
+}
 
 bool specProject(Spectrum restrict sp)
 {
@@ -2318,15 +2358,15 @@ bool specProject(Spectrum restrict sp)
     } else {// otherwise:
 
         specProcessFringe(sp);
-        specSimplify(sp);
-        specRelax(sp);
+//        specSimplify(sp);
+//        specRelax(sp);
 
         // project across the critical area
         //debug(fprintf(stderr, "Projecting across critical area.\n"););
 
         // do a partial projection and create a delaunay tetrahedrization containing:
         struct projection_kit kit = {
-            .sp = sp, .iso = next, .r = 3,
+            .sp = sp, .iso = next, .r = 5,
             .crit = criticalities,
             .unproj = arrCreate(sizeof (Thread), 1),
             .threads = arrCreate(sizeof (struct Thread), 1),
@@ -2345,9 +2385,9 @@ bool specProject(Spectrum restrict sp)
 
         //  > the critical points crossed
         // sample criticalities
-        arrForEach(criticalities, sample_crit, &kit);
+        //arrForEach(criticalities, sample_crit, &kit);
         //add some random samples inside the half-radius ball around each critical point
-        struct sample_kit s_kit = { .r = kit.r , .n = 10, .s = kit.samples };
+        struct sample_kit s_kit = { .max_r = 5, .min_r = 0.5 , .n = 10, .s = kit.samples };
         arrForEach(kit.crit, ball_sample, &s_kit);
 
         fprintf(stderr, "Samples: %lu.\n", arrSize(kit.samples));
@@ -2355,8 +2395,6 @@ bool specProject(Spectrum restrict sp)
         sp->del = isoSample(sp->vol->scal, kit.crit, kit.samples, kit.iso, kit.r);
 
         arrForEach(sp->del->t, march_tets, &kit);
-        fprintf(stderr, "Edges: %lu.\n", arrSize(kit.edges));
-        fprintf(stderr, "Threads: %lu.\n", arrSize(kit.threads));
 
        arrForEach(kit.threads, snap_mt_threads, &kit);
 /*
@@ -2366,36 +2404,54 @@ bool specProject(Spectrum restrict sp)
         // mark the edges which were clipped out during the stitching process
         // by making their o, and n fields point to themselves
         arrForEach(kit.border, mark_clipped_edges, &kit);
+*/
+        pthread_mutex_lock(&sp->mutex);
+        // create real counterparts for the threads which were not clipped out
+        arrForEach(kit.threads, create_real_threads, &kit);
 
         // create real counterparts for the edges which were not clipped out
         arrForEach(kit.edges, create_real_edges, &kit);
 
         // propagate the connectivity information to the fringe
         arrForEach(kit.edges, propagate_connectivity, &kit);
+        pthread_mutex_unlock(&sp->mutex);
 
         // clear the att fields of the fringe
-        arrForEach(sp->fringe, clear_att, 0);
+        arrForEach(sp->fringe, clear_edge_att, 0);
 
         fprintf(stderr, "Edges: %lu.\n", arrSize(kit.edges));
         fprintf(stderr, "Threads: %lu.\n", arrSize(kit.threads));
-*/
+
+        if (arrSize(kit.unproj) != 0) {
+            arrDestroy(kit.unproj);
+            arrDestroy(kit.samples);
+            arrDestroy(kit.border);
+            sp->extracted_edges = kit.edges;
+            sp->extracted_threads = kit.threads;
+            return false;
+        }
 
         arrDestroy(kit.unproj);
         arrDestroy(kit.samples);
-    //    arrDestroy(kit.threads);
-        sp->extracted_threads = kit.threads;
-    //    arrDestroy(kit.edges);
-        sp->extracted_edges = kit.edges;
         arrDestroy(kit.border);
-        stub;
-        return false;
+        arrDestroy(kit.threads);
+        arrDestroy(kit.edges);
+
+/*
+        arrDestroy(sp->extracted_threads);
+        sp->extracted_threads = kit.threads;
+        arrDestroy(sp->extracted_edges);
+        sp->extracted_edges = kit.edges;
+*/
+
+      //  stub;
+      //  return false;
     }
 
     arrDestroy(criticalities);
     sp->snap_iso = next;
     return true;
 }
-
 void specProcessFringe(Spectrum restrict sp)
 {
     specRefine(sp);
