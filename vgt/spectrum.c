@@ -499,12 +499,12 @@ Spectrum specCreate(const char* restrict conf)
         .vol = v,
         .active_threads = active_thr,
         .snap_iso = initial_isovalue,
-        .snap_iso_thr = 5e-4,
-        .area_sqr = 0.04,
+        .snap_iso_thr = 5e-5,
+        .area_sqr = 1e-8,
         .lambda = 0.04,
         .ref_norm_thr = 0.8,
-        .min_sampling_iso_distance = 4e-3, // slightly smaller than 2./255.
-      //  .min_sampling_iso_distance = 1e-3, // slightly smaller than 0.25/255.
+      //  .min_sampling_iso_distance = 4e-3, // slightly smaller than 2./255.
+        .min_sampling_iso_distance = 1e-3, // slightly smaller than 0.25/255.
         .min_crit_iso_distance = 8e-4, // 5 times smaller than the maximum sampling iso distance
         .isosamples = arrCreate(sizeof(real), 1),
     };

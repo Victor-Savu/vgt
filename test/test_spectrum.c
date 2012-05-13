@@ -176,9 +176,20 @@ int main(int argc, char* argv[])
 
         if (!ret) break;
         */
+/*
+        specRefine(sp);
+           rWaitKey(r, &key);
+        specRelax(sp);
+           rWaitKey(r, &key);
+        specSimplify(sp);
+           rWaitKey(r, &key);
+        specRelax(sp);
+*/
 
             specProcessFringe(sp);
+       //     rWaitKey(r, &key);
         if (!specProject(sp)) break;
+
     }
 
     (void) fprintf(stdout, "Success!\n"); fflush(stdout);

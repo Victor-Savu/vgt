@@ -9,15 +9,15 @@ cmake_minimum_required (VERSION 2.6)
 project(VGT C)
 
 #set(CMAKE_BUILD_TYPE RelWithDebugInfo)
-set(CMAKE_BUILD_TYPE Release)
-#set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
 
 #cmake_policy(SET CMP0003 NEW)
 
 #set(libtype "SHARED")
 
-set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -O3 -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing")
-#set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing")
+#set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -O3 -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing")
+set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing")
 
 link_directories("$ENV{CUSTOM_MODULES_PATH}/lib")
 include_directories("$ENV{CUSTOM_MODULES_PATH}/include")
