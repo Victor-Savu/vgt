@@ -10,14 +10,14 @@ project(VGT C)
 
 #set(CMAKE_BUILD_TYPE RelWithDebugInfo)
 #set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_BUILD_TYPE Debug)
+# set(CMAKE_BUILD_TYPE Debug)
 
 #cmake_policy(SET CMP0003 NEW)
 
 #set(libtype "SHARED")
 
-#set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -O3 -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing")
-set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing")
+set(CMAKE_C_RELEASE_FLAGS   "${CMAKE_C_RELEASE_FLAGS}   -O3 -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing")
+set(CMAKE_C_DEBUG_FLAGS   "${CMAKE_C_DEBUG_FLAGS} -Wall -Werror -Winit-self -Wuninitialized -Wstrict-aliasing -fstrict-aliasing")
 
 link_directories("$ENV{CUSTOM_MODULES_PATH}/lib")
 include_directories("$ENV{CUSTOM_MODULES_PATH}/include")
@@ -55,9 +55,9 @@ add_library(math ${libtype} ${math_sources})
 target_link_libraries(math m)
 
 set(ads_sources
-        ads/red_black_tree.c
+  #      ads/red_black_tree.c
         ads/array.c
-        ads/red_black_node.c
+  #      ads/red_black_node.c
         ads/list_element.c
         ads/list.c
         ads/vector.c
@@ -65,10 +65,10 @@ set(ads_sources
     )
 
 set(ads_headers
-        ads/red_black_tree.h
+  #        ads/red_black_tree.h
         ads/list_element.h
         ads/list.h
-        ads/red_black_node.h
+  #      ads/red_black_node.h
         ads/array.h
         ads/array_cls.h
         ads/vector.h

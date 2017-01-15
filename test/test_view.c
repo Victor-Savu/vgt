@@ -6,25 +6,26 @@
 
 int main(int argc, char* argv[])
 {
-    if (argc != 2) {
+  /*  if (argc != 2) {
         printf("please provide exactly one .off file as input.\n");
         return -1;
-    }
+    }*/
+
     Renderer r = rCreate("Hello");
 
-    Mesh m = mReadOff(0, argv[1]);
-    rDisplayMesh(r, m);
+//    Mesh m = mReadOff(0, argv[1]);
+//    rDisplayMesh(r, m);
 
-
+/*
     Vertex tetra[4] = {
         {0.0, 0.0, 0.0},
         {260.0, 0.0, 0.0},
         {0.0, 260.0, 0.0},
         {0.0, 0.0, 260.0}
-    };
-    Delaunay d = delCreate(&tetra);
+    };*/
+//    Delaunay d = delCreate(&tetra);
 
-    rDisplayDelaunay(r, d);
+//    rDisplayDelaunay(r, d);
 
 /*
     m = mReadOff(0, argv[1]);

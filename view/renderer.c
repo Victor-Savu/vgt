@@ -281,7 +281,7 @@ void* init_rendering(void* arg)
     char* argv = "viewer";
     glutInit(&argc, &argv);
 
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH | GLUT_RGBA);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH | GLUT_RGBA | GLUT_MULTISAMPLE);
     glutInitWindowSize(1165, 720);
     glutCreateWindow("Homework 3");
 

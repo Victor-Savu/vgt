@@ -56,10 +56,10 @@ void testMarchingTets(  uint64_t x,
         {0, 3.0, 2.0},
         {10.0, 10.0, 10.0}
     };
-    Vertex pos = {0, 0, 0};
+    //Vertex pos = {0, 0, 0};
 
     uint64_t i = 0;
-    for (i=0; i<8; i++) vAddI(&vertices[i], &pos);
+    //for (i=0; i<8; i++) vAddI(&vertices[i], &pos);
 
     Array bounding_box = arrCreate(sizeof(Vertex), 1);
     for (i=0; i<8; i++) arrPush(bounding_box, &vertices[i]);

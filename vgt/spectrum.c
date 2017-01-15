@@ -339,17 +339,7 @@ Spectrum specCreate(const char* restrict conf)
     VolumetricData v = oCreate(sizeof (struct VolumetricData));
     vdRead(v, fin, conf);
 
-    char off_file_name[1024];
-    float initial_isovalue = 0.0;
     char line[1024];
-
-    // read the name of the .off file with the initial mesh and the initial isovalue for which it was extracted
-    do {
-        conjecture(fgets(line, 1024, fin), "Error reading the off file name and initial isovalue from configuration file.");
-        strip(line);
-    } while (sscanf(line, "%s %f", off_file_name, &initial_isovalue) != 2);
-    // scale down the initial isovalue
-    initial_isovalue /= 255.0f;
 
     // read the number of critical points
     do {
@@ -378,119 +368,10 @@ Spectrum specCreate(const char* restrict conf)
         }
     }
 
-    // read the off file, initialize the threads and construct the fringe
-    conjecture(freopen(off_file_name, "r", fin), "Failed to open the off file.");
-
     Array thr = arrCreate(sizeof (struct Thread), 2);
     Array tri = arrCreate(sizeof (struct Triangloid), 1);
     Array fringe = arrCreate(sizeof (struct HalfEdge), 2);
     Array active_thr = arrCreate(sizeof (Thread), 2);
-
-    // read header
-    unsigned int aux, vert, faces;
-    conjecture(fgets(line, sizeof(line), fin), "Error reading from off file."); // OFF
-    conjecture(fgets(line, sizeof(line), fin), "Error reading from off file."); // #vertices #faces #<unused>
-   // fputs(line, stdout);
-    conjecture(sscanf(line, "%u %u %u", &vert, &faces, &aux) == 3, "Failed to read #vert #faces #<unused> from off file.");
-    fprintf(stderr, "%u vertices, %u faces\n", vert, faces); fflush(stderr);
-
-    // read vertices
-    uint64_t i = 0;
-    struct Sample smpl = { .p = VERT_0, .n = VERT_0, .iso = initial_isovalue };
-    for (i = 0; i < vert; i++) {
-        conjecture(fgets(line, sizeof(line), fin), "Error reading from off file.");
-        conjecture(sscanf(line, "%f %f %f\n", &x, &y, &z) == 3, "failed to read vertex from off file.");
-        //x+= 0.2; y+=0.2; z+=0.2;
-        vfValue(v->grad, &smpl.n, x, y, z);
-/*
-        while (vIsZero(vfValue(v->grad, &smpl.n, x, y, z))) {
-            x += algoRandomDouble(0.0001, 0.001);
-            y += algoRandomDouble(0.0001, 0.001);
-            z += algoRandomDouble(0.0001, 0.001);
-        }
-
-        vSet(&smpl.p, x+0.2, y+0.2, z+0.2);
-*/
-        vSet(&smpl.p, x, y, z);
-
-        struct Thread tmp_thr = {
-            .samples = arrCreate(sizeof (struct Sample), 1),
-            .id = i,
-            .iso = initial_isovalue
-        };
-        ignore arrPush(tmp_thr.samples, &smpl);
-        Thread t = arrPush(thr, &tmp_thr);
-        t->t = t; // for now, the thread represents itself
-        ignore arrPush(active_thr, &t);
-    }
-
-    // read faces
-    unsigned int a, b, c, cnt;
-//    Normal p, q, norm;
-
-    fprintf(stderr, "Reading faces.\n"); fflush(stderr);
-    for (i = 0; i < faces; i++) {
-        conjecture(fgets(line, sizeof(line), fin), "Error reading from off file.");
-        conjecture(sscanf(line, "%u %u %u %u\n", &cnt, &a, &b, &c) == 4, "Failed to read face from off file.");
-
-        usage(a < vert);
-        usage(b < vert);
-        usage(c < vert);
-
-        // create the half-edges
-        struct HalfEdge edge_a = { .t = arrGet(thr, a), .n = 0, .o = 0, .iso = initial_isovalue };
-        struct HalfEdge edge_b = { .t = arrGet(thr, b), .n = 0, .o = 0, .iso = initial_isovalue };
-        struct HalfEdge edge_c = { .t = arrGet(thr, c), .n = 0, .o = 0, .iso = initial_isovalue };
-
-        HalfEdge ea = arrPush(fringe, &edge_a);
-        HalfEdge eb = arrPush(fringe, &edge_b);
-        HalfEdge ec = arrPush(fringe, &edge_c);
-
-        ea->n = eb; eb->n = ec; ec->n = ea;
-
-        ea->t->active = true;
-        eb->t->active = true;
-        ec->t->active = true;
-    }
-
-    fprintf(stderr, "Eliminating inactive threads.\n"); fflush(stderr);
-    // eliminate disconnected vertices
-    arrForEach(active_thr, remove_inactive_threads, active_thr);
-
-    fprintf(stderr, "Computing the opposing edges.\n"); fflush(stderr);
-    // find opposing edges
-    uint64_t n_edges = arrSize(fringe);
-    HalfEdge* left  = arrRefs(fringe);
-    HalfEdge* right = oCopy(left, n_edges * sizeof(HalfEdge));
-
-    qsort(left, n_edges, sizeof (HalfEdge), left_cmp);
-    qsort(right, n_edges, sizeof (HalfEdge), right_cmp);
-
-    HalfEdge* l = left;
-    HalfEdge* r = right;
-
-    HalfEdge* end_l = left + n_edges;
-    HalfEdge* end_r = right + n_edges;
-
-    while ((l < end_l) && (r < end_r)) {
-        switch (cross_cmp(*l, *r)) {
-            case -1:
-                l++;
-                break;
-            case  1:
-                r++;
-                break;
-            default:
-                (*l)->o = (*r);
-                (*r)->o = (*l);
-                l++;r++;
-                break;
-        }
-    }
-
-    oDestroy(left);
-    oDestroy(right);
-    fclose(fin);
 
     struct Spectrum sp = {
         .thr = thr,
@@ -498,7 +379,7 @@ Spectrum specCreate(const char* restrict conf)
         .fringe = fringe,
         .vol = v,
         .active_threads = active_thr,
-        .snap_iso = initial_isovalue,
+        .snap_iso = 0,
         .snap_iso_thr = 5e-5,
         .area_sqr = 1e-4,
         .lambda = 0.04,
@@ -514,11 +395,12 @@ Spectrum specCreate(const char* restrict conf)
     // computing the sampling isovalues
     qsort(v->topology.criticalities, v->topology.size, sizeof(struct CriticalPoint), cmp_crit);
 
-    usage(v->topology.criticalities[0].isovalue < initial_isovalue);
-    usage(v->topology.criticalities[v->topology.size-1].isovalue > initial_isovalue);
+    //usage(v->topology.criticalities[0].isovalue < initial_isovalue);
+    //usage(v->topology.criticalities[v->topology.size-1].isovalue > initial_isovalue);
 
     // compute the samples
     cp = v->topology.criticalities;
+    uint64_t i;
     for (i=1; i < v->topology.size; i++) {
         real d_iso = cp[i].isovalue - cp[i-1].isovalue;
         if (d_iso > sp.min_crit_iso_distance) {
